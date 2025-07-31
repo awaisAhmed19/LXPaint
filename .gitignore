@@ -1,0 +1,46 @@
+
+# Build files
+build/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+
+# Compiled binaries
+*.out
+*.o
+*.obj
+*.exe
+*.dll
+*.so
+*.dylib
+
+# IDE and Editor junk
+*.log
+*.swp
+*.swo
+*.swn
+*.DS_Store
+*.idea/
+*.vscode/
+*.vs/
+*.code-workspace
+
+# Mac specific
+.DS_Store
+
+# Windows specific
+Thumbs.db
+*.user
+*.vcxproj*
+*.pdb
+
+# Backup files
+*~
+*.bak
+*.tmp
+*.old
+
+# CTags
+tags
+TAGS
