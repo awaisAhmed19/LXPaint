@@ -1,1 +1,0 @@
-/sbin/c++ -Wl,--dependency-file=CMakeFiles/MSPaint.dir/link.d CMakeFiles/MSPaint.dir/src/main.cpp.o -o MSPaint  /usr/lib/libSDL2main.a /usr/lib/libSDL2-2.0.so.0.3200.56

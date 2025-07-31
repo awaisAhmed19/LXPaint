@@ -1,3 +1,0 @@
-/home/awais/Documents/MSpaint/build/CMakeFiles/MSpaint.dir
-/home/awais/Documents/MSpaint/build/CMakeFiles/edit_cache.dir
-/home/awais/Documents/MSpaint/build/CMakeFiles/rebuild_cache.dir
