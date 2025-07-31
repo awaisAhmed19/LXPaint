@@ -29,6 +29,9 @@ int main(int argc, char* argv[]) {
                 quit = true;
             }
         }
+        SDL_RenderClear(ren);    // Clear screen (usually black)
+        Canvas.render();         // Render your canvas object
+        SDL_RenderPresent(ren);  // Push to screen
     }
 
     SDL_DestroyRenderer(ren);

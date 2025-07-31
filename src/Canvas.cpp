@@ -18,3 +18,8 @@ Canvas::~Canvas() {
     delete[] pixelBuffer;
     SDL_DestroyTexture(texture);
 }
+void Canvas::render() {
+    // Update texture with pixel buffer
+    SDL_UpdateTexture(texture, nullptr, pixelBuffer, pitch);
+    SDL_RenderCopy(renderer, texture, nullptr, nullptr);  // Render the whole canvas
+}
