@@ -34,6 +34,7 @@ Thumbs.db
 *.user
 *.vcxproj*
 *.pdb
+*.zip
 *.pdf
 
 # Backup files
