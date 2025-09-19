@@ -1,47 +1,25 @@
-
 cmake_minimum_required(VERSION 3.10)
-project(MSpaint)
+project(LXpaint)
 
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Include all source files
-file(GLOB SOURCES src/*.cpp)
+# Find SDL2
+find_package(SDL2 REQUIRED)
+find_package(SDL2_image REQUIRED)
+find_package(SDL2_ttf REQUIRED)
 
-# Executable
-add_executable(MSpaint ${SOURCES})
+include_directories(${SDL2_INCLUDE_DIRS} ${SDL2_IMAGE_INCLUDE_DIRS} ${SDL2_TTF_INCLUDE_DIRS} include)
 
-# SDL2
+file(GLOB SRC_FILES src/*.cpp)
 
-find_package(PkgConfig REQUIRED)
+add_executable(myapp ${SRC_FILES})
 
-# Core SDL2
-pkg_check_modules(SDL2 REQUIRED sdl2)
-include_directories(${SDL2_INCLUDE_DIRS})
-link_directories(${SDL2_LIBRARY_DIRS})
+# Link SDL2 libraries
+target_link_libraries(myapp ${SDL2_LIBRARIES} ${SDL2_IMAGE_LIBRARIES} ${SDL2_TTF_LIBRARIES})
 
-# SDL2_image
-pkg_check_modules(SDL2_IMAGE REQUIRED SDL2_image)
-include_directories(${SDL2_IMAGE_INCLUDE_DIRS})
-link_directories(${SDL2_IMAGE_LIBRARY_DIRS})
-
-# SDL2_ttf
-pkg_check_modules(SDL2_TTF REQUIRED SDL2_ttf)
-include_directories(${SDL2_TTF_INCLUDE_DIRS})
-link_directories(${SDL2_TTF_LIBRARY_DIRS})
-
-# SDL2_gfx
-pkg_check_modules(SDL2_GFX REQUIRED SDL2_gfx)
-include_directories(${SDL2_GFX_INCLUDE_DIRS})
-link_directories(${SDL2_GFX_LIBRARY_DIRS})
-
-# Link everything together
-
-target_link_libraries(MSpaint
-    ${SDL2_LIBRARIES}
-    ${SDL2_IMAGE_LIBRARIES}
-    ${SDL2_TTF_LIBRARIES}
-    ${SDL2_GFX_LIBRARIES}
+add_custom_target(run
+    COMMAND myapp
+    DEPENDS myapp
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 )
-# Include your own headers
-target_include_directories(MSpaint PRIVATE include)
-

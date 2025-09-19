@@ -1,41 +1,63 @@
-#include <SDL2/SDL.h>
+#include <SDL.h>
 
 #include <iostream>
 
-#include "../include/Canvas.h"
+using namespace std;
+
+SDL_Renderer* renderer = 0;
+SDL_Window* window = 0;
+bool init(const char* Title, int Xpos, int Ypos, int height, int width, int flags) {
+    if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
+        std::cerr << "SDL_Init Error: " << SDL_GetError() << std::endl;
+        return false;
+    }
+
+    window = SDL_CreateWindow(Title, Xpos, Ypos, width, height, flags);
+    if (!window) {
+        std::cerr << "Window Error: " << SDL_GetError() << std::endl;
+        return false;
+    }
+
+    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+    if (!renderer) {
+        std::cerr << "Renderer Error: " << SDL_GetError() << std::endl;
+        return false;
+    }
+    return true;
+}
+
+void Render() {
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+    SDL_RenderClear(renderer);
+
+    SDL_RenderPresent(renderer);
+}
 
 int main(int argc, char* argv[]) {
-    if (SDL_Init(SDL_INIT_VIDEO) != 0) {
-        std::cerr << "SDL_init Error" << SDL_GetError() << "\n";
+    bool running = false;
+
+    if (init("LXPaint", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 650, 650,
+             SDL_WINDOW_SHOWN)) {
+        running = true;
+        std::cout << running;
+    } else {
         return 1;
     }
 
-    SDL_Window* win = SDL_CreateWindow("MS Paint", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-                                       1280, 720, SDL_WINDOW_SHOWN);
-    if (!win) {
-        std::cerr << "SDL_init Error" << SDL_GetError() << "\n";
-        return 1;
-    }
-
-    SDL_Renderer* ren =
-        SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
-    Canvas Canvas(ren, 0, 0, 800, 600);
-    SDL_Event e;
-    bool quit = false;
-
-    while (!quit) {
-        while (SDL_PollEvent(&e)) {
-            if (e.type == SDL_QUIT) {
-                quit = true;
+    SDL_Event event;
+    while (running) {
+        while (SDL_PollEvent(&event)) {
+            if (event.type == SDL_QUIT) {
+                running = false;
             }
         }
-        SDL_RenderClear(ren);    // Clear screen (usually black)
-        Canvas.render();         // Render your canvas object
-        SDL_RenderPresent(ren);  // Push to screen
+        Render();
     }
 
-    SDL_DestroyRenderer(ren);
-    SDL_DestroyWindow(win);
+    SDL_DestroyRenderer(renderer);
+    SDL_DestroyWindow(window);
+
     SDL_Quit();
+
     return 0;
 }
