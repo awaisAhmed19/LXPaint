@@ -6,8 +6,12 @@ CMakeCache.txt
 cmake_install.cmake
 Makefile
 
+github_LXpaint
+github_LXpaint.pub
+
 # Compiled binaries
 *.out
+*.txt
 *.o
 *.obj
 *.exe
