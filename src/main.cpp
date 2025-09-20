@@ -1,5 +1,3 @@
-#include <SDL.h>
-
 #include <iostream>
 
 #include "App.h"

@@ -26,7 +26,7 @@ bool App::init(const char* title, int xpos, int ypos, int width, int height, boo
         return false;
     }
 
-    SDL_Surface* pTempsurface = SDL_LoadBMP("/home/awais/LXpaint/assets/ROBOCOP.bmp");
+    SDL_Surface* pTempsurface = IMG_Load("/home/awais/LXpaint/assets/sprites/dog.png");
     if (pTempsurface == nullptr) {
         std::cerr << "m_Tempsurface Error: " << SDL_GetError() << std::endl;
     }
@@ -36,17 +36,19 @@ bool App::init(const char* title, int xpos, int ypos, int width, int height, boo
     SDL_QueryTexture(m_pTexture, nullptr, nullptr, &m_srcRect.w, &m_srcRect.h);
     m_desRect.x = m_srcRect.x = 0;
     m_desRect.y = m_srcRect.y = 0;
+    m_srcRect.w = 128;
+    m_srcRect.h = 82;
     m_desRect.w = m_srcRect.w;
     m_desRect.h = m_srcRect.h;
     m_brunning = true;
     return true;
 }
 
-void App::update() {}
+void App::update() { m_srcRect.x = 128 * int(((SDL_GetTicks() / 100) % 6)); }
 void App::render() {
     SDL_RenderClear(m_pRenderer);
-    SDL_RenderCopy(m_pRenderer, m_pTexture, &m_srcRect, &m_desRect);
-
+    SDL_SetRenderDrawColor(m_pRenderer, 255, 0, 0, 255);
+    SDL_RenderCopyEx(m_pRenderer, m_pTexture, &m_srcRect, &m_desRect, 0, 0, SDL_FLIP_VERTICAL);
     SDL_RenderPresent(m_pRenderer);
 }
 
