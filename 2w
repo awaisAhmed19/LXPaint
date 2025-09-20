@@ -1,0 +1,79 @@
+#include <SDL.h>
+
+#include <iostream>
+
+using namespace std;
+// TODO: remove the these global variable soon
+// having gloabl variables in a big project is problematic
+SDL_Renderer* renderer = nullptr;
+SDL_Window* window = nullptr;
+SDL_Surface* screenSurface = nullptr;
+SDL_Surface* ghelloworld = nullptr;
+
+bool loadmedia() {
+    bool success = true;
+
+    ghelloworld = SDL_LoadBMP("~/Downloads/Robocop.bmp");
+
+    if (ghelloworld == nullptr) {
+        cerr << "SDL BMP loading error" << SDL_GetError() << endl;
+        success = false;
+    }
+    return success;
+}
+
+bool init(const char* Title, int Xpos, int Ypos, int height, int width, int flags) {
+    if (SDL_Init(SDL_INIT_EVERYTHING) != nullptr) {
+        cerr << "SDL_Init Error: " << SDL_GetError() << std::endl;
+        return false;
+    }
+
+    window = SDL_CreateWindow(Title, Xpos, Ypos, width, height, flags);
+    if (!window) {
+        cerr << "Window Error: " << SDL_GetError() << std::endl;
+        return false;
+    }
+
+    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+    if (!renderer) {
+        cerr << "Renderer Error: " << SDL_GetError() << std::endl;
+        return false;
+    }
+    return true;
+}
+
+void Render() {
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+    SDL_RenderClear(renderer);
+
+    SDL_RenderPresent(renderer);
+}
+
+int main(int argc, char* argv[]) {
+    bool running = false;
+
+    if (init("LXPaint", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 650, 650,
+             SDL_WINDOW_SHOWN)) {
+        running = true;
+        cout << running;
+    } else {
+        return 1;
+    }
+
+    SDL_Event event;
+    while (running) {
+        while (SDL_PollEvent(&event)) {
+            if (event.type == SDL_QUIT) {
+                running = false;
+            }
+        }
+        Render();
+    }
+
+    SDL_DestroyRenderer(renderer);
+    SDL_DestroyWindow(window);
+
+    SDL_Quit();
+
+    return 0;
+}

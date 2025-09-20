@@ -11,15 +11,16 @@ find_package(SDL2_ttf REQUIRED)
 
 include_directories(${SDL2_INCLUDE_DIRS} ${SDL2_IMAGE_INCLUDE_DIRS} ${SDL2_TTF_INCLUDE_DIRS} include)
 
-file(GLOB SRC_FILES src/*.cpp)
 
-add_executable(myapp ${SRC_FILES})
+file(GLOB SRC_FILES src/*.cpp src/*.h)
+
+add_executable( LXpaint ${SRC_FILES})
 
 # Link SDL2 libraries
-target_link_libraries(myapp ${SDL2_LIBRARIES} ${SDL2_IMAGE_LIBRARIES} ${SDL2_TTF_LIBRARIES})
+target_link_libraries(LXpaint ${SDL2_LIBRARIES} ${SDL2_IMAGE_LIBRARIES} ${SDL2_TTF_LIBRARIES})
 
 add_custom_target(run
-    COMMAND myapp
-    DEPENDS myapp
+    COMMAND LXpaint
+    DEPENDS LXpaint
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 )
