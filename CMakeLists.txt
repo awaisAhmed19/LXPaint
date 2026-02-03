@@ -1,32 +1,22 @@
-cmake_minimum_required(VERSION 3.10)
-project(LXpaint)
+
+cmake_minimum_required(VERSION 3.15)
+
+project(LXpaint LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Find SDL2 packages
 find_package(SDL2 REQUIRED)
-find_package(SDL2_image REQUIRED)
-find_package(SDL2_ttf REQUIRED)
 
-# Source files
-file(GLOB SRC_FILES src/*.cpp src/*.h)
-
-# Executable
-add_executable(LXpaint ${SRC_FILES})
-
-# Link libraries (modern target-based)
-target_link_libraries(LXpaint PRIVATE
-    SDL2::SDL2
-    SDL2::SDL2main
-    SDL2_image::SDL2_image
-    SDL2_ttf::SDL2_ttf
+add_executable(lxpaint
+    src/main.cpp
 )
 
-# Run target
-add_custom_target(run
-    COMMAND LXpaint
-    DEPENDS LXpaint
-    WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
+target_link_libraries(lxpaint
+    PRIVATE SDL2::SDL2
 )
+
+# Linux / macOS usually don't need SDL2main
+# Windows might — handle later when needed
 

@@ -32,7 +32,7 @@ github_LXpaint.pub
 
 # Mac specific
 .DS_Store
-
+PROJECT.md
 # Windows specific
 Thumbs.db
 *.user
