@@ -11,12 +11,12 @@ find_package(SDL2 REQUIRED)
 
 add_executable(lxpaint
     src/main.cpp
+    src/canvas.cpp
 )
 
 target_link_libraries(lxpaint
     PRIVATE SDL2::SDL2
 )
-
 # Linux / macOS usually don't need SDL2main
 # Windows might — handle later when needed
 

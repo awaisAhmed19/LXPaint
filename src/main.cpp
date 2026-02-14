@@ -3,89 +3,67 @@
 #include <SDL2/SDL_events.h>
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_rect.h>
+#include <SDL2/SDL_render.h>
 #include <SDL2/SDL_timer.h>
 #include <SDL2/SDL_video.h>
 
 #include <iostream>
-
+// https://stackoverflow.com/questions/19935727/sdl2-how-to-render-with-one-buffer-instead-of-two
+#include "canvas.h"
 SDL_Window* win = nullptr;
-SDL_Surface* winSurface = nullptr;
-SDL_Surface* img1;
-SDL_Surface* img2;
-bool init() {
-    if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
-        std::cout << "Error initializing SDL: " << SDL_GetError() << std::endl;
-        return false;
-    }
-    win = SDL_CreateWindow("LXPaint", 0, 0, 1270, 800, SDL_WINDOW_SHOWN);
+SDL_Renderer* renderer = nullptr;
+
+bool initWindow() {
+    win = SDL_CreateWindow("LXPaint", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 1270, 720,
+                           SDL_WINDOW_FULLSCREEN_DESKTOP);
     if (!win) {
         std::cout << "Error initializing window: " << SDL_GetError() << std::endl;
         return false;
     }
-    winSurface = SDL_GetWindowSurface(win);
+    return true;
+}
 
-    if (!winSurface) {
+bool initRenderer() {
+    renderer = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED);
+    if (!renderer) {
         std::cout << "Error initializing Surface: " << SDL_GetError() << std::endl;
         return false;
     }
     return true;
 }
+
+bool init() {
+    if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
+        std::cout << "Error initializing SDL: " << SDL_GetError() << std::endl;
+        return false;
+    }
+    return initWindow() && initRenderer();
+}
+
 void kill() {
-    SDL_FreeSurface(img1);
-    SDL_FreeSurface(img2);
+    SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(win);
+    renderer = nullptr;
     win = nullptr;
-    winSurface = nullptr;
     SDL_Quit();
 }
-bool load() {
-    SDL_Surface *temp1, *temp2;
 
-    // Load images
-    // Change these lines in your load() function
-    temp1 = SDL_LoadBMP("src/sample2.bmp");
-    temp2 = SDL_LoadBMP("src/sample3.bmp");
-
-    // Make sure loads succeeded
-    if (!temp1 || !temp2) {
-        std::cout << "Error loading image: " << SDL_GetError() << std::endl;
-        system("pause");
-        return false;
-    }
-
-    // Format surfaces
-    img1 = SDL_ConvertSurface(temp1, winSurface->format, 0);
-    img2 = SDL_ConvertSurface(temp2, winSurface->format, 0);
-
-    // Free temporary surfaces
-    SDL_FreeSurface(temp1);
-    SDL_FreeSurface(temp2);
-
-    // Make sure format succeeded
-    if (!img1 || !img2) {
-        std::cout << "Error converting surface: " << SDL_GetError() << std::endl;
-        system("pause");
-        return false;
-    }
-    return true;
+void render(uint32_t* buffer, SDL_Texture* texture) {
+    SDL_RenderClear(renderer);
+    SDL_RenderCopy(renderer, texture, NULL, NULL);
+    SDL_RenderPresent(renderer);
 }
+
 int main(int argc, char* argv[]) {
     // do drawing in this
-
     if (!init()) return 1;
+    Canvas c;
+    c = createCanvas(100, 100);
+    fillWhite(c);
+    SDL_Texture* texture = SDL_CreateTexture(renderer,
+                                             SDL_PIXELFORMAT_RGBA8888,  // Or your preferred format
+                                             SDL_TEXTUREACCESS_STREAMING, c.width, c.height);
 
-    if (!load()) return 1;
-
-    // Blit image to entire window
-    SDL_BlitSurface(img1, NULL, winSurface, NULL);
-
-    // Blit image to scaled portion of window
-    SDL_Rect dest;
-    dest.x = 160;
-    dest.y = 120;
-    dest.w = 320;
-    dest.h = 240;
-    SDL_BlitScaled(img2, NULL, winSurface, &dest);
     bool running = true;
     SDL_Event e;
     while (running) {
@@ -94,10 +72,10 @@ int main(int argc, char* argv[]) {
                 running = false;
             }
         }
-        // You can keep the update here if you're animating
-        SDL_UpdateWindowSurface(win);
+        SDL_UpdateTexture(texture, NULL, c.buffer.data(), c.width * 4);
+        render(c.buffer.data(), texture);
     }
-
+    SDL_DestroyTexture(texture);
     kill();
     return 0;
 }
