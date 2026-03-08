@@ -1,81 +1,98 @@
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_error.h>
-#include <SDL2/SDL_events.h>
-#include <SDL2/SDL_image.h>
-#include <SDL2/SDL_rect.h>
-#include <SDL2/SDL_render.h>
-#include <SDL2/SDL_timer.h>
-#include <SDL2/SDL_video.h>
 
 #include <iostream>
-// https://stackoverflow.com/questions/19935727/sdl2-how-to-render-with-one-buffer-instead-of-two
-#include "canvas.h"
-SDL_Window* win = nullptr;
-SDL_Renderer* renderer = nullptr;
 
-bool initWindow() {
-    win = SDL_CreateWindow("LXPaint", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 1270, 720,
-                           SDL_WINDOW_FULLSCREEN_DESKTOP);
-    if (!win) {
-        std::cout << "Error initializing window: " << SDL_GetError() << std::endl;
-        return false;
-    }
-    return true;
-}
+#include "raylib.h"
 
-bool initRenderer() {
-    renderer = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED);
-    if (!renderer) {
-        std::cout << "Error initializing Surface: " << SDL_GetError() << std::endl;
-        return false;
-    }
-    return true;
-}
+namespace app {
+const int SWIDTH = 800;
+const int SHEIGHT = 800;
+const char* title = "LX paint";
+const Color background = {130, 130, 130, 255};
+bool drawing = false;
+Vector2 startPos, endPos = {0, 0};
+}  // namespace app
 
-bool init() {
-    if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
-        std::cout << "Error initializing SDL: " << SDL_GetError() << std::endl;
-        return false;
-    }
-    return initWindow() && initRenderer();
-}
+void bresenham(Vector2 start, Vector2 end, Color activeColor) {
+    int dx = abs((int)end.x - (int)start.x);
+    int dy = abs((int)end.y - (int)start.y);
+    int sx = (start.x < end.x) ? 1 : -1;
+    int sy = (start.y < end.y) ? 1 : -1;
+    int err = dx - dy;
 
-void kill() {
-    SDL_DestroyRenderer(renderer);
-    SDL_DestroyWindow(win);
-    renderer = nullptr;
-    win = nullptr;
-    SDL_Quit();
-}
+    while (true) {
+        std::cout << "{" << start.x << "," << start.y << "}" << std::endl;
 
-void render(uint32_t* buffer, SDL_Texture* texture) {
-    SDL_RenderClear(renderer);
-    SDL_RenderCopy(renderer, texture, NULL, NULL);
-    SDL_RenderPresent(renderer);
-}
-
-int main(int argc, char* argv[]) {
-    // do drawing in this
-    if (!init()) return 1;
-    Canvas c;
-    c = createCanvas(100, 100);
-    fillWhite(c);
-    SDL_Texture* texture = SDL_CreateTexture(renderer,
-                                             SDL_PIXELFORMAT_RGBA8888,  // Or your preferred format
-                                             SDL_TEXTUREACCESS_STREAMING, c.width, c.height);
-
-    bool running = true;
-    SDL_Event e;
-    while (running) {
-        while (SDL_PollEvent(&e) != 0) {
-            if (e.type == SDL_QUIT) {
-                running = false;
-            }
+        DrawRectangle(start.x, start.y, 1, 1, {0, 0, 0, 255});
+        if (start.x == end.x && start.y == end.y) break;
+        int e2 = 2 * err;
+        if (e2 > -dy) {
+            err -= dy;
+            start.x += sx;
         }
-        SDL_UpdateTexture(texture, NULL, c.buffer.data(), c.width * 4);
-        render(c.buffer.data(), texture);
+        if (e2 < dx) {
+            err += dx;
+            start.y += sy;
+        }
     }
-    SDL_DestroyTexture(texture);
-    kill();
+    // time comp=O(x2-x1)
+    // auxiliry space : O(1)
+}
+
+void MouseDown() {
+    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+        app::startPos = GetMousePosition();
+        app::drawing = true;
+    }
+}
+
+void MouseMove() {
+    if (app::drawing) {
+        app::endPos = GetMousePosition();
+        bresenham(app::startPos, app::endPos, {0, 0, 0, 255});
+        app::startPos = app::endPos;
+    }
+}
+void MouseReleased() {
+    if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT) && app::drawing) {
+        app::endPos = GetMousePosition();
+        bresenham(app::startPos, app::endPos, {0, 0, 0, 255});
+        app::drawing = false;
+    }
+}
+int main(void) {
+    InitWindow(app::SWIDTH, app::SHEIGHT, app::title);
+    SetTargetFPS(60);
+
+    int monitor = GetCurrentMonitor();
+    std::cout << "Monitor: " << GetMonitorName(monitor) << std::endl;
+
+    RenderTexture2D target = LoadRenderTexture(app::SWIDTH - 100, app::SHEIGHT - 100);
+
+    // Clear canvas to white once at start
+    BeginTextureMode(target);
+    ClearBackground(RAYWHITE);
+    EndTextureMode();  // ← not EndVrStereoMode!
+
+    while (!WindowShouldClose()) {
+        Vector2 mousePos = GetMousePosition();
+
+        BeginTextureMode(target);
+        MouseDown();
+        MouseMove();
+        MouseReleased();
+        EndTextureMode();
+
+        BeginDrawing();
+        ClearBackground(app::background);
+        DrawTexturePro(
+            target.texture,
+            (Rectangle){0, 0, (float)target.texture.width, (float)-target.texture.height},
+            (Rectangle){0, 0, (float)app::SWIDTH - 100, (float)app::SHEIGHT - 100}, (Vector2){0, 0},
+            0, WHITE);
+        EndDrawing();
+    }
+
+    UnloadRenderTexture(target);
+    CloseWindow();
     return 0;
 }
