@@ -1,77 +1,38 @@
-#pragma once
-#include <stack>
+#include <vector>
 
-#include "command.h"
-#include "raylib.h"
+struct Canvas {
+  int width, height;
+  std::vector<unsigned char> pixels;
+  GLuint texture;
 
-class Canvas {
-    RenderTexture2D mainTexture;
-    RenderTexture2D bufferTexture;
+  Canvas(int w, int h) : width(w), height(h) {
+    // RGBA buffer
+    pixels.resize(w * h * 4, 255); // white canvas
 
-    std::stack<Command*> undoStack;
+    // Create texture
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
 
-   public:
-    void init(int width, int height) {
-        mainTexture = LoadRenderTexture(width, height);
-        BeginTextureMode(mainTexture);
-        ClearBackground(WHITE);
-        EndTextureMode();
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA,
+                 GL_UNSIGNED_BYTE, pixels.data());
 
-        bufferTexture = LoadRenderTexture(width, height);
-        BeginTextureMode(bufferTexture);
-        ClearBackground(BLANK);  // transparent
-        EndTextureMode();
-    }
-    void applyCommand(Command* cmd) {
-        cmd->execute(*this);
-        undoStack.push(cmd);
-    }
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  }
+  void update() {
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA,
+                    GL_UNSIGNED_BYTE, pixels.data());
+  }
+  void setPixel(int x, int y, unsigned char r, unsigned char g, unsigned char b,
+                unsigned char a) {
+    if (x < 0 || x >= width || y < 0 || y >= height)
+      return;
 
-    void undo() {
-        if (undoStack.empty()) return;
-        Command* cmd = undoStack.top();
-        undoStack.pop();
-        cmd->undo(*this);
-        delete cmd;
-    }
-
-    // draw into the canvasmainTexture
-    void beginDrawMain() { BeginTextureMode(mainTexture); }
-    void beginDrawBuffer() { BeginTextureMode(bufferTexture); }
-    void endDraw() { EndTextureMode(); }
-
-    // render canvasmainTexture to screen
-    void render() {
-        // RenderTexture is flipped vertically in raylib
-        DrawTextureRec(mainTexture.texture,
-                       {0, 0, (float)mainTexture.texture.width, -(float)mainTexture.texture.height},
-                       {0, 0}, WHITE);
-        DrawTextureRec(
-            bufferTexture.texture,
-            {0, 0, (float)bufferTexture.texture.width, -(float)bufferTexture.texture.height},
-            {0, 0}, WHITE);
-    }
-    void clearBuffer() {
-        BeginTextureMode(bufferTexture);
-        ClearBackground(BLANK);  // {0,0,0,0} — fully transparent
-        EndTextureMode();
-    }
-
-    void commitBuffer() {
-        // copy buffer onto main canvas then clear buffer
-        BeginTextureMode(mainTexture);
-        DrawTextureRec(
-            bufferTexture.texture,
-            {0, 0, (float)bufferTexture.texture.width, -(float)bufferTexture.texture.height},
-            {0, 0}, WHITE);
-        EndTextureMode();
-        clearBuffer();
-    }
-
-    Image captureSnapshot() { return LoadImageFromTexture(mainTexture.texture); }
-
-    void restoreSnapshot(Image& snapshot) { UpdateTexture(mainTexture.texture, snapshot.data); }
-
-    int getWidth() { return mainTexture.texture.width; }
-    int getHeight() { return mainTexture.texture.height; }
+    int idx = (y * width + x) * 4;
+    pixels[idx] = r;
+    pixels[idx + 1] = g;
+    pixels[idx + 2] = b;
+    pixels[idx + 3] = a;
+  }
 };

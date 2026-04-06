@@ -1,18 +1,40 @@
-cmake_minimum_required(VERSION 3.15)
-project(LXpaint LANGUAGES CXX)
+cmake_minimum_required(VERSION 3.16)
+project(Paintlxpaint)
 
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
 
-# ---- Find raylib (must be installed locally) ----
-find_package(raylib REQUIRED)
+# GLFW
+add_subdirectory(external/glfw)
 
-# ---- Add executable ----
-add_executable(lxpaint
-    src/main.cpp
-    # src/canvas.cpp
+# GLAD
+add_library(glad external/glad/src/glad.c)
+target_include_directories(glad PUBLIC external/glad/include)
+
+# ImGui
+file(GLOB IMGUI_SRC
+    external/imgui/*.cpp
+    external/imgui/backends/imgui_impl_glfw.cpp
+    external/imgui/backends/imgui_impl_opengl3.cpp
 )
 
-# ---- Link raylib ----
-target_link_libraries(lxpaint PRIVATE raylib)
+add_library(imgui ${IMGUI_SRC})
+
+target_include_directories(imgui PUBLIC
+    external/imgui
+    external/imgui/backends
+)
+
+target_link_libraries(imgui PUBLIC glfw)
+
+# Executable
+add_executable(lxpaint
+    src/main.cpp
+    src/renderer/shader.cpp
+    src/renderer/quad.cpp
+)
+target_link_libraries(lxpaint glfw glad imgui)
+
+# Linux fix (important)
+if(UNIX)
+    target_link_libraries(lxpaint GL dl pthread)
+endif()
