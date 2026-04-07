@@ -1,40 +1,18 @@
-cmake_minimum_required(VERSION 3.16)
-project(Paintlxpaint)
+cmake_minimum_required(VERSION 3.10)
+project(lxpaint VERSION 1.0)
 
-set(CMAKE_CXX_STANDARD 17)
+# 1. Configure SDL options before adding the directory
+# We disable tests and documentation to speed up build time
+set(SDL_TESTS OFF CACHE BOOL "" FORCE)
+set(SDL_INSTALL OFF CACHE BOOL "" FORCE)
 
-# GLFW
-add_subdirectory(external/glfw)
+# 2. Add the SDL subdirectory
+add_subdirectory(external/SDL)
 
-# GLAD
-add_library(glad external/glad/src/glad.c)
-target_include_directories(glad PUBLIC external/glad/include)
+# 3. Define your executable
+add_executable(${PROJECT_NAME} src/main.cpp)
 
-# ImGui
-file(GLOB IMGUI_SRC
-    external/imgui/*.cpp
-    external/imgui/backends/imgui_impl_glfw.cpp
-    external/imgui/backends/imgui_impl_opengl3.cpp
-)
-
-add_library(imgui ${IMGUI_SRC})
-
-target_include_directories(imgui PUBLIC
-    external/imgui
-    external/imgui/backends
-)
-
-target_link_libraries(imgui PUBLIC glfw)
-
-# Executable
-add_executable(lxpaint
-    src/main.cpp
-    src/renderer/shader.cpp
-    src/renderer/quad.cpp
-)
-target_link_libraries(lxpaint glfw glad imgui)
-
-# Linux fix (important)
-if(UNIX)
-    target_link_libraries(lxpaint GL dl pthread)
-endif()
+# 4. Link SDL.
+# Note: SDL3 uses "SDL3::SDL3", while SDL2 uses "SDL2::SDL2"
+# This template assumes you cloned the latest (SDL3)
+target_link_libraries(${PROJECT_NAME} PRIVATE SDL3::SDL3)
