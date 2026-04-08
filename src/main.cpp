@@ -1,48 +1,89 @@
 #include <SDL3/SDL.h>
 #include <iostream>
+#include "./Tools/ToolManager.h"
+#include "./Tools/Pencil.h"     // Need concrete tool to register
+#include "./core/CommandManager.h"
+#include "./core/Canvas.h"
+#include "Globals.h"
+
+const char *TITLE = "LXPAINT";
+int WindowWidth = 1280;
+int WindowHeight = 720;
+
+void processInput(bool& running, ToolManager& tm, Canvas& canvas, CommandManager& cm) {
+    SDL_Event e;
+    while (SDL_PollEvent(&e)) {
+        if (e.type == SDL_EVENT_QUIT) running = false;
+
+        BaseTool* tool = tm.getActive();
+        if (!tool) continue;
+
+        // Wrap raw SDL coordinates into your vec2 struct
+        vec2 mousePos = { (int)e.button.x, (int)e.button.y };
+
+        if (e.type == SDL_EVENT_MOUSE_BUTTON_DOWN) {
+            if (e.button.button == SDL_BUTTON_LEFT) {
+                tool->onMouseDown(mousePos, canvas);
+            }
+        }
+        else if (e.type == SDL_EVENT_MOUSE_MOTION) {
+            // SDL3 uses motion.state for bitmask checks
+            if (e.motion.state & SDL_BUTTON_LMASK) {
+                tool->onMouseMove(mousePos, canvas);
+            }
+        }
+        else if (e.type == SDL_EVENT_MOUSE_BUTTON_UP) {
+            if (e.button.button == SDL_BUTTON_LEFT) {
+                Command* cmd = tool->onMouseUp(mousePos, canvas);
+                if (cmd) cm.executeCommand(cmd, canvas);
+            }
+        }
+    }
+}
 
 int main(int argc, char* argv[]) {
-    // 1. Initialize SDL
     if (!SDL_Init(SDL_INIT_VIDEO)) {
-        std::cerr << "SDL_Init Error: " << SDL_GetError() << std::endl;
         return 1;
     }
 
-    // 2. Create Window and Renderer together
-    // SDL_CreateWindowAndRenderer is the fastest way to get both.
     SDL_Window* window = nullptr;
     SDL_Renderer* renderer = nullptr;
 
-    if (!SDL_CreateWindowAndRenderer("SDL3 Window", 640, 480, 0, &window, &renderer)) {
-        std::cerr << "Failed to create window/renderer: " << SDL_GetError() << std::endl;
+    // 1. Create Window and Renderer FIRST
+    if (!SDL_CreateWindowAndRenderer(TITLE, WindowWidth, WindowHeight, 0, &window, &renderer)) {
         SDL_Quit();
         return 1;
     }
 
+    // 2. Initialize Engine Systems
+    Canvas canvas(renderer, WindowWidth, WindowHeight);
+    CommandManager cm;
+    ToolManager tm;
+
+    // 3. Register and Setup Tools
+    Pencil* pencil = new Pencil();
+    tm.registerTool("pencil", pencil);
+    tm.setActiveTool("pencil");
+
     bool running = true;
-    SDL_Event event;
-
-    // 3. Main Loop
     while (running) {
-        // Event Handling
-        while (SDL_PollEvent(&event)) {
-            if (event.type == SDL_EVENT_QUIT) {
-                running = false;
-            }
-        }
+        // A. Handle Input
+        processInput(running, tm, canvas, cm);
 
-        // --- Rendering ---
-        // Set draw color (R, G, B, A) -> Cornflower Blue
-        SDL_SetRenderDrawColor(renderer, 100, 149, 237, 255);
+        // B. Update Display Texture from Software Surface
+        canvas.syncTexture(); // Assumes you added this helper to Canvas.h
 
-        // Clear the screen with that color
+        // C. Render
+        SDL_SetRenderDrawColor(renderer, 50, 50, 50, 255); // Background color
         SDL_RenderClear(renderer);
 
-        // Present the backbuffer to the window
+        // Draw the canvas texture to the screen
+        SDL_RenderTexture(renderer, canvas.mainTexture, NULL, NULL);
         SDL_RenderPresent(renderer);
     }
 
-    // 4. Cleanup
+    // Cleanup
+    delete pencil;
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();
