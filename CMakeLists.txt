@@ -31,6 +31,6 @@ target_link_libraries(${PROJECT_NAME} PRIVATE SDL3::SDL3)
 # 7. C++ Standard
 # Ensure we are using at least C++17 for modern features
 set_target_properties(${PROJECT_NAME} PROPERTIES
-    CXX_STANDARD 17
+    CXX_STANDARD 20
     CXX_STANDARD_REQUIRED ON
 )

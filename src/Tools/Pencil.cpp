@@ -1,5 +1,14 @@
 #include "Pencil.h"
 #include "../commands/DrawCommand.h"
+
+static void _putpixel(SDL_Surface* surface, int x,int y, uint32_t color) {
+    if (x < 0 || x >= surface->w || y < 0 || y >= surface->h) return;
+
+    uint32_t* pixels = (uint32_t*)surface->pixels;
+
+    pixels[(y * (surface->pitch / 4)) + x] = color;
+}
+
 void Pencil::onMouseDown(vec2 pos, Canvas& canvas) {
     drawing = true;
     startpos = pos;
@@ -8,7 +17,7 @@ void Pencil::onMouseDown(vec2 pos, Canvas& canvas) {
     if (currentSnapshot) SDL_DestroySurface(currentSnapshot);
     currentSnapshot = SDL_DuplicateSurface(canvas.drawingSurface);
 
-    PutPixel(canvas.drawingSurface, startpos, color);
+    _putpixel(canvas.drawingSurface, startpos.x,startpos.y, color);
 }
 
 void Pencil::onMouseMove(vec2 pos, Canvas& canvas) {
@@ -16,7 +25,7 @@ void Pencil::onMouseMove(vec2 pos, Canvas& canvas) {
 
     vec2 currentPos = pos;
     // Connect last position to current position
-    bresenham(startpos, currentPos, canvas, color);
+    bresenham(startpos, currentPos, canvas, color,1);
 
     startpos = currentPos; // Update for the next frame
 }
@@ -35,26 +44,21 @@ Command* Pencil::onMouseUp(vec2 pos, Canvas& canvas) {
     return cmd;
 }
 
-void Pencil::bresenham(vec2 start, vec2 end, Canvas& canvas, uint32_t color) {
-    int dx = abs(end.x - start.x);
-    int dy = abs(end.y - start.y);
-    int sx = (start.x < end.x) ? 1 : -1;
-    int sy = (start.y < end.y) ? 1 : -1;
-    int err = dx - dy;
+void Pencil::bresenham(vec2 start, vec2 end, Canvas& canvas, uint32_t color,int brushSize=2) {
+    int dx = abs(end.x - start.x), sx = start.x < end.x ? 1 : -1;
+    int dy = -abs(end.y - start.y), sy = start.y < end.y ? 1 : -1;
+    int err = dx + dy;
 
     while (true) {
-        PutPixel(canvas.drawingSurface, start, color);
+        for (int ox = -brushSize; ox <= brushSize; ox++) {
+            for (int oy = -brushSize; oy <= brushSize; oy++) {
+                _putpixel(canvas.drawingSurface, start.x + ox, start.y + oy, color);
+            }
+        }
 
         if (start.x == end.x && start.y == end.y) break;
-
         int e2 = 2 * err;
-        if (e2 > -dy) {
-            err -= dy;
-            start.x += sx;
-        }
-        if (e2 < dx) {
-            err += dx;
-            start.y += sy;
-        }
+        if (e2 >= dy) { err += dy; start.x += sx; }
+        if (e2 <= dx) { err += dx; start.y += sy; }
     }
 }

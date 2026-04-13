@@ -7,6 +7,8 @@ struct vec2 {
     int y = 0;
 
     vec2 operator+(const vec2& other) const { return {x + other.x, y + other.y}; }
+    vec2 operator+(const int other) const { return {x + other, y + other}; }
+    vec2 operator-(const int other) const { return {x - other, y - other}; }
     bool operator==(const vec2& other) const { return x == other.x && y == other.y; }
 };
 

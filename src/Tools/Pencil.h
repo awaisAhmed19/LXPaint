@@ -15,9 +15,10 @@ public:
   uint32_t color = COLORS::BLACK;
   const int brushSize = 1;
 
+   // static void _putpixel(SDL_Surface* surface, vec2 pos, uint32_t color) ;
   void onMouseDown(vec2 pos, Canvas& canvas) override;
   void onMouseMove(vec2 pos, Canvas& canvas) override;
   Command* onMouseUp(vec2 pos, Canvas& canvas) override;
-  void bresenham(vec2 start, vec2 end, Canvas& canvas, uint32_t color) ;
+  void bresenham(vec2 start, vec2 end, Canvas& canvas, uint32_t color,int brushSize) ;
 
 };

@@ -37,4 +37,14 @@ public:
         cmd->execute(canvas);  // Re-do the work
         undoStack.push(cmd);   // Put it back in undo history
     }
+~CommandManager() {
+    while (!undoStack.empty()) {
+        delete undoStack.top();
+        undoStack.pop();
+    }
+    while (!redoStack.empty()) {
+        delete redoStack.top();
+        redoStack.pop();
+    }
+}
 };
