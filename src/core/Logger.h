@@ -60,7 +60,6 @@ public:
   }
 
   static void debug(std::string_view msg) {
-    // Only logs if the Config flag is true and the logger is enabled
     if constexpr (Config::ENABLE_DEBUG_LOGS) {
       log(LogLevel::DEBUG, msg);
     }

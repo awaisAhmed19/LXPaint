@@ -46,7 +46,6 @@ public:
   }
 
   void clearAll() {
-    // Clear software surface
     SDL_FillSurfaceRect(drawingSurface, NULL, 0xFFFFFFFF); // White background
     clearPreview();
     syncTexture();

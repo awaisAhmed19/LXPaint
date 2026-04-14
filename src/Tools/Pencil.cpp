@@ -8,7 +8,7 @@ static void _putpixel(SDL_Surface *surface, int x, int y, uint32_t color) {
 
   uint32_t *pixels = (uint32_t *)surface->pixels;
 
-  pixels[(y * (surface->pitch / 4)) + x] = color;
+  pixels[(y * (surface->pitch >> 2)) + x] = color;
 }
 
 void Pencil::onMouseDown(vec2 pos, Canvas &canvas) {
@@ -28,11 +28,19 @@ void Pencil::onMouseMove(vec2 pos, Canvas &canvas) {
   if (!drawing)
     return;
 
-  vec2 currentPos = pos;
-  // Connect last position to current position
-  bresenham(startpos, currentPos, canvas, color, 1);
-  Logger::log(LogLevel::DEBUG, "PENCIL DRAWING ");
-  startpos = currentPos; // Update for the next frame
+  switch (g_CurrentAlgo) {
+  case LineAlgo::BRESENHAM: {
+    PROFILE_FUNCTION(); // Named "bresenham" in map
+    bresenham(startpos, pos, canvas, color, 1);
+    break;
+  }
+  case LineAlgo::DDA: {
+    PROFILE_FUNCTION(); // Named "dda" in map
+    dda(startpos, pos, canvas, color, 1);
+    break;
+  }
+  }
+  startpos = pos;
 }
 
 Command *Pencil::onMouseUp(vec2 pos, Canvas &canvas) {
@@ -77,22 +85,36 @@ void Pencil::bresenham(vec2 start, vec2 end, Canvas &canvas, uint32_t color,
   }
 }
 
-void Pencil::dda(vec2 start, vec2 end, Canvas &canvas, uint32_t color) {
+void Pencil::dda(vec2 start, vec2 end, Canvas &canvas, uint32_t color,
+                 int brushSize) {
   float dx = end.x - start.x;
   float dy = end.y - start.y;
 
-  // Determine the number of steps needed
   int steps = std::abs(dx) > std::abs(dy) ? std::abs(dx) : std::abs(dy);
+
+  if (steps == 0) {
+    for (int ox = -brushSize; ox <= brushSize; ox++) {
+      for (int oy = -brushSize; oy <= brushSize; oy++) {
+        _putpixel(canvas.drawingSurface, start.x + ox, start.y + oy, color);
+      }
+    }
+    return;
+  }
 
   float xInc = dx / (float)steps;
   float yInc = dy / (float)steps;
 
-  float x = start.x;
-  float y = start.y;
+  float x = (float)start.x;
+  float y = (float)start.y;
 
   for (int i = 0; i <= steps; i++) {
-    // We round because we're drawing to a pixel grid
-    _putpixel(canvas.drawingSurface, std::round(x), std::round(y), color);
+    for (int ox = -brushSize; ox <= brushSize; ox++) {
+      for (int oy = -brushSize; oy <= brushSize; oy++) {
+        _putpixel(canvas.drawingSurface, (int)std::round(x) + ox,
+                  (int)std::round(y) + oy, color);
+      }
+    }
+
     x += xInc;
     y += yInc;
   }

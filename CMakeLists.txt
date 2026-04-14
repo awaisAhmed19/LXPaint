@@ -1,35 +1,44 @@
 cmake_minimum_required(VERSION 3.10)
 project(lxpaint VERSION 1.0)
 
-# 1. Configure SDL options
+# 1. SDL3 Configuration
 set(SDL_TESTS OFF CACHE BOOL "" FORCE)
 set(SDL_INSTALL OFF CACHE BOOL "" FORCE)
-
-# 2. Add SDL Subdirectory
-# Ensure the path external/SDL exists and contains SDL's CMakeLists.txt
 add_subdirectory(external/SDL)
 
-# 3. Collect all source files (.cpp) automatically
-# This searches through src and all subfolders (like Tools)
-file(GLOB_RECURSE SOURCES "src/*.cpp")
+# 2. Collect Project Sources (recursive handles src/core, src/Tools, etc.)
+file(GLOB_RECURSE PROJECT_SOURCES "src/*.cpp")
 
-# 4. Define the executable with all collected sources
-add_executable(${PROJECT_NAME} ${SOURCES})
+# 3. Define ImGui Sources
+set(IMGUI_SRCS
+    external/imgui/imgui.cpp
+    external/imgui/imgui_draw.cpp
+    external/imgui/imgui_widgets.cpp
+    external/imgui/imgui_tables.cpp
+    external/imgui/imgui_demo.cpp
+    external/imgui/backends/imgui_impl_sdl3.cpp
+    external/imgui/backends/imgui_impl_sdlrenderer3.cpp
+)
 
-# 5. Set Include Directories
-# This allows you to use #include "Canvas.h" or #include "Pencil.h"
-# without needing long relative paths like "../../Canvas.h"
+# 4. Create Single Executable
+# We combine PROJECT_SOURCES and IMGUI_SRCS here
+add_executable(${PROJECT_NAME} ${PROJECT_SOURCES} ${IMGUI_SRCS})
+
+# 5. Include Directories
 target_include_directories(${PROJECT_NAME} PRIVATE
     src
     src/Tools
+    src/core
+    src/UI
+    external/imgui
+    external/imgui/backends
 )
 
-# 6. Link SDL3
-# We use SDL3-shared by default; use SDL3::SDL3-static if you prefer static linking
+# 6. Linking
+# Ensure we link against the SDL3 target created by add_subdirectory
 target_link_libraries(${PROJECT_NAME} PRIVATE SDL3::SDL3)
 
 # 7. C++ Standard
-# Ensure we are using at least C++17 for modern features
 set_target_properties(${PROJECT_NAME} PROPERTIES
     CXX_STANDARD 20
     CXX_STANDARD_REQUIRED ON
