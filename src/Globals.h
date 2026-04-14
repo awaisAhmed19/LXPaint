@@ -12,6 +12,10 @@ struct vec2 {
     bool operator==(const vec2& other) const { return x == other.x && y == other.y; }
 };
 
+namespace Config {
+    inline constexpr bool ENABLE_DEBUG_LOGS = true;
+    inline constexpr bool ENABLE_PERFORMANCE_LOGS = true;
+}
 namespace COLORS {
     // SDL3 uses ARGB8888 or ABGR8888 depending on platform,
     // but 0xAARRGGBB is standard for software surfaces.
