@@ -1,81 +1,29 @@
 #pragma once
+#include "../Globals.h"
+#include "../core/Canvas.h"
+#include "../core/Profiler.h"
+#include "./BaseTool.h"
+#include <SDL3/SDL.h>
 #include <math.h>
-
-#include <iostream>
-#include <ostream>
 #include <vector>
-
-#include "LineCommand.h"
-#include "raylib.h"
-
-class LineTool {
-  Vector2 startpos, endpos;
-  Image preSnapshot;
+class Line : public BaseTool {
   bool drawing = false;
-  bool snapshotTaken = false;
+  SDL_Surface *currentSnapshot = nullptr;
+  vec2<float> startpos;
+  vec2<float> lastpos;
+  vec2<float> lastMousePos; // Track for Dirty Rect
+  enum class OptimizationMode { BRUTE_FORCE, DIRTY_RECT, OVERLAY };
+  OptimizationMode g_OptMode = OptimizationMode::DIRTY_RECT;
 
 public:
-  Color color = BLACK;
-  int brushSize = 2;
-  void handlemouseDown(Canvas &canvas) {
-    drawing = true;
-    snapshotTaken = false;
-    startpos = GetMousePosition();
-    // snapshot BEFORE anything is drawn
-    preSnapshot = canvas.captureSnapshot();
-    snapshotTaken = true;
-    std::cout << "Line drawing start" << std::endl;
-  }
-  void handleDraw(Canvas &canvas) {
-    endpos = GetMousePosition();
-    if ((int)startpos.x != (int)endpos.x || (int)startpos.y != (int)endpos.y) {
-      canvas.clearBuffer(); // ← clear old preview first
-      canvas.beginDrawBuffer();
-      bresenham(startpos, endpos, color, brushSize);
-      canvas.endDraw();
-    }
-  }
+  uint32_t color = COLORS::BLACK;
+  const int brushSize = 1;
+  void onMouseDown(vec2<float> pos, Canvas &canvas) override;
+  void onMouseMove(vec2<float> pos, Canvas &canvas) override;
+  Command *onMouseUp(vec2<float> pos, Canvas &canvas) override;
+  void bresenham(vec2<float> start, vec2<float> end, Canvas &canvas,
+                 uint32_t color, int brushSize, bool useXOR);
 
-  LineCommand *handlemouseUp(Canvas &canvas) {
-    drawing = false;
-    if (snapshotTaken) {
-      canvas.commitBuffer();
-      return new LineCommand(preSnapshot, startpos, endpos, color, brushSize);
-    }
-  }
-  LineCommand *draw(Canvas &canvas) {
-    if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
-      handlemouseDown(canvas);
-    if (drawing && IsMouseButtonDown(MOUSE_LEFT_BUTTON))
-      handleDraw(canvas);
-    if (IsMouseButtonReleased(MOUSE_LEFT_BUTTON) && drawing)
-      return handlemouseUp(canvas);
-    else {
-      return nullptr;
-    }
-  }
-
-private:
-  void bresenham(Vector2 start, Vector2 end, Color color, int brushSize) {
-    int dx = abs((int)end.x - (int)start.x);
-    int dy = abs((int)end.y - (int)start.y);
-    int sx = (start.x < end.x) ? 1 : -1;
-    int sy = (start.y < end.y) ? 1 : -1;
-    int err = dx - dy;
-    while (true) {
-      DrawRectangle((int)start.x, (int)start.y, brushSize, brushSize, color);
-      // std::cout << "bresenham called" << std::endl;
-      if ((int)start.x == (int)end.x && (int)start.y == (int)end.y)
-        break;
-      int e2 = 2 * err;
-      if (e2 > -dy) {
-        err -= dy;
-        start.x += sx;
-      }
-      if (e2 < dx) {
-        err += dx;
-        start.y += sy;
-      }
-    }
-  }
+  void dda(vec2<float> start, vec2<float> end, Canvas &canvas, uint32_t color,
+           int brushSize, bool useXOR);
 };

@@ -1,26 +1,41 @@
 #pragma once
 #include <SDL3/SDL.h>
+#include <concepts>
 #include <stdint.h>
 extern int WindowWidth;
 extern int WindowHeight;
+
 enum class LineAlgo { BRESENHAM, DDA };
 extern LineAlgo g_CurrentAlgo; // Global so shortcuts and tools both see it
-struct vec2 {
-  int x = 0;
-  int y = 0;
 
+template <typename T>
+  requires std::floating_point<T> || std::integral<T>
+struct vec2 {
+  T x = 0;
+  T y = 0;
+
+  // Standard constructor
+  vec2(T _x = 0, T _y = 0) : x(_x), y(_y) {}
+
+  // Binary Operators
   vec2 operator+(const vec2 &other) const { return {x + other.x, y + other.y}; }
-  vec2 operator+(const int other) const { return {x + other, y + other}; }
-  vec2 operator-(const int other) const { return {x - other, y - other}; }
+  vec2 operator+(const T scalar) const { return {x + scalar, y + scalar}; }
+  vec2 operator-(const T scalar) const { return {x - scalar, y - scalar}; }
+
+  // Equality
   bool operator==(const vec2 &other) const {
     return x == other.x && y == other.y;
   }
 };
+using vec2i = vec2<int>;
+using vec2f = vec2<float>;
+using vec2d = vec2<double>;
 
 namespace Config {
 inline constexpr bool ENABLE_DEBUG_LOGS = true;
 inline constexpr bool ENABLE_PERFORMANCE_LOGS = true;
 } // namespace Config
+
 namespace COLORS {
 // SDL3 uses ARGB8888 or ABGR8888 depending on platform,
 // but 0xAARRGGBB is standard for software surfaces.
@@ -33,7 +48,7 @@ const uint32_t CLEAR = 0x00000000;
 } // namespace COLORS
 
 // Using 'inline' to allow the body to stay in the header file
-inline void PutPixel(SDL_Surface *surface, vec2 pos, uint32_t color) {
+inline void PutPixel(SDL_Surface *surface, vec2i pos, uint32_t color) {
   if (pos.x < 0 || pos.x >= surface->w || pos.y < 0 || pos.y >= surface->h)
     return;
 

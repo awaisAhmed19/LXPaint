@@ -1,4 +1,5 @@
 #include "App.h"
+#include "../Tools/Line.h"
 #include "../Tools/Pencil.h"
 #include "../UI/Console.h"
 #include "Logger.h"
@@ -15,7 +16,8 @@ App::App(const char *title) {
 
   // Setup Tools
   tm.registerTool("pencil", new Pencil());
-  tm.setActiveTool("pencil");
+  tm.registerTool("line", new Line());
+  tm.setActiveTool("line");
 }
 
 void App::processInput(bool &running, ToolManager &tm, Canvas &canvas,
@@ -121,7 +123,6 @@ void App::initImGui() {
 void App::run() {
   while (running) {
     auto startFrame = std::chrono::high_resolution_clock::now();
-
     processInput(running, tm, *canvas, cm, window);
 
     // 2. CPU -> GPU Data Transfer
@@ -156,7 +157,7 @@ void App::run() {
     auto endFrame = std::chrono::high_resolution_clock::now();
     float duration =
         std::chrono::duration<float, std::milli>(endFrame - startFrame).count();
-
+    float currentFPS = (duration > 0.0f) ? (1000.0f / duration) : 0.0f;
     // Record to Circular Buffer
     App::frameTimes[App::frameOffset] = duration;
     App::frameOffset = (App::frameOffset + 1) % 100;

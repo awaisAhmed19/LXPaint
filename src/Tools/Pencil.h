@@ -9,17 +9,18 @@
 class Pencil : public BaseTool {
   bool drawing = false;
   SDL_Surface *currentSnapshot = nullptr;
-  vec2 startpos;
-  vec2 lastpos;
+  vec2<float> startpos;
+  vec2<float> lastpos;
 
 public:
   uint32_t color = COLORS::BLACK;
   const int brushSize = 1;
-  void onMouseDown(vec2 pos, Canvas &canvas) override;
-  void onMouseMove(vec2 pos, Canvas &canvas) override;
-  Command *onMouseUp(vec2 pos, Canvas &canvas) override;
-  void bresenham(vec2 start, vec2 end, Canvas &canvas, uint32_t color,
-                 int brushSize);
+  void onMouseDown(vec2<float> pos, Canvas &canvas) override;
+  void onMouseMove(vec2<float> pos, Canvas &canvas) override;
+  Command *onMouseUp(vec2<float> pos, Canvas &canvas) override;
+  void bresenham(vec2<float> start, vec2<float> end, Canvas &canvas,
+                 uint32_t color, int brushSize);
 
-  void dda(vec2 start, vec2 end, Canvas &canvas, uint32_t color, int brushSize);
+  void dda(vec2<float> start, vec2<float> end, Canvas &canvas, uint32_t color,
+           int brushSize);
 };
