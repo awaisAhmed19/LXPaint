@@ -68,91 +68,112 @@ void RenderLiveProfiler(float xPos, float width, float height) {
 }
 
 void RenderComparisonBenchmark() {
-  // 1. Setup Window (Positioned at the top right area by default)
+  // 1. Setup Window
   ImGui::SetNextWindowPos(ImVec2(ImGui::GetIO().DisplaySize.x * 0.6f, 20),
                           ImGuiCond_FirstUseEver);
-  ImGui::SetNextWindowSize(ImVec2(500, 320), ImGuiCond_FirstUseEver);
+  ImGui::SetNextWindowSize(ImVec2(550, 400), ImGuiCond_FirstUseEver);
 
   if (ImGui::Begin("Scientific Comparison Benchmark")) {
-    if (ImGui::Button("Clear Benchmark History")) {
+    if (ImGui::Button("Clear History")) {
       Profiler::comparisonStorage.clear();
     }
 
     ImGui::SameLine();
-    ImGui::Text(" |  Legend: ");
+    ImGui::Text(" | Legend: ");
     ImGui::SameLine();
-    ImGui::TextColored(ImVec4(1, 0.5f, 0, 1), "Bresenham");
+
+    // --- Legend Labels ---
+    // We explicitly mention these here for your survey documentation
+    ImGui::ColorButton("##bresenham_color", ImVec4(1, 0.5f, 0, 1),
+                       ImGuiColorEditFlags_NoTooltip, ImVec2(15, 15));
     ImGui::SameLine();
-    ImGui::TextColored(ImVec4(0, 0.5f, 1, 1), "DDA");
+    ImGui::Text("Bresenham (Orange)");
+
+    ImGui::SameLine();
+
+    ImGui::ColorButton("##dda_color", ImVec4(0, 0.5f, 1, 1),
+                       ImGuiColorEditFlags_NoTooltip, ImVec2(15, 15));
+    ImGui::SameLine();
+    ImGui::Text("DDA (Blue)");
 
     ImGui::Separator();
 
     // --- Data Pre-calculation ---
-    float maxUs = 10.0f;  // Floor at 10us for visibility
-    float maxDist = 1.0f; // Avoid div by zero
-
+    float maxUs = 10.0f;
+    float maxDist = 1.0f;
     for (auto &run : Profiler::comparisonStorage) {
       maxDist = std::max(maxDist, run.totalDistance);
       for (float p : run.dataPoints)
         maxUs = std::max(maxUs, p);
     }
 
-    // --- Drawing Canvas Setup ---
+    // --- Drawing Canvas Geometry ---
     ImDrawList *drawList = ImGui::GetWindowDrawList();
-    ImVec2 cp = ImGui::GetCursorScreenPos();
-    ImVec2 sz = ImGui::GetContentRegionAvail();
-    sz.y -= 20; // Leave room for footer text
+    ImVec2 startPos = ImGui::GetCursorScreenPos();
+    ImVec2 contentSize = ImGui::GetContentRegionAvail();
+
+    // Margin logic to ensure numbers fit
+    float marginLeft = 50.0f;   // Space for "100us"
+    float marginBottom = 40.0f; // Space for "500px"
+
+    // 'cp' is the Top-Left of the actual black graph box
+    ImVec2 cp = ImVec2(startPos.x + marginLeft, startPos.y + 10);
+    // 'sz' is the width/height of the actual black graph box
+    ImVec2 sz = ImVec2(contentSize.x - marginLeft - 20,
+                       contentSize.y - marginBottom - 10);
 
     // Background Grid
     drawList->AddRectFilled(cp, ImVec2(cp.x + sz.x, cp.y + sz.y),
-                            IM_COL32(20, 20, 20, 255));
+                            IM_COL32(10, 10, 10, 255));
     drawList->AddRect(cp, ImVec2(cp.x + sz.x, cp.y + sz.y),
-                      IM_COL32(100, 100, 100, 100));
+                      IM_COL32(100, 100, 100, 150));
 
-    // --- Render the Runs ---
+    // --- Axis Numbering & Grid ---
+    int divisions = 5;
+    for (int i = 0; i <= divisions; i++) {
+      float t = (float)i / (float)divisions;
+
+      // Y-Axis (Latency)
+      float yPos = cp.y + sz.y - (t * sz.y);
+      drawList->AddLine(ImVec2(cp.x, yPos), ImVec2(cp.x + sz.x, yPos),
+                        IM_COL32(40, 40, 40, 255));
+      std::string yLabel = std::to_string((int)(t * maxUs)) + "us";
+      drawList->AddText(ImVec2(startPos.x + 5, yPos - 7),
+                        IM_COL32(200, 200, 200, 255), yLabel.c_str());
+
+      // X-Axis (Distance)
+      float xPos = cp.x + (t * sz.x);
+      drawList->AddLine(ImVec2(xPos, cp.y), ImVec2(xPos, cp.y + sz.y),
+                        IM_COL32(40, 40, 40, 255));
+      std::string xLabel = std::to_string((int)(t * maxDist)) + "px";
+      drawList->AddText(ImVec2(xPos - 15, cp.y + sz.y + 8),
+                        IM_COL32(200, 200, 200, 255), xLabel.c_str());
+    }
+
+    // --- Render the Run Lines ---
     for (auto &run : Profiler::comparisonStorage) {
-      if (run.dataPoints.size() < 3)
+      if (run.dataPoints.size() < 2)
         continue;
 
-      // Simple 3-point moving average to eliminate OS background jitter
-      auto getSmooth = [&](int i) {
-        if (i <= 0 || i >= (int)run.dataPoints.size() - 1)
-          return run.dataPoints[i];
-        return (run.dataPoints[i - 1] + run.dataPoints[i] +
-                run.dataPoints[i + 1]) /
-               3.0f;
-      };
-
       for (size_t i = 0; i < run.dataPoints.size() - 1; i++) {
-        // SCIENTIFIC X-AXIS: Map point index to actual physical distance
-        // traveled This allows a fast 100px line to overlap a slow 100px line
-        // perfectly.
-        float x1_norm = (run.distances[i] / maxDist);
-        float x2_norm = (run.distances[i + 1] / maxDist);
+        // Map the distance and latency to our offset canvas (cp and sz)
+        float x1_norm = run.distances[i] / maxDist;
+        float x2_norm = run.distances[i + 1] / maxDist;
+        float y1_norm = run.dataPoints[i] / maxUs;
+        float y2_norm = run.dataPoints[i + 1] / maxUs;
 
-        ImVec2 p1 = ImVec2(cp.x + x1_norm * sz.x,
-                           cp.y + sz.y - (getSmooth(i) / maxUs) * sz.y);
-        ImVec2 p2 = ImVec2(cp.x + x2_norm * sz.x,
-                           cp.y + sz.y - (getSmooth(i + 1) / maxUs) * sz.y);
+        ImVec2 p1 =
+            ImVec2(cp.x + x1_norm * sz.x, cp.y + sz.y - (y1_norm * sz.y));
+        ImVec2 p2 =
+            ImVec2(cp.x + x2_norm * sz.x, cp.y + sz.y - (y2_norm * sz.y));
 
         drawList->AddLine(p1, p2, ImGui::ColorConvertFloat4ToU32(run.color),
-                          2.0f);
+                          2.5f);
       }
     }
 
-    // --- Axis Labels & Overlay ---
-    drawList->AddText(ImVec2(cp.x + 10, cp.y + 10),
-                      IM_COL32(200, 200, 200, 180), "Y: Latency (us)");
-    drawList->AddText(ImVec2(cp.x + sz.x - 120, cp.y + sz.y - 25),
-                      IM_COL32(200, 200, 200, 180), "X: Distance (px)");
-
-    // Finalize the reserved space for the custom drawList
-    ImGui::Dummy(sz);
-
-    if (Profiler::comparisonStorage.empty()) {
-      ImGui::SetCursorPos(ImVec2(sz.x * 0.35f, sz.y * 0.5f));
-      ImGui::TextDisabled("No strokes recorded for comparison.");
-    }
+    // Reserve the space in the window
+    ImGui::Dummy(contentSize);
   }
   ImGui::End();
 }

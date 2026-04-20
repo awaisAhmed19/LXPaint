@@ -27,7 +27,6 @@ void Pencil::onMouseDown(vec2<float> pos, Canvas &canvas) {
 void Pencil::onMouseMove(vec2<float> pos, Canvas &canvas) {
   if (!drawing)
     return;
-
   auto s1 = std::chrono::high_resolution_clock::now();
   bresenham(startpos, pos, canvas, color, 1);
   auto e1 = std::chrono::high_resolution_clock::now();
@@ -39,7 +38,6 @@ void Pencil::onMouseMove(vec2<float> pos, Canvas &canvas) {
   auto e2 = std::chrono::high_resolution_clock::now();
   float usDDA =
       std::chrono::duration_cast<std::chrono::microseconds>(e2 - s2).count();
-
   Profiler::recordRaceStep(
       {
           {"BRESENHAM", usBres, ImVec4(1.0f, 0.5f, 0.0f, 1.0f)}, // Orange

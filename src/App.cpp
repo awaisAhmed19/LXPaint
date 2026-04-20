@@ -13,11 +13,11 @@ App::App(const char *title) {
   int canvasW = (int)(screenW * 0.7f);
   int canvasH = (int)(screenH * 0.7f);
   canvas = new Canvas(renderer, canvasW, canvasH);
-
   // Setup Tools
+  std::string tool = "line";
   tm.registerTool("pencil", new Pencil());
   tm.registerTool("line", new Line());
-  tm.setActiveTool("line");
+  tm.setActiveTool(tool);
 }
 
 void App::processInput(bool &running, ToolManager &tm, Canvas &canvas,
