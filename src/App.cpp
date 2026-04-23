@@ -1,3 +1,4 @@
+#include "../Tools/FloodFill.h"
 #include "../Tools/Line.h"
 #include "../Tools/Pencil.h"
 #include "../UI/Console.h"
@@ -13,8 +14,9 @@ App::App(const char* title) {
     int canvasH = (screenH * 0.7f);
     canvas = new Canvas(renderer, canvasW, canvasH);
     // Setup Tools
-    std::string tool = "line";
+    std::string tool = "floodfill";
     tm.registerTool("pencil", new Pencil());
+    tm.registerTool("floodfill", new FloodFill());
     tm.registerTool("line", new Line());
     tm.setActiveTool(tool);
 }

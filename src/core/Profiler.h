@@ -26,7 +26,12 @@ struct RaceResult {
     float microseconds;
     ImVec4 color;
 };
-
+struct FillResult {
+    std::string name;
+    float microseconds;
+    int pixelsFilled;
+    ImVec4 color;
+};
 class Profiler {
     std::string funcName;
     std::chrono::high_resolution_clock::time_point start;
@@ -38,13 +43,34 @@ class Profiler {
     static inline float sessionDistance = 0.0f;
     static inline vec2<float> lastPos = {-1.0f, -1.0f};
 
+    static inline std::map<std::string, std::vector<std::pair<int, float>>> fillSessions;
     static inline std::vector<AlgoRun> comparisonStorage;
     static inline std::map<std::string, struct AlgoStats> algoData;
 
     Profiler(std::string name) : funcName(name) {
         start = std::chrono::high_resolution_clock::now();
     }
+    // Inside the Profiler class:
 
+    /**
+     * @brief Records performance of a Flood Fill operation.
+     * @param pixelsFilled The total count of pixels modified.
+     * @param microseconds Execution time.
+     */
+    static void recordFill(std::string name, int pixelsFilled, float microseconds,
+                           ImVec4 color = {1, 1, 1, 1}) {
+        AlgoRun run;
+        run.name = name + " (Fill)";
+        run.color = color;
+
+        // We reuse dataPoints for time and distances for pixel count
+        // to maintain compatibility with your existing UI plotter
+        run.dataPoints.push_back(microseconds);
+        run.distances.push_back((float)pixelsFilled);
+        run.totalDistance = (float)pixelsFilled;
+
+        comparisonStorage.push_back(run);
+    }
     // --- The General Purpose Race Recorder ---
     // Pass a vector of results (e.g., { {name, time, color}, ... })
     static void recordRaceStep(const std::vector<RaceResult>& results, vec2<float> currentPos) {
