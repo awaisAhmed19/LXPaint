@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 project(lxpaint VERSION 1.0)
 
 # 1. SDL3 Configuration
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(SDL_TESTS OFF CACHE BOOL "" FORCE)
 set(SDL_INSTALL OFF CACHE BOOL "" FORCE)
 add_subdirectory(external/SDL)
