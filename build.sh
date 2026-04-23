@@ -19,9 +19,7 @@ check_and_install() {
     NEEDS_INSTALL=false
 
     if [[ "$PLATFORM" == "Windows" ]]; then
-        # Check for CMake and a Compiler (cl or g++)
         if ! command -v cmake &> /dev/null; then NEEDS_INSTALL=true; fi
-        # Windows-specific: check for MSVC or MinGW
         if ! command -v cl &> /dev/null && ! command -v g++ &> /dev/null; then NEEDS_INSTALL=true; fi
 
         if [ "$NEEDS_INSTALL" = true ]; then

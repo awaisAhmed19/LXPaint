@@ -2,7 +2,6 @@
 #pragma once
 #include "../core/Canvas.h"
 #include "../core/Command.h"
-#include "SDL3/SDL.h"
 
 class DrawCommand : public Command {
    private:

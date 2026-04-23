@@ -7,7 +7,6 @@
 
 #include "../../external/imgui/imgui.h"
 #include "../Globals.h"
-#include "./Logger.h"
 struct AlgoRun {
     std::string name;
     std::vector<float> dataPoints;
