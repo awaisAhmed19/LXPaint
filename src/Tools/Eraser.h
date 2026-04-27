@@ -6,16 +6,15 @@
 #include <SDL3/SDL.h>
 #include <math.h>
 #include <vector>
-class Pencil : public BaseTool {
+class Eraser : public BaseTool {
   bool drawing = false;
   SDL_Surface *currentSnapshot = nullptr;
   vec2<float> startpos;
   vec2<float> lastpos;
+  uint32_t color = COLORS::WHITE;
 
 public:
   const int brushSize = 1;
-
-  uint32_t color = COLORS::BLACK;
   void onMouseDown(vec2<float> pos, Canvas &canvas) override;
   void onMouseMove(vec2<float> pos, Canvas &canvas) override;
   Command *onMouseUp(vec2<float> pos, Canvas &canvas) override;

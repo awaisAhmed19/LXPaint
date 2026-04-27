@@ -1,97 +1,72 @@
-#include "Line.h"
+#include "Eraser.h"
 #include "../commands/DrawCommand.h"
 #include "../core/Logger.h"
-#include <algorithm>
-
-static void _putpixelXOR(SDL_Surface *surface, int x, int y, uint32_t color) {
-  if (x < 0 || x >= surface->w || y < 0 || y >= surface->h)
-    return;
-  uint32_t *pixels = (uint32_t *)surface->pixels;
-  int index = (y * (surface->pitch >> 2)) + x;
-  pixels[index] ^= (color & 0x00FFFFFF);
-}
 
 static void _putpixel(SDL_Surface *surface, int x, int y, uint32_t color) {
   if (x < 0 || x >= surface->w || y < 0 || y >= surface->h)
     return;
+
   uint32_t *pixels = (uint32_t *)surface->pixels;
+
   pixels[(y * (surface->pitch >> 2)) + x] = color;
 }
-// THIS WAS MISSING OR INVALID IN YOUR SNIPPET
-void Line::onMouseDown(vec2<float> pos, Canvas &canvas) {
+
+void Eraser::onMouseDown(vec2<float> pos, Canvas &canvas) {
   drawing = true;
   startpos = pos;
-  lastMousePos = pos;
 
+  // CRITICAL: Capture the canvas BEFORE we draw anything
   if (currentSnapshot)
     SDL_DestroySurface(currentSnapshot);
   currentSnapshot = SDL_DuplicateSurface(canvas.drawingSurface);
 
-  Logger::log(LogLevel::DEBUG, "LINE TOOL: START");
+  _putpixel(canvas.drawingSurface, startpos.x, startpos.y, color);
+  Logger::log(LogLevel::DEBUG, "PENCIL STARTED DRAWING");
 }
 
-void Line::onMouseMove(vec2<float> pos, Canvas &canvas) {
-  if (!drawing || !currentSnapshot)
+void Eraser::onMouseMove(vec2<float> pos, Canvas &canvas) {
+  if (!drawing)
     return;
-
-  // --- PHASE 1: RESTORATION ---
-  switch (g_OptMode) {
-  case OptimizationMode::BRUTE_FORCE:
-    SDL_BlitSurface(currentSnapshot, NULL, canvas.drawingSurface, NULL);
-    break;
-  case OptimizationMode::DIRTY_RECT: {
-    SDL_Rect dirty;
-    dirty.x = (int)std::min(startpos.x, lastMousePos.x) - (brushSize + 2);
-    dirty.y = (int)std::min(startpos.y, lastMousePos.y) - (brushSize + 2);
-    dirty.w = (int)std::abs(startpos.x - lastMousePos.x) + (brushSize * 2 + 4);
-    dirty.h = (int)std::abs(startpos.y - lastMousePos.y) + (brushSize * 2 + 4);
-    SDL_BlitSurface(currentSnapshot, &dirty, canvas.drawingSurface, &dirty);
-    break;
-  }
-  case OptimizationMode::OVERLAY:
-    // Erase previous line using XOR
-    bresenham(startpos, lastMousePos, canvas, color, brushSize, true);
-    break;
-  }
-
-  // --- PHASE 2: THE RACE ---
-  bool useXOR = (g_OptMode == OptimizationMode::OVERLAY);
-
   auto s1 = std::chrono::high_resolution_clock::now();
-  bresenham(startpos, pos, canvas, color, brushSize, useXOR);
+  bresenham(startpos, pos, canvas, color, 1);
   auto e1 = std::chrono::high_resolution_clock::now();
+  float usBres =
+      std::chrono::duration_cast<std::chrono::microseconds>(e1 - s1).count();
 
   auto s2 = std::chrono::high_resolution_clock::now();
-  dda(startpos, pos, canvas, color, brushSize, useXOR);
+  dda(startpos, pos, canvas, color, 1);
   auto e2 = std::chrono::high_resolution_clock::now();
-
-  // --- PHASE 3: LOGGING ---
-  float tBres =
-      std::chrono::duration_cast<std::chrono::microseconds>(e1 - s1).count();
-  float tDDA =
+  float usDDA =
       std::chrono::duration_cast<std::chrono::microseconds>(e2 - s2).count();
+  Profiler::recordRaceStep(
+      {
+          {"BRESENHAM", usBres, ImVec4(1.0f, 0.5f, 0.0f, 1.0f)}, // Orange
+          {"DDA", usDDA, ImVec4(0.0f, 0.5f, 1.0f, 1.0f)}         // Blue
+      },
+      pos);
 
-  Profiler::recordRaceStep({{"BRESENHAM", tBres, ImVec4(1, 0.5f, 0, 1)},
-                            {"DDA", tDDA, ImVec4(0, 0.5f, 1, 1)}},
-                           pos);
-
-  lastMousePos = pos;
+  startpos = pos;
 }
 
-Command *Line::onMouseUp(vec2<float> pos, Canvas &canvas) {
+Command *Eraser::onMouseUp(vec2<float> pos, Canvas &canvas) {
   drawing = false;
   Command *cmd = new DrawCommand(currentSnapshot, canvas.drawingSurface);
   if (currentSnapshot) {
     SDL_DestroySurface(currentSnapshot);
     currentSnapshot = nullptr;
   }
-  Profiler::commitRace(
-      {{"BRESENHAM", ImVec4(1, 0.5f, 0, 1)}, {"DDA", ImVec4(0, 0.5f, 1, 1)}});
+
+  Logger::log(LogLevel::DEBUG, "PENCIL DRAWING STOPS MOUSE UP");
+  std::map<std::string, ImVec4> colorMap = {
+      {"BRESENHAM", ImVec4(1.0f, 0.5f, 0.0f, 1.0f)},
+      {"DDA", ImVec4(0.0f, 0.5f, 1.0f, 1.0f)}};
+
+  Profiler::commitRace(colorMap);
   return cmd;
 }
 
-void Line::bresenham(vec2<float> start, vec2<float> end, Canvas &canvas,
-                     uint32_t color, int brushSize, bool useXOR) {
+void Eraser::bresenham(vec2<float> start, vec2<float> end, Canvas &canvas,
+                       uint32_t color, int brushSize = 2) {
   if (!lockSurface(canvas.drawingSurface))
     return;
 
@@ -120,10 +95,7 @@ void Line::bresenham(vec2<float> start, vec2<float> end, Canvas &canvas,
       for (int ox = -brushSize; ox <= brushSize; ox++) {
         int px = x1 + ox;
         if (px >= 0 && px < surfW) {
-          if (useXOR)
-            row[px] ^= (color & 0x00FFFFFF);
-          else
-            row[px] = color;
+          row[px] = color;
         }
       }
     }
@@ -142,8 +114,9 @@ void Line::bresenham(vec2<float> start, vec2<float> end, Canvas &canvas,
   }
   unlockSurface(canvas.drawingSurface);
 }
-void Line::dda(vec2<float> start, vec2<float> end, Canvas &canvas,
-               uint32_t color, int brushSize, bool useXOR) {
+
+void Eraser::dda(vec2<float> start, vec2<float> end, Canvas &canvas,
+                 uint32_t color, int brushSize) {
   float dx = end.x - start.x;
   float dy = end.y - start.y;
   int steps = std::abs(dx) > std::abs(dy) ? std::abs(dx) : std::abs(dy);
@@ -177,10 +150,7 @@ void Line::dda(vec2<float> start, vec2<float> end, Canvas &canvas,
       for (int ox = -brushSize; ox <= brushSize; ox++) {
         int px = ix + ox;
         if (px >= 0 && px < surfW) {
-          if (useXOR)
-            row[px] ^= (color & 0x00FFFFFF);
-          else
-            row[px] = color;
+          row[px] = color;
         }
       }
     }

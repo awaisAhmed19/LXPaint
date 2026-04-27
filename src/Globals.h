@@ -47,12 +47,16 @@ const uint32_t WHITE = 0xFFFFFFFF;
 const uint32_t CLEAR = 0x00000000;
 } // namespace COLORS
 
-// Using 'inline' to allow the body to stay in the header file
-inline void PutPixel(SDL_Surface *surface, vec2i pos, uint32_t color) {
-  if (pos.x < 0 || pos.x >= surface->w || pos.y < 0 || pos.y >= surface->h)
-    return;
+inline bool lockSurface(SDL_Surface *surface) {
+  if (SDL_MUSTLOCK(surface)) {
+    if (SDL_LockSurface(surface) < 0)
+      return false;
+  }
+  return true;
+}
 
-  uint32_t *pixels = (uint32_t *)surface->pixels;
-  // We use pitch/4 because pitch is in bytes, and we are using 4-byte uint32_t
-  pixels[(pos.y * (surface->pitch / 4)) + pos.x] = color;
+inline void unlockSurface(SDL_Surface *surface) {
+  if (SDL_MUSTLOCK(surface)) {
+    SDL_UnlockSurface(surface);
+  }
 }

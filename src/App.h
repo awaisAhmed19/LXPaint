@@ -6,6 +6,7 @@
 #include "imgui_impl_sdl3.h"
 #include "imgui_impl_sdlrenderer3.h"
 #include <SDL3/SDL.h>
+#include <memory>
 #include <vector>
 class App {
 public:
@@ -18,18 +19,17 @@ public:
   static inline int frameOffset = 0;
 
 private:
-  bool initSDL(const char *title);
-  void initImGui();
-  void cleanup();
-  void processInput(bool &running, ToolManager &tm, Canvas &canvas,
-                    CommandManager &cm, SDL_Window *window);
+  bool running = true;
+  void handleEvents();
+  void update(float deltatime);
+  void render();
+
   SDL_Window *window = nullptr;
   SDL_Renderer *renderer = nullptr;
 
-  Canvas *canvas = nullptr;
+  std::unique_ptr<Canvas> canvas;
   CommandManager cm;
   ToolManager tm;
 
-  bool running = true;
   int screenW, screenH;
 };
