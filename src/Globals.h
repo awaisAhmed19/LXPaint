@@ -1,5 +1,6 @@
 #pragma once
 #include <SDL3/SDL.h>
+#include <cmath>
 #include <concepts>
 #include <stdint.h>
 extern int WindowWidth;

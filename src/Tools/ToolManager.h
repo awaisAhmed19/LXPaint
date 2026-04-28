@@ -13,10 +13,11 @@ public:
 
   void setActiveTool(std::string name) {
     if (registry.count(name)) {
-      activeTool =
-          registry[name].get(); // .get() provides the raw pointer for use
+      if (activeTool) {
+        activeTool->deactivate();
+      }
+      activeTool = registry[name].get();
     }
   }
-
   BaseTool *getActive() { return activeTool; }
 };

@@ -1,7 +1,7 @@
 #pragma once
+#include "../Core/Canvas.h"
+#include "../Core/CommandManager.h"
 #include "../Tools/ToolManager.h"
-#include "Canvas.h"
-#include "CommandManager.h"
 #include "imgui.h"
 #include "imgui_impl_sdl3.h"
 #include "imgui_impl_sdlrenderer3.h"

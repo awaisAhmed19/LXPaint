@@ -1,9 +1,9 @@
 #include "App.h"
+#include "../Core/Logger.h"
 #include "../Tools/Eraser.h"
 #include "../Tools/Line.h"
 #include "../Tools/Pencil.h"
 #include "../UI/Console.h"
-#include "Logger.h"
 
 App::App(const char *title) {
   SDL_Init(SDL_INIT_VIDEO);
@@ -24,7 +24,7 @@ App::App(const char *title) {
   tm.registerTool("pencil", std::make_unique<Pencil>());
   tm.registerTool("line", std::make_unique<Line>());
   tm.registerTool("eraser", std::make_unique<Eraser>());
-  tm.setActiveTool("line");
+  tm.setActiveTool("pencil");
 
   // ImGui Setup
   IMGUI_CHECKVERSION();

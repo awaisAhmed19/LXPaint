@@ -1,9 +1,9 @@
 #pragma once
 #include "../App.h"
+#include "../Core/Canvas.h"
+#include "../Core/Logger.h"
+#include "../Core/Profiler.h"
 #include "../Globals.h"
-#include "../core/Canvas.h"
-#include "../core/Logger.h"
-#include "../core/Profiler.h"
 #include "imgui.h"
 #include <algorithm>
 
