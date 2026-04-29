@@ -1,10 +1,9 @@
 #pragma once
-#include "../Core/Canvas.h"  // Include this to see the members of Canvas
-#include "../Core/Command.h" // MUST include the base class header
+#include "../Core/Canvas.h"
+#include "../Core/Command.h"
 #include <SDL3/SDL.h>
 #include <memory>
 
-// Define a custom deleter for SDL surfaces
 struct SDL_Surface_Deleter {
   void operator()(SDL_Surface *s) const {
     if (s)
@@ -16,25 +15,36 @@ using UniqueSurface = std::unique_ptr<SDL_Surface, SDL_Surface_Deleter>;
 
 class DrawCommand : public Command {
 private:
-  UniqueSurface beforeSnapshot;
-  UniqueSurface afterSnapshot;
+  SDL_Rect region{};
+  UniqueSurface before;
+  UniqueSurface after;
 
 public:
-  DrawCommand(SDL_Surface *before, SDL_Surface *after) {
-    beforeSnapshot.reset(SDL_DuplicateSurface(before));
-    afterSnapshot.reset(SDL_DuplicateSurface(after));
+  DrawCommand(SDL_Surface *canvasSurface, SDL_Rect dirtyRegion) {
+    region = dirtyRegion;
+
+    // Create BEFORE snapshot
+    before.reset(SDL_CreateSurface(region.w, region.h, canvasSurface->format));
+
+    SDL_BlitSurface(canvasSurface, &region, before.get(), NULL);
   }
 
-  // The 'override' works now because Command.h is included
+  void captureAfter(SDL_Surface *canvasSurface) {
+    // Create AFTER snapshot
+    after.reset(SDL_CreateSurface(region.w, region.h, canvasSurface->format));
+
+    SDL_BlitSurface(canvasSurface, &region, after.get(), NULL);
+  }
+
   void execute(Canvas &canvas) override {
-    if (afterSnapshot) {
-      SDL_BlitSurface(afterSnapshot.get(), NULL, canvas.drawingSurface, NULL);
+    if (after) {
+      SDL_BlitSurface(after.get(), NULL, canvas.drawingSurface, &region);
     }
   }
 
   void undo(Canvas &canvas) override {
-    if (beforeSnapshot) {
-      SDL_BlitSurface(beforeSnapshot.get(), NULL, canvas.drawingSurface, NULL);
+    if (before) {
+      SDL_BlitSurface(before.get(), NULL, canvas.drawingSurface, &region);
     }
   }
 };

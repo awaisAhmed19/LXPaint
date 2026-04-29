@@ -6,8 +6,18 @@ set(SDL_TESTS OFF CACHE BOOL "" FORCE)
 set(SDL_INSTALL OFF CACHE BOOL "" FORCE)
 add_subdirectory(external/SDL)
 
-# 2. Collect Project Sources (recursive handles src/core, src/Tools, etc.)
-file(GLOB_RECURSE PROJECT_SOURCES "src/*.cpp")
+set(PROJECT_SOURCES
+    src/main.cpp
+    src/App.cpp
+
+    # Core
+    src/Core/Renderer.cpp
+
+    # Tools
+    src/Tools/Pencil.cpp
+    src/Tools/Line.cpp
+    src/Tools/Eraser.cpp
+)
 
 # 3. Define ImGui Sources
 set(IMGUI_SRCS

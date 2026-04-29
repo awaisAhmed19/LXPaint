@@ -24,7 +24,7 @@ App::App(const char *title) {
   tm.registerTool("pencil", std::make_unique<Pencil>());
   tm.registerTool("line", std::make_unique<Line>());
   tm.registerTool("eraser", std::make_unique<Eraser>());
-  tm.setActiveTool("pencil");
+  tm.setActiveTool("line");
 
   // ImGui Setup
   IMGUI_CHECKVERSION();
@@ -114,12 +114,15 @@ void App::render() {
   SDL_SetRenderDrawColor(renderer, 30, 30, 30, 255);
   SDL_RenderClear(renderer);
 
-  // Render Canvas (CPU -> GPU)
+  // --- MAIN CANVAS ---
   canvas->syncTexture();
+
   SDL_FRect dest = {0, 0, (float)canvas->w, (float)canvas->h};
   SDL_RenderTexture(renderer, canvas->mainTexture, NULL, &dest);
 
-  // Render UI Overlays (Consoles, Benchmarks)
+  SDL_RenderTexture(renderer, canvas->previewTexture, NULL, &dest);
+
+  // --- UI ---
   DrawLogConsole(*canvas, screenW, screenH);
 
   // Finalize

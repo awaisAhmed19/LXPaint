@@ -43,11 +43,9 @@ public:
       break;
     }
 
-    // Format the full string for both console and ImGui history
     std::string fullMessage =
         std::format("[{:%T}] {} {}", now, levelStr, message);
 
-    // --- Thread Safety ---
     {
       std::lock_guard<std::mutex> lock(logMutex);
       history.push_back(fullMessage);
