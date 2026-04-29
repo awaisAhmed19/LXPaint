@@ -1,6 +1,11 @@
 #pragma once
 #include "../Core/Canvas.h"
 #include "../Core/CommandManager.h"
+#include "../Core/Logger.h"
+#include "../Tools/Eraser.h"
+#include "../Tools/Line.h"
+#include "../Tools/Pencil.h"
+#include "../Tools/Rect.h"
 #include "../Tools/ToolManager.h"
 #include "imgui.h"
 #include "imgui_impl_sdl3.h"

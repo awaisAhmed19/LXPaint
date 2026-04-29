@@ -1,10 +1,5 @@
 #include "App.h"
-#include "../Core/Logger.h"
-#include "../Tools/Eraser.h"
-#include "../Tools/Line.h"
-#include "../Tools/Pencil.h"
 #include "../UI/Console.h"
-
 App::App(const char *title) {
   SDL_Init(SDL_INIT_VIDEO);
 
@@ -23,6 +18,7 @@ App::App(const char *title) {
 
   tm.registerTool("pencil", std::make_unique<Pencil>());
   tm.registerTool("line", std::make_unique<Line>());
+  tm.registerTool("rect", std::make_unique<Rect>());
   tm.registerTool("eraser", std::make_unique<Eraser>());
   tm.setActiveTool("line");
 
@@ -62,6 +58,9 @@ void App::handleEvents() {
           break;
         case SDLK_L:
           tm.setActiveTool("line");
+          break;
+        case SDLK_R:
+          tm.setActiveTool("rect");
           break;
         }
         // CRITICAL: Stop processing this event so it doesn't leak into mouse
@@ -123,7 +122,7 @@ void App::render() {
   SDL_RenderTexture(renderer, canvas->previewTexture, NULL, &dest);
 
   // --- UI ---
-  DrawLogConsole(*canvas, screenW, screenH);
+  DrawLogConsole(*canvas, screenW, screenH, frameTimes, frameOffset);
 
   // Finalize
   ImGui::Render();

@@ -17,6 +17,7 @@ set(PROJECT_SOURCES
     src/Tools/Pencil.cpp
     src/Tools/Line.cpp
     src/Tools/Eraser.cpp
+    src/Tools/Rect.cpp
 )
 
 # 3. Define ImGui Sources

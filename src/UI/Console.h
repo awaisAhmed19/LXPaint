@@ -1,12 +1,11 @@
 #pragma once
-#include "../App.h"
 #include "../Core/Canvas.h"
 #include "../Core/Logger.h"
 #include "../Core/Profiler.h"
 #include "../Globals.h"
 #include "imgui.h"
 #include <algorithm>
-
+class App;
 void RenderAuditLogs(float width, float height) {
   ImGui::SetNextWindowPos(ImVec2(0, ImGui::GetIO().DisplaySize.y - height));
   ImGui::SetNextWindowSize(ImVec2(width, height));
@@ -28,20 +27,21 @@ void RenderAuditLogs(float width, float height) {
 }
 
 // --- Helper: Render the Global FPS Monitor ---
-void RenderFPSMonitor(float xPos, float width, float height) {
+void RenderFPSMonitor(float xPos, float width, float height, float *frameTimes,
+                      int frameOffset) {
   ImGui::SetNextWindowPos(ImVec2(xPos, ImGui::GetIO().DisplaySize.y - height));
   ImGui::SetNextWindowSize(ImVec2(width, height));
   if (ImGui::Begin("FPS Monitor", nullptr,
                    ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove)) {
-    float latestMs = App::frameTimes[(App::frameOffset + 99) % 100];
+    float latestMs = frameTimes[(frameOffset + 99) % 100];
     float currentFPS = (latestMs > 0) ? (1000.0f / latestMs) : 0;
 
     ImGui::Text("Global Health");
     ImGui::TextColored(ImVec4(0, 1, 1, 1), "Latency: %.2f ms", latestMs);
     ImGui::TextColored(ImVec4(1, 1, 0, 1), "FPS: %.1f", currentFPS);
     ImGui::Separator();
-    ImGui::PlotHistogram("##FPSHist", App::frameTimes, 100, App::frameOffset,
-                         nullptr, 0.0f, 100.0f, ImVec2(-1, 60));
+    ImGui::PlotHistogram("##FPSHist", frameTimes, 100, frameOffset, nullptr,
+                         0.0f, 100.0f, ImVec2(-1, 60));
   }
   ImGui::End();
 }
@@ -179,14 +179,15 @@ void RenderComparisonBenchmark() {
 }
 // --- MAIN ENTRY POINT ---
 inline void DrawLogConsole(const Canvas &canvas, int WindowWidth,
-                           int WindowHeight) {
+                           int WindowHeight, float *frameTimes,
+                           int frameOffset) {
   float h = WindowHeight * 0.3f;
   float wLog = WindowWidth * 0.4f;
   float wFPS = WindowWidth * 0.2f;
   float wAlgo = WindowWidth * 0.4f;
 
   RenderAuditLogs(wLog, h);
-  RenderFPSMonitor(wLog, wFPS, h);
+  RenderFPSMonitor(wLog, wFPS, h, frameTimes, frameOffset);
   RenderLiveProfiler(wLog + wFPS, wAlgo, h);
   RenderComparisonBenchmark();
 }
