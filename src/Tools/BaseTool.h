@@ -23,19 +23,24 @@ protected:
 
   SDL_Rect Boundbox = {0, 0, 0, 0};
 
-  void updateBounds(vec2<float> pos, int brushSize, int maxW, int maxH) {
+  void updateBounds(vec2 pos, int brushSize, int maxW, int maxH) {
     int minX = std::min(Boundbox.x, (int)pos.x - brushSize);
     int minY = std::min(Boundbox.y, (int)pos.y - brushSize);
     int maxX = std::max(Boundbox.x + Boundbox.w, (int)pos.x + brushSize);
     int maxY = std::max(Boundbox.y + Boundbox.h, (int)pos.y + brushSize);
 
-    Boundbox.x = std::clamp(minX, 0, maxW);
-    Boundbox.y = std::clamp(minY, 0, maxH);
-    Boundbox.w = std::clamp(maxX - Boundbox.x, 0, maxW - Boundbox.x);
-    Boundbox.h = std::clamp(maxY - Boundbox.y, 0, maxH - Boundbox.y);
+    int newMinX = std::clamp(minX, 0, maxW - 1);
+    int newMinY = std::clamp(minY, 0, maxH - 1);
+    int newMaxX = std::clamp(maxX, 0, maxW - 1);
+    int newMaxY = std::clamp(maxY, 0, maxH - 1);
+
+    Boundbox.x = newMinX;
+    Boundbox.y = newMinY;
+    Boundbox.w = std::max(0, newMaxX - newMinX + 1);
+    Boundbox.h = std::max(0, newMaxY - newMinY + 1);
   }
 
-  void resetBounds(vec2<float> pos, int brushSize) {
+  void resetBounds(vec2 pos, int brushSize) {
     Boundbox = {(int)pos.x - brushSize, (int)pos.y - brushSize,
                 brushSize * 2 + 1, brushSize * 2 + 1};
   }
@@ -47,7 +52,7 @@ public:
     freeSnapshot();
   }
 
-  virtual void onMouseDown(vec2<float> pos, Canvas &canvas) = 0;
-  virtual void onMouseMove(vec2<float> pos, Canvas &canvas) = 0;
-  virtual Command *onMouseUp(vec2<float> pos, Canvas &canvas) = 0;
+  virtual void onMouseDown(vec2 pos, Canvas &canvas) = 0;
+  virtual void onMouseMove(vec2 pos, Canvas &canvas) = 0;
+  virtual Command *onMouseUp(vec2 pos, Canvas &canvas) = 0;
 };

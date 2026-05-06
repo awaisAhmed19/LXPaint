@@ -20,7 +20,7 @@ App::App(const char *title) {
   tm.registerTool("line", std::make_unique<Line>());
   tm.registerTool("rect", std::make_unique<Rect>());
   tm.registerTool("eraser", std::make_unique<Eraser>());
-  tm.setActiveTool("line");
+  tm.setActiveTool("rect");
 
   // ImGui Setup
   IMGUI_CHECKVERSION();

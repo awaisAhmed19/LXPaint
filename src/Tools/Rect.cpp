@@ -1,7 +1,7 @@
 #include "Rect.h"
 #include <algorithm>
-static SDL_Rect computeRectBounds(vec2<float> a, vec2<float> b, int brushSize,
-                                  int maxW, int maxH) {
+static SDL_Rect computeRectBounds(vec2 a, vec2 b, int brushSize, int maxW,
+                                  int maxH) {
   int minX = std::max(0, std::min((int)a.x, (int)b.x) - brushSize);
   int minY = std::max(0, std::min((int)a.y, (int)b.y) - brushSize);
   int maxX = std::min(maxW - 1, std::max((int)a.x, (int)b.x) + brushSize);
@@ -9,9 +9,25 @@ static SDL_Rect computeRectBounds(vec2<float> a, vec2<float> b, int brushSize,
 
   return SDL_Rect{minX, minY, maxX - minX + 1, maxY - minY + 1};
 }
+void RectFill(Canvas &canvas, int minX, int minY, int maxX, int maxY,
+              uint32_t color) {
+  for (int x = minX; x <= maxX; x++) {
+    for (int y = minY; y <= maxY; y++) {
+      canvas.drawPixel(x, y, color);
+    }
+  }
+}
 
-static void drawRect(vec2<float> a, vec2<float> b, Canvas &canvas,
-                     uint32_t color, int brushSize) {
+void RectFillWhite(Canvas &canvas, int minX, int minY, int maxX, int maxY) {
+  const uint32_t color = 0xFFFFFFFF;
+  for (int x = minX + 1; x <= maxX - 1; x++) {
+    for (int y = minY + 1; y <= maxY - 1; y++) {
+      canvas.drawPixel(x, y, color);
+    }
+  }
+}
+static void drawRect(vec2 a, vec2 b, Canvas &canvas, uint32_t color,
+                     int brushSize) {
 
   int minX = std::min((int)a.x, (int)b.x);
   int minY = std::min((int)a.y, (int)b.y);
@@ -33,8 +49,11 @@ static void drawRect(vec2<float> a, vec2<float> b, Canvas &canvas,
   // Right
   Renderer::bresenham({(float)maxX, (float)minY}, {(float)maxX, (float)maxY},
                       canvas, color, brushSize, false);
+  // RectFill(canvas, minX, minY, maxX, maxY, color);
+  RectFillWhite(canvas, minX, minY, maxX, maxY);
 }
-void Rect::onMouseDown(vec2<float> pos, Canvas &canvas) {
+
+void Rect::onMouseDown(vec2 pos, Canvas &canvas) {
   drawing = true;
   Start = pos;
   Last = pos;
@@ -45,7 +64,7 @@ void Rect::onMouseDown(vec2<float> pos, Canvas &canvas) {
   Logger::log(LogLevel::DEBUG, "RECT TOOL: START");
 }
 
-void Rect::onMouseMove(vec2<float> pos, Canvas &canvas) {
+void Rect::onMouseMove(vec2 pos, Canvas &canvas) {
   if (!drawing)
     return;
 
@@ -55,12 +74,11 @@ void Rect::onMouseMove(vec2<float> pos, Canvas &canvas) {
   SDL_Rect newBound =
       computeRectBounds(Start, pos, brushSize, canvas.w, canvas.h);
 
-  drawRect(Start, pos, canvas, color, brushSize);
-
   prevBound = newBound;
   Last = pos;
 
   auto s1 = std::chrono::high_resolution_clock::now();
+  drawRect(Start, pos, canvas, color, brushSize);
   auto e1 = std::chrono::high_resolution_clock::now();
 
   auto s2 = std::chrono::high_resolution_clock::now();
@@ -76,7 +94,7 @@ void Rect::onMouseMove(vec2<float> pos, Canvas &canvas) {
                            pos);
 }
 
-Command *Rect::onMouseUp(vec2<float> pos, Canvas &canvas) {
+Command *Rect::onMouseUp(vec2 pos, Canvas &canvas) {
   drawing = false;
 
   SDL_BlitSurface(currentSnapshot, &prevBound, canvas.drawingSurface,

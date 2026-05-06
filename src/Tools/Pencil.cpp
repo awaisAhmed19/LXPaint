@@ -1,6 +1,6 @@
 #include "Pencil.h"
 
-void Pencil::onMouseDown(vec2<float> pos, Canvas &canvas) {
+void Pencil::onMouseDown(vec2 pos, Canvas &canvas) {
   drawing = true;
   Start = pos;
   resetBounds(pos, brushSize);
@@ -9,7 +9,7 @@ void Pencil::onMouseDown(vec2<float> pos, Canvas &canvas) {
   Logger::log(LogLevel::DEBUG, "PENCIL STARTED DRAWING");
 }
 
-void Pencil::onMouseMove(vec2<float> pos, Canvas &canvas) {
+void Pencil::onMouseMove(vec2 pos, Canvas &canvas) {
   if (!drawing)
     return;
 
@@ -38,7 +38,7 @@ void Pencil::onMouseMove(vec2<float> pos, Canvas &canvas) {
   Start = pos;
 }
 
-Command *Pencil::onMouseUp(vec2<float> pos, Canvas &canvas) {
+Command *Pencil::onMouseUp(vec2 pos, Canvas &canvas) {
   drawing = false;
 
   // Use the optimized DrawCommand that takes a dirty rect

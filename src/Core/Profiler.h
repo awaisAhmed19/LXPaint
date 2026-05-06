@@ -36,7 +36,7 @@ public:
   static inline std::map<std::string, std::vector<float>> raceSessions;
   static inline std::vector<float> currentDistances;
   static inline float sessionDistance = 0.0f;
-  static inline vec2f lastPos = {-1.0f, -1.0f};
+  static inline vec2 lastPos = {-1.0f, -1.0f};
 
   static inline std::vector<AlgoRun> comparisonStorage;
   static inline std::map<std::string, struct AlgoStats> algoData;
@@ -48,7 +48,7 @@ public:
   // --- The General Purpose Race Recorder ---
   // Pass a vector of results (e.g., { {name, time, color}, ... })
   static void recordRaceStep(const std::vector<RaceResult> &results,
-                             vec2f currentPos) {
+                             vec2 currentPos) {
     if (lastPos.x != -1.0f) {
       float d = std::sqrt(std::pow(currentPos.x - lastPos.x, 2) +
                           std::pow(currentPos.y - lastPos.y, 2));

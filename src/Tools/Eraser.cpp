@@ -1,6 +1,6 @@
 #include "Eraser.h"
 
-void Eraser::onMouseDown(vec2<float> pos, Canvas &canvas) {
+void Eraser::onMouseDown(vec2 pos, Canvas &canvas) {
   drawing = true;
   Start = pos;
   resetBounds(pos, brushSize);
@@ -9,7 +9,7 @@ void Eraser::onMouseDown(vec2<float> pos, Canvas &canvas) {
   Logger::log(LogLevel::DEBUG, "ERASER STARTED DRAWING");
 }
 
-void Eraser::onMouseMove(vec2<float> pos, Canvas &canvas) {
+void Eraser::onMouseMove(vec2 pos, Canvas &canvas) {
   if (!drawing)
     return;
 
@@ -38,7 +38,7 @@ void Eraser::onMouseMove(vec2<float> pos, Canvas &canvas) {
   Start = pos;
 }
 
-Command *Eraser::onMouseUp(vec2<float> pos, Canvas &canvas) {
+Command *Eraser::onMouseUp(vec2 pos, Canvas &canvas) {
   drawing = false;
 
   // Use the optimized DrawCommand that takes a dirty rect

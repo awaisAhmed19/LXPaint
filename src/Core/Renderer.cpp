@@ -46,8 +46,8 @@ void drawHorizontalSpan(int x, int y, int thickness, uint32_t *pixels,
   }
 }
 
-void dda(vec2<float> start, vec2<float> end, Canvas &canvas, uint32_t color,
-         int brushSize, bool useXOR) {
+void dda(vec2 start, vec2 end, Canvas &canvas, uint32_t color, int brushSize,
+         bool useXOR) {
   float dx = end.x - start.x;
   float dy = end.y - start.y;
   int steps = std::abs(dx) > std::abs(dy) ? std::abs(dx) : std::abs(dy);
@@ -95,8 +95,8 @@ void dda(vec2<float> start, vec2<float> end, Canvas &canvas, uint32_t color,
   unlockSurface(canvas.drawingSurface);
 }
 
-void bresenham(vec2<float> start, vec2<float> end, Canvas &canvas,
-               uint32_t color, int brushSize, bool useXOR) {
+void bresenham(vec2 start, vec2 end, Canvas &canvas, uint32_t color,
+               int brushSize, bool useXOR) {
   if (!lockSurface(canvas.drawingSurface))
     return;
 

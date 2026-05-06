@@ -1,7 +1,7 @@
 #include "Line.h"
 #include <algorithm>
-static SDL_Rect computeLineBounds(vec2<float> a, vec2<float> b, int brushSize,
-                                  int maxW, int maxH) {
+static SDL_Rect computeLineBounds(vec2 a, vec2 b, int brushSize, int maxW,
+                                  int maxH) {
   int minX = std::max(0, std::min((int)a.x, (int)b.x) - brushSize);
   int minY = std::max(0, std::min((int)a.y, (int)b.y) - brushSize);
   int maxX = std::min(maxW - 1, std::max((int)a.x, (int)b.x) + brushSize);
@@ -9,7 +9,7 @@ static SDL_Rect computeLineBounds(vec2<float> a, vec2<float> b, int brushSize,
 
   return SDL_Rect{minX, minY, maxX - minX + 1, maxY - minY + 1};
 }
-void Line::onMouseDown(vec2<float> pos, Canvas &canvas) {
+void Line::onMouseDown(vec2 pos, Canvas &canvas) {
   drawing = true;
   Start = pos;
   Last = pos;
@@ -20,7 +20,7 @@ void Line::onMouseDown(vec2<float> pos, Canvas &canvas) {
   Logger::log(LogLevel::DEBUG, "LINE TOOL: START");
 }
 
-void Line::onMouseMove(vec2<float> pos, Canvas &canvas) {
+void Line::onMouseMove(vec2 pos, Canvas &canvas) {
   if (!drawing)
     return;
 
@@ -51,7 +51,7 @@ void Line::onMouseMove(vec2<float> pos, Canvas &canvas) {
                            pos);
 }
 
-Command *Line::onMouseUp(vec2<float> pos, Canvas &canvas) {
+Command *Line::onMouseUp(vec2 pos, Canvas &canvas) {
   drawing = false;
 
   SDL_BlitSurface(currentSnapshot, &prevBound, canvas.drawingSurface,

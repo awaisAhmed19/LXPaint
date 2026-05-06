@@ -8,7 +8,8 @@ public:
   SDL_Texture *mainTexture;    // GPU-side: The "mirror" of drawingSurface
   SDL_Texture *previewTexture; // GPU-side: For live previews (Line/Rect)
   int w, h;
-  Canvas(SDL_Renderer *r, int w, int h) : renderer(r) {
+  Canvas(SDL_Renderer *r, int w, int h) {
+    this->renderer = r;
     this->w = w;
     this->h = h;
     drawingSurface = SDL_CreateSurface(w, h, SDL_PIXELFORMAT_ARGB8888);
@@ -32,6 +33,16 @@ public:
     SDL_DestroyTexture(previewTexture);
   }
 
+  void drawPixel(int x, int y, uint32_t color) {
+    if (x < 0 || x >= drawingSurface->w || y < 0 || y >= drawingSurface->h) {
+      return;
+    }
+
+    uint32_t *pixels = static_cast<uint32_t *>(drawingSurface->pixels);
+
+    int pitch_in_pixels = drawingSurface->pitch / 4;
+    pixels[y * pitch_in_pixels + x] = color;
+  }
   // Push pixels from CPU Surface to GPU Texture
   void syncTexture() {
     SDL_UpdateTexture(mainTexture, NULL, drawingSurface->pixels,
