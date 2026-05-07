@@ -9,6 +9,8 @@ class ToolManager {
 public:
   void registerTool(std::string name, std::unique_ptr<BaseTool> tool) {
     registry[name] = std::move(tool); // "Move" ownership into the map
+    std::string message = "TOOL REGISTERED:" + name;
+    Logger::log(LogLevel::INFO, message);
   }
 
   void setActiveTool(std::string name) {
@@ -17,6 +19,8 @@ public:
         activeTool->deactivate();
       }
       activeTool = registry[name].get();
+      std::string message = "THE ACTIVE TOOL:" + name;
+      Logger::log(LogLevel::INFO, message);
     }
   }
   BaseTool *getActive() { return activeTool; }

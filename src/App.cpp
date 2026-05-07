@@ -21,8 +21,7 @@ App::App(const char *title) {
   tm.registerTool("line", std::make_unique<Line>());
   tm.registerTool("rect", std::make_unique<Rect>());
   tm.registerTool("eraser", std::make_unique<Eraser>());
-  tm.setActiveTool("rect");
-
+  tm.setActiveTool("pencil");
   tool = tm.getActive();
   // ImGui Setup
   IMGUI_CHECKVERSION();
@@ -31,42 +30,8 @@ App::App(const char *title) {
   ImGui_ImplSDLRenderer3_Init(renderer);
 }
 
-void App::keyEvents(SDL_Event e) {
-
-  if (e.type != SDL_EVENT_KEY_DOWN)
-    return;
-
-  if (e.key.mod & SDL_KMOD_CTRL) {
-    switch (e.key.key) {
-    case SDLK_Z:
-      cm.undo(*canvas);
-      break;
-    case SDLK_Y:
-      cm.redo(*canvas);
-      break;
-    case SDLK_E:
-      tm.setActiveTool("eraser");
-      Logger::log(LogLevel::DEBUG, "TOOL CHANGED TO : ERASER");
-      break;
-    case SDLK_P:
-      tm.setActiveTool("pencil");
-      Logger::log(LogLevel::DEBUG, "TOOL CHANGED TO : PENCIL");
-      break;
-    case SDLK_L:
-      tm.setActiveTool("line");
-      Logger::log(LogLevel::DEBUG, "TOOL CHANGED TO : LINE");
-      break;
-    case SDLK_R:
-      tm.setActiveTool("rect");
-      Logger::log(LogLevel::DEBUG, "TOOL CHANGED TO : RECT");
-      break;
-    }
-    // CRITICAL: Stop processing this event so it doesn't leak into mouse
-    // logic
-  }
-}
-
 void App::mouseEvents(SDL_Event e) {
+  tool = tm.getActive();
   if (!tool) {
     Logger::log(LogLevel::DEBUG, "TOOL IS NULL MOSTLY LIKELY");
     return;
@@ -108,7 +73,7 @@ void App::handleEvents(SDL_Event e) {
       return;
     }
     // 2. Keyboard Shortcuts (Abstraction: handleShortcuts)
-    keyEvents(e);
+    dispatcher.updateKeyInput(e);
     // 3. Mouse Interaction (UI Guard)
     if (ImGui::GetIO().WantCaptureMouse)
       continue;
@@ -145,7 +110,34 @@ void App::render() {
   SDL_RenderPresent(renderer);
 }
 
+void App::setupInputKeyBinds() {
+  dispatcher.keyBinds(SDL_SCANCODE_Z, InputCommand::UNDO);
+  dispatcher.keyBinds(SDL_SCANCODE_Y, InputCommand::REDO);
+  dispatcher.keyBinds(SDL_SCANCODE_P, InputCommand::PENCIL);
+  dispatcher.keyBinds(SDL_SCANCODE_F, InputCommand::FILL);
+  dispatcher.keyBinds(SDL_SCANCODE_L, InputCommand::LINE);
+  dispatcher.keyBinds(SDL_SCANCODE_R, InputCommand::RECT);
+  dispatcher.keyBinds(SDL_SCANCODE_E, InputCommand::ERASER);
+}
+
+void App::setupInputActions() {
+  dispatcher.bindActions(InputCommand::UNDO, [this]() { cm.undo(*canvas); });
+  dispatcher.bindActions(InputCommand::REDO, [this]() { cm.undo(*canvas); });
+  dispatcher.bindActions(InputCommand::PENCIL,
+                         [this]() { tm.setActiveTool("pencil"); });
+  dispatcher.bindActions(InputCommand::FILL,
+                         [this]() { tm.setActiveTool("fill"); });
+  dispatcher.bindActions(InputCommand::LINE,
+                         [this]() { tm.setActiveTool("line"); });
+  dispatcher.bindActions(InputCommand::RECT,
+                         [this]() { tm.setActiveTool("rect"); });
+  dispatcher.bindActions(InputCommand::ERASER,
+                         [this]() { tm.setActiveTool("eraser"); });
+}
+
 void App::run() {
+  setupInputKeyBinds();
+  setupInputActions();
   while (running) {
     handleEvents(events);
     render();

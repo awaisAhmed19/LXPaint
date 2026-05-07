@@ -9,6 +9,7 @@ add_subdirectory(external/SDL)
 set(PROJECT_SOURCES
     src/main.cpp
     src/App.cpp
+    src/InputDispatcher.cpp
 
     # Core
     src/Core/Renderer.cpp

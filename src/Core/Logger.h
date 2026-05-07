@@ -44,7 +44,7 @@ public:
     }
 
     std::string fullMessage =
-        std::format("[{:%T}] {} {}", now, levelStr, message);
+        std::format("[{:%T}] {} {} ", now, levelStr, message);
 
     {
       std::lock_guard<std::mutex> lock(logMutex);

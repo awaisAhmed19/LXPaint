@@ -7,6 +7,7 @@
 #include "../Tools/Pencil.h"
 #include "../Tools/Rect.h"
 #include "../Tools/ToolManager.h"
+#include "./InputDispatcher.h"
 #include "imgui.h"
 #include "imgui_impl_sdl3.h"
 #include "imgui_impl_sdlrenderer3.h"
@@ -25,6 +26,10 @@ public:
 
 private:
   bool running = true;
+  int screenW = 0, screenH = 0;
+  int cW = 0;
+  int cH = 0;
+
   SDL_Window *window = nullptr;
   SDL_Renderer *renderer = nullptr;
 
@@ -32,16 +37,16 @@ private:
   CommandManager cm;
   ToolManager tm;
   BaseTool *tool = nullptr;
-  int screenW = 0, screenH = 0;
-  int cW = 0;
-  int cH = 0;
   SDL_Event events;
+  InputDispatcher dispatcher;
+  InputCommand ic;
+
   void handleEvents(SDL_Event events);
   void mouseEvents(SDL_Event events);
-  void keyEvents(SDL_Event events);
   void update(float deltatime);
   void render();
-
+  void setupInputKeyBinds();
+  void setupInputActions();
   bool inCanvas(float x, float y) {
     if ((x > 0 && x < cW) && (y > 0 && y < cH))
       return true;
