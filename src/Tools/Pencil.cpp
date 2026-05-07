@@ -5,7 +5,8 @@ void Pencil::onMouseDown(vec2 pos, Canvas &canvas) {
   Start = pos;
   resetBounds(pos, brushSize);
 
-  Renderer::bresenham(pos, pos, canvas, color, brushSize, useXOR);
+  Renderer::bresenham(Start, pos, canvas.m_canvasSurface, color, brushSize,
+                      false);
   Logger::log(LogLevel::DEBUG, "PENCIL STARTED DRAWING");
 }
 
@@ -14,11 +15,12 @@ void Pencil::onMouseMove(vec2 pos, Canvas &canvas) {
     return;
 
   // Abstracted Logic
-  updateBounds(pos, brushSize, canvas.w, canvas.h);
+  updateBounds(pos, brushSize, canvas.m_width, canvas.m_height);
 
   // Benchmarking
   auto s1 = std::chrono::high_resolution_clock::now();
-  Renderer::bresenham(Start, pos, canvas, color, brushSize, useXOR);
+  Renderer::bresenham(Start, pos, canvas.m_canvasSurface, color, brushSize,
+                      false);
   auto e1 = std::chrono::high_resolution_clock::now();
 
   auto s2 = std::chrono::high_resolution_clock::now();
@@ -42,7 +44,7 @@ Command *Pencil::onMouseUp(vec2 pos, Canvas &canvas) {
   drawing = false;
 
   // Use the optimized DrawCommand that takes a dirty rect
-  DrawCommand *cmd = new DrawCommand(canvas.drawingSurface, Boundbox);
+  DrawCommand *cmd = new DrawCommand(canvas.m_canvasSurface, Boundbox);
 
   // Finalize Profiler
   Profiler::commitRace({{"BRESENHAM", ImVec4(1.0f, 0.5f, 0.0f, 1.0f)},

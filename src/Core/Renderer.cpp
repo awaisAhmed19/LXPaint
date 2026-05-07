@@ -46,25 +46,25 @@ void drawHorizontalSpan(int x, int y, int thickness, uint32_t *pixels,
   }
 }
 
-void dda(vec2 start, vec2 end, Canvas &canvas, uint32_t color, int brushSize,
-         bool useXOR) {
+void dda(vec2 start, vec2 end, SDL_Surface *canvas, uint32_t color,
+         int brushSize, bool useXOR) {
   float dx = end.x - start.x;
   float dy = end.y - start.y;
   int steps = std::abs(dx) > std::abs(dy) ? std::abs(dx) : std::abs(dy);
   if (steps == 0)
     return;
 
-  if (!lockSurface(canvas.drawingSurface))
+  if (!lockSurface(canvas))
     return;
 
   float xInc = dx / (float)steps;
   float yInc = dy / (float)steps;
   float x = start.x, y = start.y;
 
-  uint32_t *pixels = (uint32_t *)canvas.drawingSurface->pixels;
-  int pitch = canvas.drawingSurface->pitch >> 2;
-  int surfW = canvas.drawingSurface->w;
-  int surfH = canvas.drawingSurface->h;
+  uint32_t *pixels = (uint32_t *)canvas->pixels;
+  int pitch = canvas->pitch >> 2;
+  int surfW = canvas->w;
+  int surfH = canvas->h;
 
   for (int i = 0; i <= steps; i++) {
     int ix = (int)std::round(x);
@@ -92,12 +92,12 @@ void dda(vec2 start, vec2 end, Canvas &canvas, uint32_t color, int brushSize,
     x += xInc;
     y += yInc;
   }
-  unlockSurface(canvas.drawingSurface);
+  unlockSurface(canvas);
 }
 
-void bresenham(vec2 start, vec2 end, Canvas &canvas, uint32_t color,
+void bresenham(vec2 start, vec2 end, SDL_Surface *canvas, uint32_t color,
                int brushSize, bool useXOR) {
-  if (!lockSurface(canvas.drawingSurface))
+  if (!lockSurface(canvas))
     return;
 
   int x1 = (int)start.x, y1 = (int)start.y;
@@ -107,10 +107,10 @@ void bresenham(vec2 start, vec2 end, Canvas &canvas, uint32_t color,
   int dy = -abs(y2 - y1), sy = y1 < y2 ? 1 : -1;
   int err = dx + dy;
 
-  uint32_t *pixels = (uint32_t *)canvas.drawingSurface->pixels;
-  int pitch = canvas.drawingSurface->pitch >> 2;
-  int surfW = canvas.drawingSurface->w;
-  int surfH = canvas.drawingSurface->h;
+  uint32_t *pixels = (uint32_t *)canvas->pixels;
+  int pitch = canvas->pitch >> 2;
+  int surfW = canvas->w;
+  int surfH = canvas->h;
 
   bool steep = abs(y2 - y1) > abs(x2 - x1);
 
@@ -140,6 +140,6 @@ void bresenham(vec2 start, vec2 end, Canvas &canvas, uint32_t color,
       y1 += sy;
     }
   }
-  unlockSurface(canvas.drawingSurface);
+  unlockSurface(canvas);
 }
 } // namespace Renderer

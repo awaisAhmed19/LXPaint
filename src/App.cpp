@@ -116,10 +116,10 @@ void App::render() {
   // --- MAIN CANVAS ---
   canvas->syncTexture();
 
-  SDL_FRect dest = {0, 0, (float)canvas->w, (float)canvas->h};
-  SDL_RenderTexture(renderer, canvas->mainTexture, NULL, &dest);
+  SDL_FRect dest = {0, 0, (float)canvas->m_width, (float)canvas->m_height};
+  SDL_RenderTexture(renderer, canvas->m_canvasTexture, NULL, &dest);
 
-  SDL_RenderTexture(renderer, canvas->previewTexture, NULL, &dest);
+  SDL_RenderTexture(renderer, canvas->m_previewTexture, NULL, &dest);
 
   // --- UI ---
   DrawLogConsole(*canvas, screenW, screenH, frameTimes, frameOffset);

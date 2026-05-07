@@ -36,19 +36,18 @@ static void drawRect(vec2 a, vec2 b, Canvas &canvas, uint32_t color,
 
   // Top
   Renderer::bresenham({(float)minX, (float)minY}, {(float)maxX, (float)minY},
-                      canvas, color, brushSize, false);
-
+                      canvas.m_canvasSurface, color, brushSize, false);
   // Bottom
   Renderer::bresenham({(float)minX, (float)maxY}, {(float)maxX, (float)maxY},
-                      canvas, color, brushSize, false);
+                      canvas.m_canvasSurface, color, brushSize, false);
 
   // Left
   Renderer::bresenham({(float)minX, (float)minY}, {(float)minX, (float)maxY},
-                      canvas, color, brushSize, false);
+                      canvas.m_canvasSurface, color, brushSize, false);
 
   // Right
   Renderer::bresenham({(float)maxX, (float)minY}, {(float)maxX, (float)maxY},
-                      canvas, color, brushSize, false);
+                      canvas.m_canvasSurface, color, brushSize, false);
   // RectFill(canvas, minX, minY, maxX, maxY, color);
   RectFillWhite(canvas, minX, minY, maxX, maxY);
 }
@@ -58,8 +57,9 @@ void Rect::onMouseDown(vec2 pos, Canvas &canvas) {
   Start = pos;
   Last = pos;
 
-  currentSnapshot = SDL_DuplicateSurface(canvas.drawingSurface);
-  prevBound = computeRectBounds(pos, pos, brushSize, canvas.w, canvas.h);
+  currentSnapshot = SDL_DuplicateSurface(canvas.m_canvasSurface);
+  prevBound =
+      computeRectBounds(pos, pos, brushSize, canvas.m_width, canvas.m_height);
 
   Logger::log(LogLevel::DEBUG, "RECT TOOL: START");
 }
@@ -68,11 +68,11 @@ void Rect::onMouseMove(vec2 pos, Canvas &canvas) {
   if (!drawing)
     return;
 
-  SDL_BlitSurface(currentSnapshot, &prevBound, canvas.drawingSurface,
+  SDL_BlitSurface(currentSnapshot, &prevBound, canvas.m_canvasSurface,
                   &prevBound);
 
   SDL_Rect newBound =
-      computeRectBounds(Start, pos, brushSize, canvas.w, canvas.h);
+      computeRectBounds(Start, pos, brushSize, canvas.m_width, canvas.m_height);
 
   prevBound = newBound;
   Last = pos;
@@ -97,16 +97,16 @@ void Rect::onMouseMove(vec2 pos, Canvas &canvas) {
 Command *Rect::onMouseUp(vec2 pos, Canvas &canvas) {
   drawing = false;
 
-  SDL_BlitSurface(currentSnapshot, &prevBound, canvas.drawingSurface,
+  SDL_BlitSurface(currentSnapshot, &prevBound, canvas.m_canvasSurface,
                   &prevBound);
 
   drawRect(Start, pos, canvas, color, brushSize);
 
   SDL_Rect finalBound =
-      computeRectBounds(Start, pos, brushSize, canvas.w, canvas.h);
+      computeRectBounds(Start, pos, brushSize, canvas.m_width, canvas.m_height);
 
-  DrawCommand *cmd = new DrawCommand(canvas.drawingSurface, finalBound);
-  cmd->captureAfter(canvas.drawingSurface);
+  DrawCommand *cmd = new DrawCommand(canvas.m_canvasSurface, finalBound);
+  cmd->captureAfter(canvas.m_canvasSurface);
 
   freeSnapshot();
 

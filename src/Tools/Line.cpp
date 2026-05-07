@@ -14,8 +14,9 @@ void Line::onMouseDown(vec2 pos, Canvas &canvas) {
   Start = pos;
   Last = pos;
 
-  currentSnapshot = SDL_DuplicateSurface(canvas.drawingSurface);
-  prevBound = computeLineBounds(pos, pos, brushSize, canvas.w, canvas.h);
+  currentSnapshot = SDL_DuplicateSurface(canvas.m_canvasSurface);
+  prevBound =
+      computeLineBounds(pos, pos, brushSize, canvas.m_width, canvas.m_height);
 
   Logger::log(LogLevel::DEBUG, "LINE TOOL: START");
 }
@@ -24,17 +25,18 @@ void Line::onMouseMove(vec2 pos, Canvas &canvas) {
   if (!drawing)
     return;
 
-  SDL_BlitSurface(currentSnapshot, &prevBound, canvas.drawingSurface,
+  SDL_BlitSurface(currentSnapshot, &prevBound, canvas.m_canvasSurface,
                   &prevBound);
 
   SDL_Rect newBound =
-      computeLineBounds(Start, pos, brushSize, canvas.w, canvas.h);
+      computeLineBounds(Start, pos, brushSize, canvas.m_width, canvas.m_height);
 
   prevBound = newBound;
   Last = pos;
 
   auto s1 = std::chrono::high_resolution_clock::now();
-  Renderer::bresenham(Start, pos, canvas, color, brushSize, false);
+  Renderer::bresenham(Start, pos, canvas.m_canvasSurface, color, brushSize,
+                      false);
   auto e1 = std::chrono::high_resolution_clock::now();
 
   auto s2 = std::chrono::high_resolution_clock::now();
@@ -54,16 +56,17 @@ void Line::onMouseMove(vec2 pos, Canvas &canvas) {
 Command *Line::onMouseUp(vec2 pos, Canvas &canvas) {
   drawing = false;
 
-  SDL_BlitSurface(currentSnapshot, &prevBound, canvas.drawingSurface,
+  SDL_BlitSurface(currentSnapshot, &prevBound, canvas.m_canvasSurface,
                   &prevBound);
 
-  Renderer::bresenham(Start, pos, canvas, color, brushSize, false);
+  Renderer::bresenham(Start, pos, canvas.m_canvasSurface, color, brushSize,
+                      false);
 
   SDL_Rect finalBound =
-      computeLineBounds(Start, pos, brushSize, canvas.w, canvas.h);
+      computeLineBounds(Start, pos, brushSize, canvas.m_width, canvas.m_height);
 
-  DrawCommand *cmd = new DrawCommand(canvas.drawingSurface, finalBound);
-  cmd->captureAfter(canvas.drawingSurface);
+  DrawCommand *cmd = new DrawCommand(canvas.m_canvasSurface, finalBound);
+  cmd->captureAfter(canvas.m_canvasSurface);
 
   freeSnapshot();
 
