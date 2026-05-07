@@ -15,8 +15,8 @@ void Line::onMouseDown(vec2 pos, Canvas &canvas) {
   Last = pos;
 
   currentSnapshot = SDL_DuplicateSurface(canvas.m_canvasSurface);
-  prevBound =
-      computeLineBounds(pos, pos, brushSize, canvas.m_width, canvas.m_height);
+  prevBound = computeLineBounds(pos, pos, brushSize, canvas.getWidth(),
+                                canvas.getHeight());
 
   Logger::log(LogLevel::DEBUG, "LINE TOOL: START");
 }
@@ -28,8 +28,8 @@ void Line::onMouseMove(vec2 pos, Canvas &canvas) {
   SDL_BlitSurface(currentSnapshot, &prevBound, canvas.m_canvasSurface,
                   &prevBound);
 
-  SDL_Rect newBound =
-      computeLineBounds(Start, pos, brushSize, canvas.m_width, canvas.m_height);
+  SDL_Rect newBound = computeLineBounds(Start, pos, brushSize,
+                                        canvas.getWidth(), canvas.getHeight());
 
   prevBound = newBound;
   Last = pos;
@@ -62,8 +62,8 @@ Command *Line::onMouseUp(vec2 pos, Canvas &canvas) {
   Renderer::bresenham(Start, pos, canvas.m_canvasSurface, color, brushSize,
                       false);
 
-  SDL_Rect finalBound =
-      computeLineBounds(Start, pos, brushSize, canvas.m_width, canvas.m_height);
+  SDL_Rect finalBound = computeLineBounds(
+      Start, pos, brushSize, canvas.getWidth(), canvas.getHeight());
 
   DrawCommand *cmd = new DrawCommand(canvas.m_canvasSurface, finalBound);
   cmd->captureAfter(canvas.m_canvasSurface);

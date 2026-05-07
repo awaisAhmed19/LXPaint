@@ -58,8 +58,8 @@ void Rect::onMouseDown(vec2 pos, Canvas &canvas) {
   Last = pos;
 
   currentSnapshot = SDL_DuplicateSurface(canvas.m_canvasSurface);
-  prevBound =
-      computeRectBounds(pos, pos, brushSize, canvas.m_width, canvas.m_height);
+  prevBound = computeRectBounds(pos, pos, brushSize, canvas.getWidth(),
+                                canvas.getHeight());
 
   Logger::log(LogLevel::DEBUG, "RECT TOOL: START");
 }
@@ -71,8 +71,8 @@ void Rect::onMouseMove(vec2 pos, Canvas &canvas) {
   SDL_BlitSurface(currentSnapshot, &prevBound, canvas.m_canvasSurface,
                   &prevBound);
 
-  SDL_Rect newBound =
-      computeRectBounds(Start, pos, brushSize, canvas.m_width, canvas.m_height);
+  SDL_Rect newBound = computeRectBounds(Start, pos, brushSize,
+                                        canvas.getWidth(), canvas.getHeight());
 
   prevBound = newBound;
   Last = pos;
@@ -102,8 +102,8 @@ Command *Rect::onMouseUp(vec2 pos, Canvas &canvas) {
 
   drawRect(Start, pos, canvas, color, brushSize);
 
-  SDL_Rect finalBound =
-      computeRectBounds(Start, pos, brushSize, canvas.m_width, canvas.m_height);
+  SDL_Rect finalBound = computeRectBounds(
+      Start, pos, brushSize, canvas.getWidth(), canvas.getHeight());
 
   DrawCommand *cmd = new DrawCommand(canvas.m_canvasSurface, finalBound);
   cmd->captureAfter(canvas.m_canvasSurface);

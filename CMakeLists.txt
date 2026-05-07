@@ -12,6 +12,7 @@ set(PROJECT_SOURCES
 
     # Core
     src/Core/Renderer.cpp
+    src/Core/Canvas.cpp
 
     # Tools
     src/Tools/Pencil.cpp

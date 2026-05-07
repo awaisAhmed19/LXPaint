@@ -25,16 +25,27 @@ public:
 
 private:
   bool running = true;
-  void handleEvents();
-  void update(float deltatime);
-  void render();
-
   SDL_Window *window = nullptr;
   SDL_Renderer *renderer = nullptr;
 
   std::unique_ptr<Canvas> canvas;
   CommandManager cm;
   ToolManager tm;
+  BaseTool *tool = nullptr;
+  int screenW = 0, screenH = 0;
+  int cW = 0;
+  int cH = 0;
+  SDL_Event events;
+  void handleEvents(SDL_Event events);
+  void mouseEvents(SDL_Event events);
+  void keyEvents(SDL_Event events);
+  void update(float deltatime);
+  void render();
 
-  int screenW, screenH;
+  bool inCanvas(float x, float y) {
+    if ((x > 0 && x < cW) && (y > 0 && y < cH))
+      return true;
+    else
+      return false;
+  }
 };

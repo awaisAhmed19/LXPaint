@@ -15,7 +15,7 @@ void Pencil::onMouseMove(vec2 pos, Canvas &canvas) {
     return;
 
   // Abstracted Logic
-  updateBounds(pos, brushSize, canvas.m_width, canvas.m_height);
+  updateBounds(pos, brushSize, canvas.getWidth(), canvas.getHeight());
 
   // Benchmarking
   auto s1 = std::chrono::high_resolution_clock::now();

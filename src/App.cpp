@@ -15,13 +15,15 @@ App::App(const char *title) {
   // Initialize Canvas & Tools
   canvas = std::make_unique<Canvas>(renderer, (int)(screenW * 0.7f),
                                     (int)(screenH * 0.7f));
-
+  cW = canvas->getWidth();
+  cH = canvas->getHeight();
   tm.registerTool("pencil", std::make_unique<Pencil>());
   tm.registerTool("line", std::make_unique<Line>());
   tm.registerTool("rect", std::make_unique<Rect>());
   tm.registerTool("eraser", std::make_unique<Eraser>());
   tm.setActiveTool("rect");
 
+  tool = tm.getActive();
   // ImGui Setup
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
@@ -29,78 +31,90 @@ App::App(const char *title) {
   ImGui_ImplSDLRenderer3_Init(renderer);
 }
 
-void App::handleEvents() {
-  SDL_Event e;
+void App::keyEvents(SDL_Event e) {
+
+  if (e.type != SDL_EVENT_KEY_DOWN)
+    return;
+
+  if (e.key.mod & SDL_KMOD_CTRL) {
+    switch (e.key.key) {
+    case SDLK_Z:
+      cm.undo(*canvas);
+      break;
+    case SDLK_Y:
+      cm.redo(*canvas);
+      break;
+    case SDLK_E:
+      tm.setActiveTool("eraser");
+      Logger::log(LogLevel::DEBUG, "TOOL CHANGED TO : ERASER");
+      break;
+    case SDLK_P:
+      tm.setActiveTool("pencil");
+      Logger::log(LogLevel::DEBUG, "TOOL CHANGED TO : PENCIL");
+      break;
+    case SDLK_L:
+      tm.setActiveTool("line");
+      Logger::log(LogLevel::DEBUG, "TOOL CHANGED TO : LINE");
+      break;
+    case SDLK_R:
+      tm.setActiveTool("rect");
+      Logger::log(LogLevel::DEBUG, "TOOL CHANGED TO : RECT");
+      break;
+    }
+    // CRITICAL: Stop processing this event so it doesn't leak into mouse
+    // logic
+  }
+}
+
+void App::mouseEvents(SDL_Event e) {
+  if (!tool) {
+    Logger::log(LogLevel::DEBUG, "TOOL IS NULL MOSTLY LIKELY");
+    return;
+  }
+  switch (e.type) {
+  case SDL_EVENT_MOUSE_BUTTON_DOWN:
+    if (e.button.button == SDL_BUTTON_LEFT &&
+        inCanvas(e.button.x, e.button.y)) {
+      // Coordinates are only valid during MOUSE events
+      tool->onMouseDown({(float)e.button.x, (float)e.button.y}, *canvas);
+    }
+    break;
+
+  case SDL_EVENT_MOUSE_MOTION:
+    if (e.motion.state & SDL_BUTTON_MASK(SDL_BUTTON_LEFT) &&
+        inCanvas(e.motion.x, e.motion.y)) {
+      tool->onMouseMove({(float)e.motion.x, (float)e.motion.y}, *canvas);
+    }
+    break;
+
+  case SDL_EVENT_MOUSE_BUTTON_UP:
+    if (e.button.button == SDL_BUTTON_LEFT &&
+        inCanvas(e.button.x, e.button.y)) {
+      auto cmd =
+          tool->onMouseUp({(float)e.button.x, (float)e.button.y}, *canvas);
+      if (cmd)
+        cm.executeCommand(cmd, *canvas);
+    }
+    break;
+  }
+}
+
+void App::handleEvents(SDL_Event e) {
   while (SDL_PollEvent(&e)) {
     ImGui_ImplSDL3_ProcessEvent(&e);
-
     // 1. System Events
     if (e.type == SDL_EVENT_QUIT) {
       running = false;
       return;
     }
-
     // 2. Keyboard Shortcuts (Abstraction: handleShortcuts)
-    if (e.type == SDL_EVENT_KEY_DOWN) {
-      if (e.key.mod & SDL_KMOD_CTRL) {
-        switch (e.key.key) {
-        case SDLK_Z:
-          cm.undo(*canvas);
-          break;
-        case SDLK_Y:
-          cm.redo(*canvas);
-          break;
-        case SDLK_E:
-          tm.setActiveTool("eraser");
-          break;
-        case SDLK_P:
-          tm.setActiveTool("pencil");
-          break;
-        case SDLK_L:
-          tm.setActiveTool("line");
-          break;
-        case SDLK_R:
-          tm.setActiveTool("rect");
-          break;
-        }
-        // CRITICAL: Stop processing this event so it doesn't leak into mouse
-        // logic
-        continue;
-      }
-    }
-
+    keyEvents(e);
     // 3. Mouse Interaction (UI Guard)
     if (ImGui::GetIO().WantCaptureMouse)
       continue;
-
+    mouseEvents(e);
     // 4. Tool Execution
-    BaseTool *tool = tm.getActive();
-    if (!tool)
-      continue;
-
-    switch (e.type) {
-    case SDL_EVENT_MOUSE_BUTTON_DOWN:
-      if (e.button.button == SDL_BUTTON_LEFT) {
-        // Coordinates are only valid during MOUSE events
-        tool->onMouseDown({(float)e.button.x, (float)e.button.y}, *canvas);
-      }
-      break;
-
-    case SDL_EVENT_MOUSE_MOTION:
-      if (e.motion.state & SDL_BUTTON_MASK(SDL_BUTTON_LEFT)) {
-        tool->onMouseMove({(float)e.motion.x, (float)e.motion.y}, *canvas);
-      }
-      break;
-
-    case SDL_EVENT_MOUSE_BUTTON_UP:
-      if (e.button.button == SDL_BUTTON_LEFT) {
-        auto cmd =
-            tool->onMouseUp({(float)e.button.x, (float)e.button.y}, *canvas);
-        if (cmd)
-          cm.executeCommand(cmd, *canvas);
-      }
-      break;
-    }
+    continue;
   }
 }
 void App::render() {
@@ -116,7 +130,8 @@ void App::render() {
   // --- MAIN CANVAS ---
   canvas->syncTexture();
 
-  SDL_FRect dest = {0, 0, (float)canvas->m_width, (float)canvas->m_height};
+  SDL_FRect dest = {0, 0, (float)canvas->getWidth(),
+                    (float)canvas->getHeight()};
   SDL_RenderTexture(renderer, canvas->m_canvasTexture, NULL, &dest);
 
   SDL_RenderTexture(renderer, canvas->m_previewTexture, NULL, &dest);
@@ -132,7 +147,7 @@ void App::render() {
 
 void App::run() {
   while (running) {
-    handleEvents();
+    handleEvents(events);
     render();
   }
 }
