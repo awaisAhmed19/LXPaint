@@ -92,7 +92,6 @@ const uint32_t BLACK = 0xFF000000;
 const uint32_t WHITE = 0xFFFFFFFF;
 const uint32_t CLEAR = 0x00000000;
 } // namespace COLORS
-
 inline bool lockSurface(SDL_Surface *surface) {
   if (SDL_MUSTLOCK(surface)) {
     if (SDL_LockSurface(surface) < 0)

@@ -9,11 +9,11 @@ add_subdirectory(external/SDL)
 set(PROJECT_SOURCES
     src/main.cpp
     src/App.cpp
-    src/InputDispatcher.cpp
+    src/Input/InputDispatcher.cpp
 
     # Core
-    src/Core/Renderer.cpp
-    src/Core/Canvas.cpp
+    src/Rendering/Renderer.cpp
+    src/Document/Canvas.cpp
 
     # Tools
     src/Tools/Pencil.cpp
@@ -41,7 +41,10 @@ add_executable(${PROJECT_NAME} ${PROJECT_SOURCES} ${IMGUI_SRCS})
 target_include_directories(${PROJECT_NAME} PRIVATE
     src
     src/Tools
-    src/core
+    src/Document
+    src/Commands
+    src/Systems
+    src/Rendering
     src/UI
     external/imgui
     external/imgui/backends

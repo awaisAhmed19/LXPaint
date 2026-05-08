@@ -1,11 +1,11 @@
 #pragma once
+#include "../Commands/Command.h"
 #include "../Commands/DrawCommand.h"
-#include "../Core/Canvas.h"
-#include "../Core/Command.h"
-#include "../Core/Logger.h"
-#include "../Core/Profiler.h"
-#include "../Core/Renderer.h"
-#include "Globals.h"
+#include "../Document/Canvas.h"
+#include "../Globals.h"
+#include "../Rendering/Renderer.h"
+#include "../Systems/Logger.h"
+#include "../Systems/Profiler.h"
 #include <SDL3/SDL.h>
 #include <math.h>
 #include <vector>

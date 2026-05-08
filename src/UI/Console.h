@@ -1,8 +1,8 @@
 #pragma once
-#include "../Core/Canvas.h"
-#include "../Core/Logger.h"
-#include "../Core/Profiler.h"
+#include "../Document/Canvas.h"
 #include "../Globals.h"
+#include "../Systems/Logger.h"
+#include "../Systems/Profiler.h"
 #include "imgui.h"
 #include <algorithm>
 class App;

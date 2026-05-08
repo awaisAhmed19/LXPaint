@@ -1,0 +1,40 @@
+#include "PreviewSystem.h"
+
+PreviewSystem::PreviewSystem(SDL_Renderer *renderer, int w, int h,
+                             uint32_t color) {
+  this->m_width = w;
+  this->m_height = h;
+  this->renderer = renderer;
+  this->m_currentColor = color;
+  this->m_surface = SDL_CreateSurface(this->m_width, this->m_height,
+                                      SDL_PIXELFORMAT_ARGB8888);
+  this->m_previewTex = SDL_CreateTexture(
+      this->renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING,
+      this->m_width, this->m_height);
+  // this->m_buffPreviewTex = SDL_CreateTexture(
+  //     this->renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET,
+  //     this->m_width, this->m_height);
+  SDL_SetTextureBlendMode(this->m_buffPreviewTex, SDL_BLENDMODE_BLEND);
+}
+PreviewSystem::~PreviewSystem() {
+  SDL_DestroySurface(this->m_surface);
+  SDL_DestroyTexture(this->m_previewTex);
+}
+
+int PreviewSystem::getWidth() { return this->m_width; }
+int PreviewSystem::getHeight() { return this->m_height; }
+
+void PreviewSystem::clearRenderer() {
+  SDL_setRenderTarget(m_renderer, m_previewTex);
+  SDL_setRenderDrawColor(m_renderer, 0, 0, 0, 0);
+  SDL_RenderClear(m_renderer);
+  SDL_setRenderTarget(m_renderer, NULL);
+}
+
+void PreviewSystem::syncTexture() {
+  SDL_UpdateTexture(m_previewTex, NULL, m_surface->pixels, m_surface->pitch);
+}
+
+void PreviewSystem::clearSurface() {
+  SDL_FillSurfaceRect(m_surface, NULL, 0x00000000);
+}

@@ -1,6 +1,6 @@
 #pragma once
-#include "../Core/Canvas.h"
-#include "../Core/Command.h"
+#include "../Document/Canvas.h"
+#include "./Command.h"
 #include <SDL3/SDL.h>
 #include <memory>
 

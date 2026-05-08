@@ -1,6 +1,6 @@
 #pragma once
+#include "../Document/Canvas.h"
 #include "../Globals.h"
-#include "Canvas.h"
 #include <algorithm>
 namespace Renderer {
 
