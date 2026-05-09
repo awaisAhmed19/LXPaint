@@ -1,10 +1,9 @@
 #include "PreviewSystem.h"
 
-PreviewSystem::PreviewSystem(SDL_Renderer *renderer, int w, int h, ) {
+PreviewSystem::PreviewSystem(SDL_Renderer *renderer, int w, int h) {
   this->m_width = w;
   this->m_height = h;
-  this->renderer = renderer;
-  this->m_currentColor = color;
+  this->m_renderer = renderer;
   this->m_surface = SDL_CreateSurface(this->m_width, this->m_height,
                                       SDL_PIXELFORMAT_ARGB8888);
   if (!this->m_surface) {
@@ -12,7 +11,7 @@ PreviewSystem::PreviewSystem(SDL_Renderer *renderer, int w, int h, ) {
   }
 
   this->m_previewTex = SDL_CreateTexture(
-      this->renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING,
+      this->m_renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING,
       this->m_width, this->m_height);
 
   if (!this->m_previewTex) {
@@ -37,8 +36,8 @@ PreviewSystem::~PreviewSystem() {
   }
 }
 
-SDL_Surface *PreviewSystem::surface() { return this->m_surface; }
-SDL_Texture *PreviewSystem::texture() { return this->m_previewTex; }
+SDL_Surface *PreviewSystem::getSurface() { return this->m_surface; }
+SDL_Texture *PreviewSystem::getTexture() { return this->m_previewTex; }
 
 int PreviewSystem::getWidth() { return this->m_width; }
 int PreviewSystem::getHeight() { return this->m_height; }
@@ -51,11 +50,15 @@ int PreviewSystem::getHeight() { return this->m_height; }
 // }
 
 void PreviewSystem::sync() {
-  SDL_UpdateTexture(m_previewTex, NULL, m_surface->pixels, m_surface->pitch);
+  SDL_UpdateTexture(this->m_previewTex, NULL, this->m_surface->pixels,
+                    this->m_surface->pitch);
 }
 
 void PreviewSystem::clear() {
-  SDL_FillSurfaceRect(m_surface, NULL,
-                      SDL_MapRGB(this->m_surface->format, 0, 0, 0, 0));
+  if (!m_surface)
+    return;
+
+  SDL_FillSurfaceRect(m_surface, nullptr, 0x00000000);
+
   sync();
 }

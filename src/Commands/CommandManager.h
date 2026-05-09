@@ -1,19 +1,19 @@
 
 #include "Command.h"
+#include <memory>
 #include <stack>
 class CommandManager {
 private:
-  std::stack<Command *> undoStack;
-  std::stack<Command *> redoStack;
+  std::stack<std::unique_ptr<Command>> undoStack;
+  std::stack<std::unique_ptr<Command>> redoStack;
 
 public:
-  void executeCommand(Command *cmd, Canvas &canvas) {
-    cmd->execute(canvas); // Do the work
-    undoStack.push(cmd);  // Remember the work
+  void executeCommand(std::unique_ptr<Command> cmd, Canvas &canvas) {
+    cmd->execute(canvas);
+    undoStack.push(std::move(cmd)); // Remember the work
 
     // Clear redo history because a new path was taken
     while (!redoStack.empty()) {
-      delete redoStack.top();
       redoStack.pop();
     }
   }
@@ -22,31 +22,21 @@ public:
     if (undoStack.empty())
       return;
 
-    Command *cmd = undoStack.top();
+    std::unique_ptr<Command> cmd = std::move(undoStack.top());
     undoStack.pop();
 
-    cmd->undo(canvas);   // Reverse the work
-    redoStack.push(cmd); // Move it to redo in case we want it back
+    cmd->undo(canvas);              // Reverse the work
+    redoStack.push(std::move(cmd)); // Move it to redo in case we want it back
   }
 
   void redo(Canvas &canvas) {
     if (redoStack.empty())
       return;
 
-    Command *cmd = redoStack.top();
+    std::unique_ptr<Command> cmd = std::move(redoStack.top());
     redoStack.pop();
 
-    cmd->execute(canvas); // Re-do the work
-    undoStack.push(cmd);  // Put it back in undo history
-  }
-  ~CommandManager() {
-    while (!undoStack.empty()) {
-      delete undoStack.top();
-      undoStack.pop();
-    }
-    while (!redoStack.empty()) {
-      delete redoStack.top();
-      redoStack.pop();
-    }
+    cmd->execute(canvas);           // Re-do the work
+    undoStack.push(std::move(cmd)); // Put it back in undo history
   }
 };

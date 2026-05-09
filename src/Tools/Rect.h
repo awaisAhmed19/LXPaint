@@ -13,7 +13,8 @@ public:
   uint32_t color = COLORS::BLACK;
   const int brushSize = 1;
   // void Rect_fill(vec2 start, int w, int h);
-  void onMouseDown(vec2 pos, Canvas &canvas) override;
-  void onMouseMove(vec2 pos, Canvas &canvas) override;
-  Command *onMouseUp(vec2 pos, Canvas &canvas) override;
+  void onMouseDown(vec2 pos, SDL_Surface *surface) override;
+  void onMouseMove(vec2 pos, SDL_Surface *surface, PreviewSystem *ps) override;
+  std::unique_ptr<Command> onMouseUp(vec2 pos, SDL_Surface *surface,
+                                     PreviewSystem *ps) override;
 };

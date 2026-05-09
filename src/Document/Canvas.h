@@ -25,7 +25,6 @@ public:
     SDL_UpdateTexture(m_canvasTexture, NULL, m_canvasSurface->pixels,
                       m_canvasSurface->pitch);
   }
-  void drawPixel(int x, int y, uint32_t color);
   void clear();
 
   SDL_Surface *surface();

@@ -8,6 +8,7 @@
 #include "../Tools/Rect.h"
 #include "../Tools/ToolManager.h"
 #include "./Input/InputDispatcher.h"
+#include "./Preview/PreviewSystem.h"
 #include "imgui.h"
 #include "imgui_impl_sdl3.h"
 #include "imgui_impl_sdlrenderer3.h"
@@ -34,6 +35,7 @@ private:
   SDL_Renderer *renderer = nullptr;
 
   std::unique_ptr<Canvas> canvas;
+  std::unique_ptr<PreviewSystem> ps;
   CommandManager cm;
   ToolManager tm;
   BaseTool *tool = nullptr;

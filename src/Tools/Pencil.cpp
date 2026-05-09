@@ -1,30 +1,28 @@
 #include "Pencil.h"
 
-void Pencil::onMouseDown(vec2 pos, Canvas &canvas) {
+void Pencil::onMouseDown(vec2 pos, SDL_Surface *surface) {
   drawing = true;
   Start = pos;
   resetBounds(pos, brushSize);
 
-  Renderer::bresenham(Start, pos, canvas.m_canvasSurface, color, brushSize,
-                      false);
+  Rasterizer::bresenham(Start, pos, surface, color, brushSize, false);
   Logger::log(LogLevel::DEBUG, "PENCIL STARTED DRAWING");
 }
 
-void Pencil::onMouseMove(vec2 pos, Canvas &canvas) {
+void Pencil::onMouseMove(vec2 pos, SDL_Surface *surface, PreviewSystem *ps) {
   if (!drawing)
     return;
 
   // Abstracted Logic
-  updateBounds(pos, brushSize, canvas.getWidth(), canvas.getHeight());
+  updateBounds(pos, brushSize, surface->w, surface->h);
 
   // Benchmarking
   auto s1 = std::chrono::high_resolution_clock::now();
-  Renderer::bresenham(Start, pos, canvas.m_canvasSurface, color, brushSize,
-                      false);
+  Rasterizer::bresenham(Start, pos, surface, color, brushSize, false);
   auto e1 = std::chrono::high_resolution_clock::now();
 
   auto s2 = std::chrono::high_resolution_clock::now();
-  // Renderer::dda(Start, pos, canvas, color, brushSize, useXOR);
+  // Rasterizer::dda(Start, pos, canvas, color, brushSize, useXOR);
   auto e2 = std::chrono::high_resolution_clock::now();
 
   float usBres =
@@ -40,11 +38,12 @@ void Pencil::onMouseMove(vec2 pos, Canvas &canvas) {
   Start = pos;
 }
 
-Command *Pencil::onMouseUp(vec2 pos, Canvas &canvas) {
+std::unique_ptr<Command> Pencil::onMouseUp(vec2 pos, SDL_Surface *surface,
+                                           PreviewSystem *ps) {
   drawing = false;
 
   // Use the optimized DrawCommand that takes a dirty rect
-  DrawCommand *cmd = new DrawCommand(canvas.m_canvasSurface, Boundbox);
+  auto cmd = std::make_unique<DrawCommand>(surface, Boundbox);
 
   // Finalize Profiler
   Profiler::commitRace({{"BRESENHAM", ImVec4(1.0f, 0.5f, 0.0f, 1.0f)},

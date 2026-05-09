@@ -12,8 +12,9 @@ set(PROJECT_SOURCES
     src/Input/InputDispatcher.cpp
 
     # Core
-    src/Rendering/Renderer.cpp
+    src/Renderer/Rasterizer.cpp
     src/Document/Canvas.cpp
+    src/Preview/PreviewSystem.cpp
 
     # Tools
     src/Tools/Pencil.cpp

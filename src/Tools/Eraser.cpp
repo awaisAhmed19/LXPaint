@@ -1,30 +1,27 @@
 #include "Eraser.h"
 
-void Eraser::onMouseDown(vec2 pos, Canvas &canvas) {
+void Eraser::onMouseDown(vec2 pos, SDL_Surface *surface) {
   drawing = true;
   Start = pos;
   resetBounds(pos, brushSize);
-
-  Renderer::bresenham(pos, pos, canvas.m_canvasSurface, color, brushSize,
-                      useXOR);
+  Rasterizer::bresenham(pos, pos, surface, color, brushSize, useXOR);
   Logger::log(LogLevel::DEBUG, "ERASER STARTED DRAWING");
 }
 
-void Eraser::onMouseMove(vec2 pos, Canvas &canvas) {
+void Eraser::onMouseMove(vec2 pos, SDL_Surface *surface, PreviewSystem *ps) {
   if (!drawing)
     return;
 
   // Abstracted Logic
-  updateBounds(pos, brushSize, canvas.getWidth(), canvas.getHeight());
-
+  updateBounds(pos, brushSize, surface->w, surface->h);
+  // ps->clear();
   // Benchmarking
   auto s1 = std::chrono::high_resolution_clock::now();
-  Renderer::bresenham(pos, pos, canvas.m_canvasSurface, color, brushSize,
-                      useXOR);
+  Rasterizer::bresenham(pos, pos, surface, color, brushSize, useXOR);
   auto e1 = std::chrono::high_resolution_clock::now();
 
   auto s2 = std::chrono::high_resolution_clock::now();
-  // Renderer::dda(Start, pos, canvas, color, brushSize, useXOR);
+  // Rasterizer::dda(Start, pos, canvas, color, brushSize, useXOR);
   auto e2 = std::chrono::high_resolution_clock::now();
 
   float usBres =
@@ -38,13 +35,15 @@ void Eraser::onMouseMove(vec2 pos, Canvas &canvas) {
       pos);
 
   Start = pos;
+  // ps->sync();
 }
 
-Command *Eraser::onMouseUp(vec2 pos, Canvas &canvas) {
+std::unique_ptr<Command> Eraser::onMouseUp(vec2 pos, SDL_Surface *surface,
+                                           PreviewSystem *ps) {
   drawing = false;
-
+  // ps->clear();
   // Use the optimized DrawCommand that takes a dirty rect
-  DrawCommand *cmd = new DrawCommand(canvas.m_canvasSurface, Boundbox);
+  auto cmd = std::make_unique<DrawCommand>(surface, Boundbox);
 
   // Finalize Profiler
   Profiler::commitRace({{"BRESENHAM", ImVec4(1.0f, 0.5f, 0.0f, 1.0f)},

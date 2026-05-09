@@ -1,9 +1,9 @@
 #pragma once
+// #include "../Globals"
 #include <SDL3/SDL.h>
-
 class PreviewSystem {
 private:
-  vec2 m_previewPos;
+  // vec2 m_previewPos;
   int m_width = 0;
   int m_height = 0;
   SDL_Renderer *m_renderer = nullptr;

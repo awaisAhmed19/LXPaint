@@ -3,13 +3,14 @@
 #include "../Commands/DrawCommand.h"
 #include "../Document/Canvas.h"
 #include "../Globals.h"
-#include "../Rendering/Renderer.h"
+#include "../Renderer/Rasterizer.h"
 #include "../Systems/Logger.h"
 #include "../Systems/Profiler.h"
 #include <SDL3/SDL.h>
 #include <math.h>
+#include <memory>
 #include <vector>
-class Canvas;
+class PreviewSystem;
 class BaseTool {
 protected:
   SDL_Surface *currentSnapshot = nullptr;
@@ -51,8 +52,10 @@ public:
     isDrawing = false;
     freeSnapshot();
   }
-
-  virtual void onMouseDown(vec2 pos, Canvas &canvas) = 0;
-  virtual void onMouseMove(vec2 pos, Canvas &canvas) = 0;
-  virtual Command *onMouseUp(vec2 pos, Canvas &canvas) = 0;
+  // virtual BaseTool();
+  virtual void onMouseDown(vec2 pos, SDL_Surface *surface) = 0;
+  virtual void onMouseMove(vec2 pos, SDL_Surface *surface,
+                           PreviewSystem *ps) = 0;
+  virtual std::unique_ptr<Command> onMouseUp(vec2 pos, SDL_Surface *surface,
+                                             PreviewSystem *ps) = 0;
 };

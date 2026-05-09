@@ -17,6 +17,7 @@ App::App(const char *title) {
                                     (int)(screenH * 0.7f));
   cW = canvas->getWidth();
   cH = canvas->getHeight();
+  ps = std::make_unique<PreviewSystem>(renderer, cW, cH);
   tm.registerTool("pencil", std::make_unique<Pencil>());
   tm.registerTool("line", std::make_unique<Line>());
   tm.registerTool("rect", std::make_unique<Rect>());
@@ -41,24 +42,27 @@ void App::mouseEvents(SDL_Event e) {
     if (e.button.button == SDL_BUTTON_LEFT &&
         inCanvas(e.button.x, e.button.y)) {
       // Coordinates are only valid during MOUSE events
-      tool->onMouseDown({(float)e.button.x, (float)e.button.y}, *canvas);
+      tool->onMouseDown({(float)e.button.x, (float)e.button.y},
+                        ps->getSurface());
     }
     break;
 
   case SDL_EVENT_MOUSE_MOTION:
     if (e.motion.state & SDL_BUTTON_MASK(SDL_BUTTON_LEFT) &&
         inCanvas(e.motion.x, e.motion.y)) {
-      tool->onMouseMove({(float)e.motion.x, (float)e.motion.y}, *canvas);
+      tool->onMouseMove({(float)e.motion.x, (float)e.motion.y},
+                        ps->getSurface(), ps.get());
     }
     break;
 
   case SDL_EVENT_MOUSE_BUTTON_UP:
     if (e.button.button == SDL_BUTTON_LEFT &&
         inCanvas(e.button.x, e.button.y)) {
-      auto cmd =
-          tool->onMouseUp({(float)e.button.x, (float)e.button.y}, *canvas);
+      std::unique_ptr<Command> cmd =
+          tool->onMouseUp({(float)e.button.x, (float)e.button.y},
+                          canvas->m_canvasSurface, ps.get());
       if (cmd)
-        cm.executeCommand(cmd, *canvas);
+        cm.executeCommand(std::move(cmd), *canvas);
     }
     break;
   }
@@ -93,13 +97,13 @@ void App::render() {
   SDL_RenderClear(renderer);
 
   // --- MAIN CANVAS ---
-  canvas->syncTexture();
-
+  canvas->sync();
+  ps->sync();
   SDL_FRect dest = {0, 0, (float)canvas->getWidth(),
                     (float)canvas->getHeight()};
   SDL_RenderTexture(renderer, canvas->m_canvasTexture, NULL, &dest);
 
-  SDL_RenderTexture(renderer, canvas->m_previewTexture, NULL, &dest);
+  SDL_RenderTexture(renderer, ps->getTexture(), NULL, &dest);
 
   // --- UI ---
   DrawLogConsole(*canvas, screenW, screenH, frameTimes, frameOffset);
@@ -122,7 +126,7 @@ void App::setupInputKeyBinds() {
 
 void App::setupInputActions() {
   dispatcher.bindActions(InputCommand::UNDO, [this]() { cm.undo(*canvas); });
-  dispatcher.bindActions(InputCommand::REDO, [this]() { cm.undo(*canvas); });
+  dispatcher.bindActions(InputCommand::REDO, [this]() { cm.redo(*canvas); });
   dispatcher.bindActions(InputCommand::PENCIL,
                          [this]() { tm.setActiveTool("pencil"); });
   dispatcher.bindActions(InputCommand::FILL,
