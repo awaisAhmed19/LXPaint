@@ -1,6 +1,6 @@
 #pragma once
+#include "../App/Globals.h"
 #include "../Document/Canvas.h"
-#include "../Globals.h"
 #include "../Systems/Logger.h"
 #include "../Systems/Profiler.h"
 #include "imgui.h"

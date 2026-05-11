@@ -1,5 +1,5 @@
 #pragma once
-#include "../Globals.h" // To access Config::ENABLE_DEBUG_LOGS
+#include "../App/Globals.h"
 #include <chrono>
 #include <format>
 #include <iostream>

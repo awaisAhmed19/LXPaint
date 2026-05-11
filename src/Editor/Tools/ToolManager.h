@@ -1,3 +1,4 @@
+#include "../Systems/Logger.h"
 #include "BaseTool.h"
 #include <map>
 #include <memory>

@@ -1,5 +1,5 @@
 #pragma once
-#include "../Globals.h"
+#include "../App/Globals.h"
 #include <SDL3/SDL.h>
 #include <algorithm>
 namespace Rasterizer {

@@ -7,20 +7,23 @@ set(SDL_INSTALL OFF CACHE BOOL "" FORCE)
 add_subdirectory(external/SDL)
 
 set(PROJECT_SOURCES
-    src/main.cpp
-    src/App.cpp
+    src/App/main.cpp
+    src/App/App.cpp
     src/Input/InputDispatcher.cpp
 
     # Core
-    src/Renderer/Rasterizer.cpp
+    src/Rendering/Rasterizer.cpp
+    src/Rendering/Renderer.cpp
+    src/Rendering/RenderTarget.cpp
     src/Document/Canvas.cpp
-    src/Preview/PreviewSystem.cpp
+    src/Editor/Preview/PreviewLayer.cpp
+    src/Editor/Editor.cpp
 
     # Tools
-    src/Tools/Pencil.cpp
-    src/Tools/Line.cpp
-    src/Tools/Eraser.cpp
-    src/Tools/Rect.cpp
+    src/Editor/Tools/Pencil.cpp
+    src/Editor/Tools/Line.cpp
+    src/Editor/Tools/Eraser.cpp
+    src/Editor/Tools/Rect.cpp
 )
 
 # 3. Define ImGui Sources
