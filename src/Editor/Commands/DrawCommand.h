@@ -39,12 +39,14 @@ public:
   void execute(Canvas &canvas) override {
     if (after) {
       SDL_BlitSurface(after.get(), NULL, canvas.getSurface(), &region);
+      canvas.markDirty();
     }
   }
 
   void undo(Canvas &canvas) override {
     if (before) {
       SDL_BlitSurface(before.get(), NULL, canvas.getSurface(), &region);
+      canvas.markDirty();
     }
   }
 };

@@ -25,7 +25,7 @@ void Line::onMouseMove(vec2 pos, ToolContext &ctx) {
   if (!ctx.interaction->active)
     return;
 
-  ctx.preview->clear(0x00000000);
+  ctx.preview->clearRGBA(0, 0, 0, 0);
 
   m_boundingBox =
       computeLineBounds(m_start, pos, brushSize, ctx.canvas->getSurface()->w,
@@ -48,7 +48,7 @@ void Line::onMouseMove(vec2 pos, ToolContext &ctx) {
 
 std::unique_ptr<Command> Line::onMouseUp(vec2 pos, ToolContext &ctx) {
   ctx.interaction->active = false;
-  ctx.preview->clear(0x00000000);
+  ctx.preview->clearRGBA(0, 0, 0, 0);
   ctx.preview->markDirty();
   m_boundingBox =
       computeLineBounds(m_start, pos, brushSize, ctx.canvas->getSurface()->w,

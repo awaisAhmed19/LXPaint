@@ -11,13 +11,14 @@ set(PROJECT_SOURCES
     src/App/App.cpp
     src/Input/InputDispatcher.cpp
 
-    # Core
+    src/Editor/Preview/PreviewLayer.cpp
+    src/Editor/Viewport/Viewport.cpp
+    src/Editor/Editor.cpp   # Core
     src/Rendering/Rasterizer.cpp
     src/Rendering/Renderer.cpp
     src/Rendering/RenderTarget.cpp
     src/Document/Canvas.cpp
-    src/Editor/Preview/PreviewLayer.cpp
-    src/Editor/Editor.cpp
+
 
     # Tools
     src/Editor/Tools/Pencil.cpp

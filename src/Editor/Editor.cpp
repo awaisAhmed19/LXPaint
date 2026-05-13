@@ -6,7 +6,7 @@
 #include "../Editor/Tools/Rect.h"
 #include "../Systems/Logger.h"
 Editor::Editor(SDL_Renderer *renderer)
-    : m_canvas(1270, 720), m_preview(1270, 720), m_renderer(renderer) {
+    : m_canvas(800, 550), m_preview(800, 550), m_renderer(renderer) {
   this->m_tools.registerTool("pencil", std::make_unique<Pencil>());
   this->m_tools.registerTool("line", std::make_unique<Line>());
   this->m_tools.registerTool("rect", std::make_unique<Rect>());
@@ -40,8 +40,26 @@ Editor::Editor(SDL_Renderer *renderer)
   this->m_input.bindActions(InputCommand::ERASER, [this]() {
     this->m_tools.setActiveTool("eraser");
   });
+  this->m_viewport.setZoom(1.0f);
+  this->m_viewport.setPan({0.0, 0.0});
+  this->m_viewport.setScreenRect({0, 0, 1280, 720});
+
+  this->m_docTransform.position = {200, 100};
 }
 
+bool Editor::inCanvas(vec2 mousePos) {
+  return mousePos.x >= 0 && mousePos.y >= 0 &&
+         mousePos.x < this->m_canvas.getWidth() &&
+         mousePos.y < this->m_canvas.getHeight();
+}
+vec2 Editor::clampToCanvas(vec2 p) {
+
+  p.x = std::clamp(p.x, 0.0f, (float)m_canvas.getWidth() - 1);
+
+  p.y = std::clamp(p.y, 0.0f, (float)m_canvas.getHeight() - 1);
+
+  return p;
+}
 void Editor::handleEvent(const SDL_Event &e) {
   this->m_input.updateKeyInput(e);
   BaseTool *tool = this->m_tools.getActive();
@@ -58,8 +76,14 @@ void Editor::handleEvent(const SDL_Event &e) {
   case SDL_EVENT_MOUSE_BUTTON_DOWN: {
     if (e.button.button != SDL_BUTTON_LEFT)
       break;
-    vec2 mousePos = {static_cast<float>(e.button.x),
-                     static_cast<float>(e.button.y)};
+    vec2 screenPos = {(float)e.button.x, (float)e.button.y};
+
+    vec2 worldPos = this->m_viewport.screenToWorld(screenPos);
+    vec2 mousePos = {worldPos.x - this->m_docTransform.position.x,
+
+                     worldPos.y - this->m_docTransform.position.y};
+    if (!inCanvas(mousePos))
+      break;
     this->m_interaction.active = true;
     this->m_interaction.mouseDown = true;
     this->m_interaction.startMousePos = mousePos;
@@ -74,11 +98,19 @@ void Editor::handleEvent(const SDL_Event &e) {
 
     this->m_interaction.prevMousePos = this->m_interaction.currMousePos;
 
-    this->m_interaction.currMousePos = {
-        static_cast<float>(e.motion.x),
-        static_cast<float>(e.motion.y),
+    vec2 screenPos = {
+        (float)(e.motion.x),
+        (float)(e.motion.y),
     };
 
+    vec2 worldPos = this->m_viewport.screenToWorld(screenPos);
+
+    this->m_interaction.currMousePos =
+        clampToCanvas({worldPos.x - this->m_docTransform.position.x,
+
+                       worldPos.y - this->m_docTransform.position.y});
+    // if (!inCanvas(this->m_interaction.currMousePos))
+    //   break;
     tool->onMouseMove(this->m_interaction.currMousePos, ctx);
 
     break;
@@ -90,11 +122,16 @@ void Editor::handleEvent(const SDL_Event &e) {
     if (!this->m_interaction.active)
       break;
 
-    vec2 mousePos = {
-        static_cast<float>(e.button.x),
-        static_cast<float>(e.button.y),
+    vec2 screenPos = {
+        (float)(e.motion.x),
+        (float)(e.motion.y),
     };
 
+    vec2 worldPos = this->m_viewport.screenToWorld(screenPos);
+
+    vec2 mousePos = {worldPos.x - this->m_docTransform.position.x,
+
+                     worldPos.y - this->m_docTransform.position.y};
     std::unique_ptr<Command> command = tool->onMouseUp(mousePos, ctx);
 
     if (command) {
@@ -113,8 +150,8 @@ void Editor::handleEvent(const SDL_Event &e) {
 
 void Editor::update() {}
 void Editor::render() {
-  this->m_renderer.begin();
-  this->m_renderer.renderTarget(this->m_canvas);
-  this->m_renderer.renderTarget(this->m_preview);
-  this->m_renderer.end();
+  this->m_renderer.renderTarget(this->m_canvas, this->m_viewport,
+                                this->m_docTransform);
+  this->m_renderer.renderTarget(this->m_preview, this->m_viewport,
+                                this->m_docTransform);
 }

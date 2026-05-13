@@ -38,3 +38,9 @@ void RenderTarget::clear(uint32_t color) {
   SDL_FillSurfaceRect(m_surface, nullptr, color);
   markDirty();
 }
+void RenderTarget::clearRGBA(uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
+  const SDL_PixelFormatDetails *fmt =
+      SDL_GetPixelFormatDetails(m_surface->format);
+
+  clear(SDL_MapRGBA(fmt, nullptr, r, g, b, a));
+}

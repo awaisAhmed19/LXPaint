@@ -26,550 +26,126 @@ LXPaint
 ├── ColorPalette
 └── BrushSizeSlider
 
-# LXPaint Session Context Blob
+LXPAINT MASTER TODO / BUG AUDIT
 
-## Project Overview
+========================
+CRITICAL
+========================
 
-User is building a low-level MS Paint–style application called LXPaint using:
+[X] Fix DrawCommand snapshot timing (capture BEFORE on mouse down, AFTER on mouse up)
 
-* C++20
-* SDL3
-* ImGui
-* CPU-side pixel rendering
-* Custom line algorithms (Bresenham + DDA)
-* Command-based undo/redo system
-* Dirty rectangle optimization
-* Profiling/benchmark visualization tools
+[X] Add canvas.markDirty() inside DrawCommand::undo() and execute()
 
-User wants deep architectural understanding, not just working code.
+[ ] Fix coordinate transform pipeline: ALL tools must use renderer.screenToCanvas()
 
----
+[ ] Unify coordinate spaces (screen space vs canvas space vs viewport space)
 
-# Current Architecture
+[ ] Fix Bresenham steep-line transpose logic (missing coordinate swapping)
 
-## Rendering Pipeline
+[ ] Fix Pencil continuous rasterization/presentation inconsistencies
 
-Canvas contains a 4-layer architecture:
+[ ] Fix UI input passthrough / click-through interaction issues
 
-1. CPU Layer
+[ ] Prevent tools from directly mutating interaction state ownership
 
-```cpp
-SDL_Surface* drawingSurface;
-```
+[ ] Fix potential undo/redo snapshot corruption outside dirty region bounds
 
-* Source of truth
-* Pixel writes happen here
-* Bresenham/DDA modify this directly
+========================
+HIGH
+========================
 
-2. Sync Bridge
+[ ] Replace SDL_TEXTUREACCESS_STREAMING with SDL_TEXTUREACCESS_STATIC
 
-```cpp
-syncTexture()
-```
+[ ] Add null/error guards for texture creation, upload, and render paths
 
-* Uses SDL_UpdateTexture
-* Copies CPU surface -> GPU texture
-* Current bottleneck: full-surface sync every frame
+[ ] Ensure preview layer clears correctly after modal commits
 
-3. GPU Main Layer
+[ ] Fix thick-line rasterization ("sausage" thickness inconsistency)
 
-```cpp
-SDL_Texture* mainTexture;
-```
+[ ] Fix inconsistent surface locking across rasterizer paths
 
-* Display texture shown on screen
-* Updated from drawingSurface
+[ ] Fix Renderer::sync() updating entire texture every frame instead of dirty regions
 
-4. GPU Preview Layer
+[ ] Add maximum undo/redo stack limit to prevent OOM crashes
 
-```cpp
-SDL_Texture* previewTexture;
-```
+[ ] Fix DrawCommand memory lifecycle leaks in modal tools
 
-* Transparent overlay for temporary previews
-* Intended for line/rect preview
-* Better than XOR or snapshot restore
+[ ] Fix coordinate mismatch for preview rendering with zoom/pan
 
-Rendering flow:
+[ ] Add proper texture recreation handling on canvas resize
 
-User Input
--> Tool
--> Renderer
--> drawingSurface
--> syncTexture()
--> mainTexture
+[ ] Fix incomplete SDL surface locking in dda/rectFill paths
 
-* previewTexture
-  -> SDL_RenderPresent
+[ ] Fix race condition in Logger history access
 
----
+[ ] Add thread safety to Profiler static containers
 
-# App::render()
+[ ] Add proper canvas coordinate clamping during zoom/pan
 
-Current render loop:
+========================
+MEDIUM
+========================
 
-```cpp
-void App::render() {
-  ImGui_ImplSDLRenderer3_NewFrame();
-  ImGui_ImplSDL3_NewFrame();
-  ImGui::NewFrame();
+[ ] Replace hardcoded packed color constants with SDL_MapRGBA()
 
-  SDL_SetRenderDrawColor(renderer, 30, 30, 30, 255);
-  SDL_RenderClear(renderer);
+[ ] Separate color semantics from pixel storage representation
 
-  canvas->syncTexture();
+[ ] Add RenderTarget::clearRGBA() abstraction
 
-  SDL_FRect dest = {0,0,(float)canvas->w,(float)canvas->h};
+[ ] Make PreviewLayer initialize transparent and Canvas initialize opaque white
 
-  SDL_RenderTexture(renderer, canvas->mainTexture, NULL, &dest);
-  SDL_RenderTexture(renderer, canvas->previewTexture, NULL, &dest);
+[ ] Centralize dirty invalidation closer to raster mutation source
 
-  DrawLogConsole(*canvas, screenW, screenH,
-                 frameTimes, frameOffset);
+[ ] Formalize modal tool lifecycle (begin/update/commit/cancel/clear)
 
-  ImGui::Render();
-  ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), renderer);
-  SDL_RenderPresent(renderer);
-}
-```
+[ ] Formalize freehand tool lifecycle separately from modal tools
 
-Important insight:
+[ ] Fix drawRect always filling white internally
 
-* previewTexture MUST be rendered after mainTexture
-* otherwise GPU previews are invisible
+[ ] Remove stale/copy-pasted logger labels
 
----
+[ ] Refactor duplicated bounds calculation logic
 
-# Renderer System
+[ ] Reduce Globals.h header pollution
 
-## Algorithms Implemented
+[ ] Remove mixed SDL_Log and custom Logger inconsistency
 
-### DDA
+[ ] Add const correctness across rendering/tool APIs
 
-* Float increment line algorithm
-* Uses xInc/yInc stepping
-* Thick lines originally implemented via square brush loop
+[ ] Improve DrawCommand snapshot efficiency for tiny dirty regions
 
-### Bresenham
+[ ] Fix inconsistent line/rect snapshot padding causing ghost pixels
 
-* Integer-only incremental line algorithm
-* Optimized into span-based thick rendering
+[ ] Remove redundant manual interaction state toggles in tools
 
----
+========================
+LOW
+========================
 
-# Thick Line Rendering
+[ ] Remove dead Renderer::begin()/end() lifecycle code completely
 
-User implemented span-based rendering.
+[ ] Add Canvas::resize() support
 
-## Vertical Span
+[ ] Add viewport-centered canvas rendering
 
-```cpp
-void drawVerticalSpan(...)
-```
+[ ] Add proper viewport/pan/zoom ownership system
 
-* Draws vertical thickness column
-* Used for shallow slopes
+[ ] Add layer system foundation
 
-## Horizontal Span
+[ ] Add save/load support
 
-```cpp
-void drawHorizontalSpan(...)
-```
+[ ] Implement flood fill tool
 
-* Draws horizontal thickness row
-* Used for steep slopes
+[ ] Add fullscreen escape handling
 
-Concept:
+[ ] Add rasterizer unit tests
 
-* Instead of stamping square brush each pixel
-* Renderer stretches spans perpendicular to line direction
+[ ] Add proper anti-aliased line rendering
 
-This creates:
+[ ] Remove unused DDA benchmarking dead paths
 
-* cleaner thick lines
-* fewer memory writes
-* better cache behavior
+[ ] Add tablet/pressure support later
 
----
+[ ] Handle high-DPI scaling correctly
 
-# XOR Preview Experiment
-
-User experimented with XOR preview:
-
-```cpp
-px ^= (color & 0x00FFFFFF);
-```
-
-Insights discovered:
-
-* XOR cancels itself if same pixels drawn twice
-* Works poorly for thick brushes
-* Snapshot restore + XOR conflict conceptually
-* Good for old-school debug overlays
-* Bad long-term preview solution
-
-Conclusion:
-
-* previewTexture is superior
-
----
-
-# Line Tool Evolution
-
-## Original Problem
-
-Line tool produced:
-
-* ghost trails
-* jitter
-* disappearing lines
-* spaghetti artifacts
-
-Causes:
-
-* XOR cancellation
-* restoring incorrect dirty rect
-* growing bounding boxes
-* mixing snapshot restore + XOR
-
----
-
-## Correct CPU Rubber Band Solution
-
-User implemented:
-
-* currentSnapshot
-* prevBound
-* computeLineBounds()
-* restore previous segment only
-
-Flow:
-
-1. onMouseDown
-
-* duplicate snapshot
-* initialize prevBound
-
-2. onMouseMove
-
-* restore prevBound region
-* compute new bounds
-* draw preview line
-* update prevBound
-
-3. onMouseUp
-
-* restore preview
-* draw final line
-* create DrawCommand
-
-Important insight:
-
-* previewBounds and strokeBounds should be separate
-
----
-
-# Rectangle Tool
-
-Initial bug:
-
-* user accidentally drew diagonal line instead of rectangle
-
-Correct solution:
-
-* rectangle = 4 Bresenham lines
-
-drawRect() implemented using:
-
-* top edge
-* bottom edge
-* left edge
-* right edge
-
-Rect tool mirrors line tool architecture:
-
-* snapshot restore
-* preview bounds
-* final commit
-
----
-
-# Command System
-
-## Command Base
-
-```cpp
-class Command {
-public:
-  virtual void execute(Canvas&) = 0;
-  virtual void undo(Canvas&) = 0;
-};
-```
-
-Concept:
-
-* Command pattern
-* execute() = redo
-* undo() = revert
-
----
-
-## CommandManager
-
-Maintains:
-
-```cpp
-std::stack<Command*> undoStack;
-std::stack<Command*> redoStack;
-```
-
-Flow:
-
-* executeCommand()
-* undo()
-* redo()
-
----
-
-# Dirty Rectangle Undo System
-
-## DrawCommand
-
-Stores:
-
-```cpp
-SDL_Rect region;
-UniqueSurface before;
-UniqueSurface after;
-```
-
-Purpose:
-
-* store only changed region
-* not full canvas snapshot
-
-Flow:
-
-Constructor:
-
-* captures BEFORE snapshot
-
-captureAfter():
-
-* captures AFTER snapshot
-
-execute():
-
-* blits AFTER back to canvas
-
-undo():
-
-* blits BEFORE back to canvas
-
-Important insight:
-
-* DrawCommand acts like a pixel time machine
-
----
-
-# UniqueSurface Design
-
-```cpp
-using UniqueSurface = std::unique_ptr<SDL_Surface, SDL_Surface_Deleter>;
-```
-
-Custom deleter automatically calls:
-
-```cpp
-SDL_DestroySurface()
-```
-
-Benefits:
-
-* RAII
-* no leaks
-* automatic cleanup
-
----
-
-# Profiler System
-
-Profiler tracks:
-
-* live timings
-* race comparisons
-* frame history
-* distance traveled
-
-Structures:
-
-```cpp
-AlgoRun
-AlgoStats
-RaceResult
-```
-
-Current profiling verdict:
-
-GOOD:
-
-* interactive telemetry
-* optimization feedback
-* visual benchmarking
-
-BAD:
-
-* not scientifically fair
-* memory writes dominate timing
-* cache effects bias results
-* mouse movement changes workload
-
-Conclusion:
-
-* current profiler is a live telemetry system
-* not a rigorous benchmark suite
-
-Recommended future improvement:
-
-* isolated surfaces
-* fixed test cases
-* repeated runs
-* benchmark-only mode
-
----
-
-# BaseTool Architecture
-
-Current BaseTool:
-
-```cpp
-class BaseTool
-```
-
-Contains:
-
-* currentSnapshot
-* Boundbox
-* updateBounds()
-* resetBounds()
-
-Insights:
-
-GOOD:
-
-* abstract tool interface
-* centralized shared logic
-* tool lifecycle abstraction
-
-BAD:
-
-* BaseTool knows too much about rendering strategy
-* snapshot system tightly coupled
-* Boundbox overloaded with multiple responsibilities
-
-Recommended future evolution:
-
-Split bounds into:
-
-* previewBounds
-* strokeBounds
-
-Move preview logic out of BaseTool.
-
-Desired architecture:
-
-Tool = WHAT
-Renderer = HOW
-Canvas = WHERE
-
----
-
-# CMake Lessons Learned
-
-Original issue:
-
-```cmake
-file(GLOB_RECURSE PROJECT_SOURCES "src/*.cpp")
-```
-
-Problem:
-
-* zero compilation control
-
-Improved solution:
-
-```cmake
-set(PROJECT_SOURCES
-    src/main.cpp
-    src/App.cpp
-    src/Core/Renderer.cpp
-    src/Tools/Pencil.cpp
-)
-```
-
-Future direction:
-
-* optional tool toggles
-* modular compilation
-
----
-
-# UI / Console Lessons
-
-Issues encountered:
-
-* circular includes
-* multiple definition linker errors
-
-Key lessons:
-
-1. Headers declare
-2. CPP files define
-3. Avoid UI depending directly on App internals
-4. Pass data into UI functions instead
-
----
-
-# Current Technical Direction
-
-Immediate recommended next step:
-
-Convert Line + Rect tools fully to previewTexture.
-
-Reason:
-
-* removes snapshot restore complexity
-* removes XOR hacks
-* GPU accelerated previews
-* cleaner architecture
-
-Future roadmap:
-
-1. GPU preview pipeline
-2. Dirty-region texture syncing
-3. ToolContext abstraction
-4. Layer system
-5. Zoom/pan transforms
-6. Full GPU rendering pipeline
-7. Path-based undo system
-
----
-
-# Core Insights Discovered During Session
-
-1. Memory bandwidth often dominates algorithm math.
-2. Dirty rectangles are harder than they initially appear.
-3. XOR preview is historically interesting but architecturally inferior.
-4. GPU preview layers solve many CPU preview problems.
-5. Tools should express intent, not own rendering details.
-6. Rendering architecture matters more than algorithms at this stage.
-7. Undo systems are essentially pixel time machines.
-8. CPU surface = truth, GPU textures = projection.
-
----
-
-# Recommended Continuation Prompt
-
-Paste this into a future session:
-
-"Continue helping me evolve my LXPaint architecture. Read the context blob carefully first. Focus on converting Line/Rect tools to previewTexture-based GPU previews and improving separation between Tool, Renderer, and Canvas responsibilities."
+[ ] Clean up profiler state persistence between sessions

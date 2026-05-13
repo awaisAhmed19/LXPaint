@@ -1,15 +1,18 @@
 #include "Pencil.h"
-#include "../Commands/DrawCommand.h"
 #include "../Interaction/ToolContext.h"
 #include "../Interaction/ToolInteractionState.h"
+#include "../Preview/PreviewLayer.h"
 void Pencil::onMouseDown(vec2 pos, ToolContext &ctx) {
-  ctx.interaction->active = true;
   m_last = pos;
   resetBounds(pos, brushSize);
+  m_pendingCommand =
+      std::make_unique<DrawCommand>(ctx.canvas->getSurface(), m_boundingBox);
   Rasterizer::bresenham(pos, pos, ctx.canvas->getSurface(), color, brushSize,
                         false);
+  ctx.preview->clearRGBA(0, 0, 0, 0);
+  ctx.preview->markDirty();
   ctx.canvas->markDirty();
-  Logger::log(LogLevel::DEBUG, "ERASER STARTED DRAWING");
+  Logger::log(LogLevel::DEBUG, "PENCIL STARTED DRAWING");
 }
 
 void Pencil::onMouseMove(vec2 pos, ToolContext &ctx) {
@@ -40,19 +43,22 @@ void Pencil::onMouseMove(vec2 pos, ToolContext &ctx) {
        {"DDA", usDDA, ImVec4(0.0f, 0.5f, 1.0f, 1.0f)}},
       pos);
   ctx.canvas->markDirty();
+
+  SDL_Log("DIRTY AFTER MOVE: %d", ctx.canvas->isDirty());
   m_last = pos;
   // ps->sync();
 }
 
 std::unique_ptr<Command> Pencil::onMouseUp(vec2 pos, ToolContext &ctx) {
   ctx.interaction->active = false;
-  auto cmd =
-      std::make_unique<DrawCommand>(ctx.canvas->getSurface(), m_boundingBox);
+  if (m_pendingCommand) {
+    m_pendingCommand->captureAfter(ctx.canvas->getSurface());
+  }
 
   // Finalize Profiler
   Profiler::commitRace({{"BRESENHAM", ImVec4(1.0f, 0.5f, 0.0f, 1.0f)},
                         {"DDA", ImVec4(0.0f, 0.5f, 1.0f, 1.0f)}});
 
-  Logger::log(LogLevel::DEBUG, "ERASER STOPPED DRAWING");
-  return cmd;
+  Logger::log(LogLevel::DEBUG, "PENCIL STOPPED DRAWING");
+  return std::move(m_pendingCommand);
 }

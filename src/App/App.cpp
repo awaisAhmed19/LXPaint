@@ -38,14 +38,15 @@ void App::render() {
 
   ImGui::NewFrame();
 
-  SDL_SetRenderDrawColor(m_renderer, 30, 30, 30, 255);
+  SDL_SetRenderDrawColor(m_renderer, 128, 128, 128,
+                         255); // background color of app
 
   SDL_RenderClear(m_renderer);
 
   m_editor->render();
 
-  DrawLogConsole(m_editor->getCanvas(), m_screenW, m_screenH, frameTimes,
-                 frameOffset);
+  // DrawLogConsole(m_editor->getCanvas(), m_screenW, m_screenH, frameTimes,
+  //                frameOffset);
 
   ImGui::Render();
 
