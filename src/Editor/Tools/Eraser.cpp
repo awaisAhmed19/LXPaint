@@ -4,8 +4,6 @@
 #include "../Interaction/ToolContext.h"
 #include "../Interaction/ToolInteractionState.h"
 void Eraser::onMouseDown(vec2 pos, ToolContext &ctx) {
-  ctx.interaction->active = true;
-  resetBounds(pos, brushSize);
   Rasterizer::bresenham(pos, pos, ctx.canvas->getSurface(), m_color, brushSize,
                         m_useXOR);
   ctx.canvas->markDirty();
@@ -24,7 +22,7 @@ void Eraser::onMouseMove(vec2 pos, ToolContext &ctx) {
   auto s1 = std::chrono::high_resolution_clock::now();
 
   Rasterizer::bresenham(m_last, pos, ctx.canvas->getSurface(), m_color,
-                        brushSize, m_useXOR);
+                        brushSize, false);
   auto e1 = std::chrono::high_resolution_clock::now();
 
   auto s2 = std::chrono::high_resolution_clock::now();
@@ -49,11 +47,13 @@ std::unique_ptr<Command> Eraser::onMouseUp(vec2 pos, ToolContext &ctx) {
   ctx.interaction->active = false;
   auto cmd =
       std::make_unique<DrawCommand>(ctx.canvas->getSurface(), m_boundingBox);
+  ctx.canvas->markDirty();
+  cmd->captureAfter(ctx.canvas->getSurface());
 
   // Finalize Profiler
   Profiler::commitRace({{"BRESENHAM", ImVec4(1.0f, 0.5f, 0.0f, 1.0f)},
                         {"DDA", ImVec4(0.0f, 0.5f, 1.0f, 1.0f)}});
 
   Logger::log(LogLevel::DEBUG, "ERASER STOPPED DRAWING");
-  return cmd;
+  return std::move(cmd);
 }

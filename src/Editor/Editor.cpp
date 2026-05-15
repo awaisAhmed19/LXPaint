@@ -6,7 +6,8 @@
 #include "../Editor/Tools/Rect.h"
 #include "../Systems/Logger.h"
 Editor::Editor(SDL_Renderer *renderer)
-    : m_canvas(800, 550), m_preview(800, 550), m_renderer(renderer) {
+    : m_canvas(800, 550), m_preview(800, 550), m_renderer(renderer),
+      m_commands(50, 256) {
   this->m_tools.registerTool("pencil", std::make_unique<Pencil>());
   this->m_tools.registerTool("line", std::make_unique<Line>());
   this->m_tools.registerTool("rect", std::make_unique<Rect>());
@@ -21,12 +22,19 @@ Editor::Editor(SDL_Renderer *renderer)
   this->m_input.keyBinds(SDL_SCANCODE_R, InputCommand::RECT);
   this->m_input.keyBinds(SDL_SCANCODE_E, InputCommand::ERASER);
   this->m_input.bindActions(InputCommand::UNDO, [this]() {
-    this->m_commands.undo(this->m_canvas);
-    this->m_canvas.markDirty();
+    if (this->m_commands.undo(this->m_canvas)) {
+
+      this->m_canvas.markDirty();
+    } else {
+      Logger::log(LogLevel::DEBUG, "Nothing to undo");
+    }
   });
   this->m_input.bindActions(InputCommand::REDO, [this]() {
-    this->m_commands.redo(this->m_canvas);
-    this->m_canvas.markDirty();
+    if (this->m_commands.redo(this->m_canvas)) {
+      this->m_canvas.markDirty();
+    } else {
+      Logger::log(LogLevel::DEBUG, "Nothing to redo");
+    }
   });
   this->m_input.bindActions(InputCommand::PENCIL, [this]() {
     this->m_tools.setActiveTool("pencil");
@@ -45,6 +53,44 @@ Editor::Editor(SDL_Renderer *renderer)
   this->m_viewport.setScreenRect({0, 0, 1280, 720});
 
   this->m_docTransform.position = {200, 100};
+}
+
+void Editor::renderUI() {
+  ImGui::Begin("Edit History");
+
+  // Undo button
+  if (ImGui::Button("Undo", ImVec2(100, 0))) {
+    m_commands.undo(m_canvas);
+    m_canvas.markDirty();
+  }
+  ImGui::SameLine();
+  if (auto desc = m_commands.getUndoDescription()) {
+    ImGui::Text("(%s)", desc->c_str());
+  } else {
+    ImGui::TextDisabled("(Nothing to undo)");
+  }
+
+  ImGui::SameLine();
+  if (ImGui::Button("Redo", ImVec2(100, 0))) {
+    m_commands.redo(m_canvas);
+    m_canvas.markDirty();
+  }
+  ImGui::SameLine();
+  if (auto desc = m_commands.getRedoDescription()) {
+    ImGui::Text("(%s)", desc->c_str());
+  } else {
+    ImGui::TextDisabled("(Nothing to redo)");
+  }
+
+  // Memory usage bar
+  float memPercent = m_commands.getMemoryUsagePercent();
+  ImGui::ProgressBar(memPercent / 100.0f, ImVec2(-1, 0));
+  ImGui::SameLine();
+  ImGui::Text("%.1f%%", memPercent);
+
+  ImGui::TextDisabled("%s", m_commands.getDebugInfo().c_str());
+
+  ImGui::End();
 }
 
 bool Editor::inCanvas(vec2 mousePos) {
@@ -135,9 +181,9 @@ void Editor::handleEvent(const SDL_Event &e) {
     std::unique_ptr<Command> command = tool->onMouseUp(mousePos, ctx);
 
     if (command) {
-      this->m_commands.executeCommand(std::move(command), this->m_canvas);
+      this->m_commands.executeCommand(std::move(command), this->m_canvas,
+                                      "Draw Stroke");
     }
-
     this->m_interaction.active = false;
     this->m_interaction.mouseDown = false;
 
