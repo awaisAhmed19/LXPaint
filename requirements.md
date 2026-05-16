@@ -25,8 +25,199 @@ LXPaint
 ├── Toolbar
 ├── ColorPalette
 └── BrushSizeSlider
+IMPORTANT THING YOU WILL HIT NEXT
 
+Your bounds calculation probably sucks right now.
+
+Meaning:
+
+snapshot region too small
+
+which causes clipping during undo/redo.
+
+So VERY soon you’ll want:
+
+expandBoundsByBrushSize()
+
+Otherwise edges vanish during restore.
+
+THE BIG WIN HERE
+
+Now:
+
+Pencil
+Line
+Rect
+Eraser
+Bucket
+Spray
+Future brush engine
+
+ALL use SAME history system.
+
+That’s the important part.
+
+The engine becomes coherent instead of tool-specific spaghetti tentacles fighting in the dark at 2 AM.
 LXPAINT MASTER TODO / BUG AUDIT
+
+# REAL DEADLINE TODO
+
+## P0 — WILL BREAK THE APP / DEMO
+
+### Undo / Redo
+
+- [ ] Fix Eraser undo lifecycle
+  - [ ] Create command on `mouseDown`
+  - [ ] Finalize on `mouseUp`
+
+- [ ] Verify ALL tools follow:
+
+  ```text id="zmu4cx"
+  mouseDown -> begin command
+  mouseMove -> draw/preview
+  mouseUp   -> finalize command
+  ```
+
+- [ ] Fix potential undo corruption outside dirty bounds
+- [ ] Ensure undo clears redo stack correctly
+- [ ] Ensure empty undo/redo cannot crash
+
+---
+
+### Coordinate System (VERY IMPORTANT)
+
+- [ ] Make ALL tools use:
+
+  ```cpp id="gvijba"
+  renderer.screenToCanvas()
+  ```
+
+- [ ] Fix mixed coordinate spaces
+  - screen
+  - canvas
+  - viewport
+  - zoom/pan
+
+- [ ] Fix preview rendering mismatch during zoom/pan
+- [ ] Add coordinate clamping during zoom/pan
+
+If this remains broken:
+
+```text id="c2rm2s"
+tools will draw at wrong positions under zoom/pan
+```
+
+---
+
+### Rendering / Visual Bugs
+
+- [ ] Fix canvas flickering
+- [ ] Prevent drawing under ImGui windows
+- [ ] Fix transparent/invisible canvas issue
+- [ ] Ensure preview layer clears after commit
+- [ ] Verify zoom/pan still renders correctly
+
+---
+
+### Rasterization Bugs
+
+- [ ] Fix Bresenham steep-line transpose logic
+- [ ] Fix thick-line inconsistency
+- [ ] Fix ghost pixels from snapshot padding
+
+---
+
+### Stability / Crash Safety
+
+- [ ] Add null guards for:
+  - texture creation
+  - texture upload
+  - rendering
+  - surfaces
+
+- [ ] Fix inconsistent SDL surface locking
+- [ ] Fix incomplete locking in DDA / rectFill
+- [ ] Add undo stack size limit
+
+---
+
+# P1 — PERFORMANCE STABILIZATION
+
+### Texture Uploading
+
+- [ ] Replace:
+
+  ```cpp id="jjfrn0"
+  SDL_TEXTUREACCESS_STREAMING
+  ```
+
+  with:
+
+  ```cpp id="7rqlwo"
+  SDL_TEXTUREACCESS_STATIC
+  ```
+
+### Dirty Updates
+
+- [ ] Stop syncing full texture every frame
+- [ ] Use dirty-region uploads only
+
+### Hotpath Cleanup
+
+- [ ] Remove hotpath SDL_Log spam
+- [ ] Remove profiler spam
+- [ ] Remove dead benchmarking paths
+
+---
+
+# P2 — QUICK CLEANUP
+
+### Interaction Ownership
+
+- [ ] Remove tools directly mutating interaction state
+- [ ] Remove redundant interaction toggles
+
+### Logging Cleanup
+
+- [ ] Remove stale/copy-pasted logger labels
+- [ ] Stop mixing SDL_Log and Logger
+
+### Build Cleanup
+
+- [ ] Remove debug-only code
+- [ ] Remove commented dead code
+- [ ] Final release build test
+
+---
+
+# IGNORE UNTIL AFTER DEADLINE
+
+Do NOT touch:
+
+- layer system
+- save/load
+- flood fill
+- anti-aliasing
+- ECS
+- renderer rewrite
+- serialization
+- operation graph
+- viewport ownership redesign
+- perfect architecture cleanup
+- unit tests
+- pressure support
+
+Those are post-submission problems.
+
+Right now your battlefield priorities are:
+
+```text id="e3j10y"
+1. Undo works
+2. Coordinates work
+3. Rendering stable
+4. No crashes
+5. Ship
+```
 
 ========================
 CRITICAL

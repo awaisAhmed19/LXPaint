@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../Commands/SnapshotCommand.h"
 #include "../Rendering/Rasterizer.h"
 #include "../Systems/Logger.h"
 #include "../Systems/Profiler.h"
@@ -9,8 +10,9 @@ class Rect : public BaseTool {
 private:
   bool m_useXOR = false;
   vec2 m_start;
+  vec2 m_last;
   SDL_Rect m_prevBounds{};
-
+  std::unique_ptr<SnapshotCommand> m_command;
   enum class RectMode { STROKE, FILL, WHITEFILL };
 
 public:

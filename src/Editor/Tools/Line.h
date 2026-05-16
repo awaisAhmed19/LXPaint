@@ -1,4 +1,5 @@
 #pragma once
+#include "../Commands/SnapshotCommand.h"
 #include "../Rendering/Rasterizer.h"
 #include "../Systems/Logger.h"
 #include "../Systems/Profiler.h"
@@ -7,6 +8,7 @@ class Line : public BaseTool {
 private:
   vec2 m_start;
   vec2 m_last;
+  std::unique_ptr<SnapshotCommand> m_command;
 
 public:
   int brushSize = 1;

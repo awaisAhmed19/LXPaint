@@ -1,47 +1,61 @@
 #include "Pencil.h"
-#include "../Commands/DrawStrokeCommand.h" // ✅ Add include
+
+#include "../Commands/SnapshotCommand.h"
 #include "../Interaction/ToolContext.h"
 #include "../Interaction/ToolInteractionState.h"
-#include "../Preview/PreviewLayer.h"
 
-// Pencil::onMouseDown()
 void Pencil::onMouseDown(vec2 pos, ToolContext &ctx) {
+  Logger::log(LogLevel::DEBUG, "PENCIL STARTED DRAWING");
+
+  ctx.interaction->active = true;
+
+  m_start = pos;
   m_last = pos;
-  m_activeCommand = std::make_unique<DrawStrokeCommand>();
+
+  resetBounds(pos, brushSize);
 
   Rasterizer::bresenham(pos, pos, ctx.canvas->getSurface(), color, brushSize,
                         false);
-  ctx.canvas->markDirty(); // ✅ Mark dirty
-  Logger::log(LogLevel::DEBUG, "PENCIL STARTED DRAWING");
+
+  ctx.canvas->markDirty();
 }
 
-// Pencil::onMouseMove()
 void Pencil::onMouseMove(vec2 pos, ToolContext &ctx) {
-  if (!ctx.interaction->active || !m_activeCommand)
+  if (!ctx.interaction->active)
     return;
 
-  m_activeCommand->addSegment(m_last, pos, color, brushSize);
+  updateBounds(pos, brushSize, ctx.canvas->getSurface()->w,
+               ctx.canvas->getSurface()->h);
+
   Rasterizer::bresenham(m_last, pos, ctx.canvas->getSurface(), color, brushSize,
                         false);
-  ctx.canvas->markDirty(); // ✅ Mark dirty each move
 
-  // ... profiler stuff ...
+  ctx.canvas->markDirty();
+
   m_last = pos;
 }
 
-// Pencil.cpp
 std::unique_ptr<Command> Pencil::onMouseUp(vec2 pos, ToolContext &ctx) {
+  Logger::log(LogLevel::DEBUG, "PENCIL STOPPED DRAWING");
+
+  if (!ctx.interaction->active)
+    return nullptr;
+
   ctx.interaction->active = false;
 
-  if (!m_activeCommand || m_activeCommand->isEmpty()) {
-    return nullptr;
+  if (m_last != pos) {
+    updateBounds(pos, brushSize, ctx.canvas->getSurface()->w,
+                 ctx.canvas->getSurface()->h);
+
+    m_command = std::make_unique<SnapshotCommand>(ctx.canvas->getSurface(),
+                                                  m_boundingBox);
+    Rasterizer::bresenham(m_last, pos, ctx.canvas->getSurface(), color,
+                          brushSize, false);
+
+    ctx.canvas->markDirty();
   }
 
-  size_t estimateMemory = m_activeCommand->getSegmentCount() * 32;
+  m_command->captureAfter(ctx.canvas->getSurface());
 
-  Profiler::commitRace({{"BRESENHAM", ImVec4(1.0f, 0.5f, 0.0f, 1.0f)},
-                        {"DDA", ImVec4(0.0f, 0.5f, 1.0f, 1.0f)}});
-
-  Logger::log(LogLevel::DEBUG, "PENCIL STOPPED DRAWING");
-  return std::move(m_activeCommand);
+  return std::move(m_command);
 }

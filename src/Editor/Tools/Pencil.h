@@ -1,17 +1,17 @@
 #pragma once
+#include "../Commands/SnapshotCommand.h"
 #include "../Rendering/Rasterizer.h"
 #include "../Systems/Logger.h"
 #include "../Systems/Profiler.h"
-
-#include "../Commands/DrawStrokeCommand.h"
 #include "./BaseTool.h"
 #include <chrono>
 #include <memory>
 
 class Pencil : public BaseTool {
 private:
-  vec2 m_last;
-  std::unique_ptr<DrawStrokeCommand> m_activeCommand;
+  vec2 m_last = {0.0f, 0.0f};
+  vec2 m_start = {0.0f, 0.0f};
+  std::unique_ptr<SnapshotCommand> m_command;
 
 public:
   const int brushSize = 3;

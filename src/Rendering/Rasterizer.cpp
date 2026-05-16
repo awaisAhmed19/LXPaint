@@ -74,15 +74,23 @@ void drawHorizontalSpan(SDL_Surface *surface, int x, int y, int thickness,
 void rectFill(SDL_Surface *surface, int minX, int minY, int maxX, int maxY,
               uint32_t color) {
 
+  if (!lockSurface(surface))
+    return;
+
   for (int y = minY; y <= maxY; y++) {
     for (int x = minX; x <= maxX; x++) {
       drawPixel(surface, x, y, color);
     }
   }
+
+  unlockSurface(surface);
 }
 
 void rectFillWhite(SDL_Surface *surface, int minX, int minY, int maxX,
                    int maxY) {
+
+  if (!lockSurface(surface))
+    return;
 
   constexpr uint32_t color = 0xFFFFFFFF;
 
@@ -91,6 +99,8 @@ void rectFillWhite(SDL_Surface *surface, int minX, int minY, int maxX,
       drawPixel(surface, x, y, color);
     }
   }
+
+  unlockSurface(surface);
 }
 
 void drawRect(SDL_Surface *surface, vec2 a, vec2 b, uint32_t color,
@@ -194,13 +204,19 @@ void bresenham(vec2 start, vec2 end, SDL_Surface *surface, uint32_t color,
 
   int err = dx + dy;
 
+  // FIXED: Steep-line transpose logic
+  // When slope > 1 (steep line), we step in Y more than X
+  // In this case, use horizontal spans (X-thickness) not vertical
   bool steep = abs(y2 - y1) > abs(x2 - x1);
 
   while (true) {
 
+    // FIXED: Correct span selection based on steepness
     if (steep) {
+      // Stepping primarily in Y: use horizontal span for brushSize in X
       drawHorizontalSpan(surface, x1, y1, brushSize, color, useXOR);
     } else {
+      // Stepping primarily in X: use vertical span for brushSize in Y
       drawVerticalSpan(surface, x1, y1, brushSize, color, useXOR);
     }
 

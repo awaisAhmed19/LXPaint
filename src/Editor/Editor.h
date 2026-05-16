@@ -8,11 +8,11 @@
 #include "../Input/InputDispatcher.h"
 #include "../Rendering/Renderer.h"
 #include "../Rendering/Transform2D.h"
+#include "./Interaction/ToolContext.h"
 #include "./Viewport/Viewport.h"
 #include "imgui.h"
 #include "imgui_impl_sdl3.h"
 #include "imgui_impl_sdlrenderer3.h"
-
 #include <SDL3/SDL.h>
 class Editor {
 private:
@@ -25,6 +25,16 @@ private:
   InputDispatcher m_input;
   Viewport m_viewport;
   Transform2D m_docTransform;
+  void setupTools();
+  void setupInputBindings();
+
+  ToolContext makeToolContext();
+
+  vec2 screenToCanvas(vec2 screenPos) const;
+
+  void handleMouseDown(const SDL_Event &e);
+  void handleMouseMove(const SDL_Event &e);
+  void handleMouseUp(const SDL_Event &e);
 
 public:
   explicit Editor(SDL_Renderer *renderer);
