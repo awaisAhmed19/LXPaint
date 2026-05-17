@@ -3,7 +3,7 @@
 void Viewport::setPan(vec2 pan) { this->m_pan = pan; }
 
 void Viewport::setZoom(float zoom) {
-  this->m_zoom = std::clamp(zoom, 0.1f, 16.0f);
+  this->m_zoom = std::clamp(zoom, 5.0f, 16.0f);
   this->m_zoom = zoom;
 }
 
@@ -57,12 +57,16 @@ SDL_FRect Viewport::getVisibleCanvasBounds() const {
       bottomRight.y - topLeft.y,
   };
 }
-
+SDL_FRect Viewport::getScreenRect() const { return m_screenRect; }
 void Viewport::ZoomAt(vec2 screenPoint, float factor) {
-  LX_ASSERT(m_zoom > 0.0f, "Viewport zoom invalid");
-  vec2 before = screenToWorld(screenPoint);
-  this->m_zoom *= factor;
-  vec2 after = screenToWorld(screenPoint);
-  this->m_pan.x += (after.x - before.x) * this->m_zoom;
-  this->m_pan.y += (after.y - before.y) * this->m_zoom;
+  LX_ASSERT(factor > 0.0f, "Invalid zoom factor");
+  float oldZoom = m_zoom;
+  m_zoom *= factor;
+  m_zoom = std::clamp(m_zoom, 0.1f, 16.0f);
+
+  vec2 worldBefore = {(screenPoint.x - m_pan.x) / oldZoom,
+                      (screenPoint.y - m_pan.y) / oldZoom};
+
+  m_pan.x = screenPoint.x - worldBefore.x * m_zoom;
+  m_pan.y = screenPoint.y - worldBefore.y * m_zoom;
 }

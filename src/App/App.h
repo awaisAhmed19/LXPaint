@@ -7,6 +7,8 @@
 #include <SDL3/SDL.h>
 #include <memory>
 #include <vector>
+constexpr int DEFAULT_WINDOW_WIDTH = 1280;
+constexpr int DEFAULT_WINDOW_HEIGHT = 720;
 class App {
 public:
   App(const char *title);

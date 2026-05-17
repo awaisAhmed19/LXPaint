@@ -50,7 +50,13 @@ public:
 
     return true;
   }
+  size_t undoCount() const { return m_undoStack.size(); }
 
+  size_t redoCount() const { return m_redoStack.size(); }
+
+  float memoryUsageMB() const {
+    return totalMemoryUsage() / (1024.0f * 1024.0f);
+  }
   bool undo(Canvas &canvas) {
     if (m_undoStack.empty())
       return false;

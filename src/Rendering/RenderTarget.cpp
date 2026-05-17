@@ -28,6 +28,31 @@ SDL_Texture *RenderTarget::getTexture() { return this->m_texture; }
 int RenderTarget::getWidth() const { return this->m_width; }
 int RenderTarget::getHeight() const { return this->m_height; }
 
+void RenderTarget::resize(int w, int h) {
+
+  LX_ASSERT(w > 0 && h > 0, "Invalid RenderTarget resize");
+  Logger::debug(std::format("Resizing RenderTarget {}x{} -> {}x{}", m_width,
+                            m_height, w, h));
+
+  SDL_Surface *newSurface = SDL_CreateSurface(w, h, SDL_PIXELFORMAT_ARGB8888);
+  LX_ASSERT(newSurface != nullptr, "Failed to create resized surface");
+
+  /*
+    Copy old contents
+  */
+
+  SDL_Rect src = {0, 0, std::min(m_width, w), std::min(m_height, h)};
+  SDL_BlitSurface(m_surface, &src, newSurface, &src);
+  SDL_DestroySurface(m_surface);
+
+  m_surface = newSurface;
+
+  m_width = w;
+  m_height = h;
+
+  markDirty();
+}
+
 void RenderTarget::markDirty() {
   Logger::debug("RenderTarget marked dirty");
   m_dirty = true;

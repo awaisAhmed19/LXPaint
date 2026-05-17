@@ -7,7 +7,8 @@ class RenderTarget {
 protected:
   SDL_Surface *m_surface = nullptr;
   SDL_Texture *m_texture = nullptr;
-
+  int m_textureWidth = 0;
+  int m_textureHeight = 0;
   int m_width = 0;
   int m_height = 0;
 
@@ -21,7 +22,7 @@ public:
 
   SDL_Surface *getSurface();
   SDL_Texture *getTexture();
-
+  void resize(int w, int h);
   int getWidth() const;
   int getHeight() const;
 

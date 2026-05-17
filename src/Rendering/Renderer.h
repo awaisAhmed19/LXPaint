@@ -14,7 +14,9 @@ public:
   void renderTarget(RenderTarget &target, const Viewport &viewport,
                     const Transform2D &transform);
   void end();
+  SDL_Renderer *getSDLRenderer() const;
 
 private:
   void sync(RenderTarget &target);
+  void ensureTexture(RenderTarget &target);
 };

@@ -2,9 +2,9 @@
 struct ToolInteractionState {
   bool active = false;
 
-  vec2 startMousePos{0};
-  vec2 currMousePos{0};
-  vec2 prevMousePos{0};
+  vec2 startMousePos{0.0f, 0.0f};
+  vec2 currMousePos{0.0f, 0.0f};
+  vec2 prevMousePos{0.0f, 0.0f};
 
   bool mouseDown = false;
 

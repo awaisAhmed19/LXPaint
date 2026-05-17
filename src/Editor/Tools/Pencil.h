@@ -14,13 +14,11 @@ private:
   std::unique_ptr<SnapshotCommand> m_command;
 
 public:
-  const int brushSize = 3;
+  const int brushSize = 1;
 
   uint32_t color = COLORS::BLACK;
 
   void onMouseDown(vec2 pos, ToolContext &ctx) override;
-
   void onMouseMove(vec2 pos, ToolContext &ctx) override;
-
   std::unique_ptr<Command> onMouseUp(vec2 pos, ToolContext &ctx) override;
 };

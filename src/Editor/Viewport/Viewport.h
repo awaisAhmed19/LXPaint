@@ -17,15 +17,19 @@ public:
   vec2 screenToWorld(vec2 screen) const;
   vec2 screenToCanvas(vec2 screen, const Transform2D &docTransform) const;
   vec2 worldToScreen(vec2 world) const;
-
   SDL_FRect worldRectToScreen(SDL_FRect rect) const;
 
-  vec2 getPan() const;
-  float getZoom() const;
-  void setPan(vec2 pan);
-  void setZoom(float zoom);
-  bool isVisible(SDL_FRect rect) const;
-  SDL_FRect getVisibleCanvasBounds() const;
   void setScreenRect(SDL_FRect rect);
+  SDL_FRect getScreenRect() const;
+
+  vec2 getPan() const;
+  void setPan(vec2 pan);
+
+  float getZoom() const;
+  void setZoom(float zoom);
+
+  bool isVisible(SDL_FRect rect) const;
+
+  SDL_FRect getVisibleCanvasBounds() const;
   void ZoomAt(vec2 screenPoint, float factor);
 };

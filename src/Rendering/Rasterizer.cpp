@@ -133,7 +133,7 @@ void drawRect(SDL_Surface *surface, vec2 a, vec2 b, uint32_t color,
   bresenham({(float)maxX, (float)minY}, {(float)maxX, (float)maxY}, surface,
             color, brushSize, false);
 
-  rectFillWhite(surface, minX, minY, maxX, maxY);
+  rectFill(surface, minX, minY, maxX, maxY, color);
 }
 
 void dda(vec2 start, vec2 end, SDL_Surface *surface, uint32_t color,

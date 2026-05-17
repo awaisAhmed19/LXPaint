@@ -27,7 +27,7 @@ Editor::Editor(SDL_Renderer *renderer)
   m_viewport.setPan({0.0f, 0.0f});
   m_viewport.setScreenRect({0, 0, 1280, 720});
 
-  m_docTransform.position = {200, 100};
+  centerCanvas();
 }
 
 void Editor::setupTools() {
@@ -82,125 +82,228 @@ vec2 Editor::clampToCanvas(vec2 p) {
   return p;
 }
 
-void Editor::handleMouseDown(const SDL_Event &e) {
-  if (e.button.button == SDL_BUTTON_MIDDLE) {
-    m_panning = true;
-    m_lastPanMouse = {(float)e.button.x, (float)e.button.y};
-    return;
-  }
-  if (e.button.button != SDL_BUTTON_LEFT)
-    return;
-  BaseTool *tool = m_tools.getActive();
-  if (!tool)
-    return;
-
-  ToolContext ctx = makeToolContext();
-
-  vec2 screenPos = {(float)e.button.x, (float)e.button.y};
-  vec2 mousePos = m_viewport.screenToCanvas(screenPos, m_docTransform);
-
-  if (!inCanvas(mousePos))
-    return;
-
-  m_interaction.active = true;
-  m_interaction.mouseDown = true;
-
-  m_interaction.startMousePos = mousePos;
-  m_interaction.currMousePos = mousePos;
-  m_interaction.prevMousePos = mousePos;
-
-  tool->onMouseDown(mousePos, ctx);
-}
-
-void Editor::handleMouseMove(const SDL_Event &e) {
-  if (m_panning) {
-    vec2 current = {(float)e.motion.x, (float)e.motion.y};
-    vec2 delta = {current.x - m_lastPanMouse.x, current.y - m_lastPanMouse.y};
-    m_viewport.setPan(m_viewport.getPan() + delta);
-    m_lastPanMouse = current;
-    return;
-  }
-  if (!m_interaction.active)
-    return;
-
-  BaseTool *tool = m_tools.getActive();
-
-  if (!tool)
-    return;
-
-  ToolContext ctx = makeToolContext();
-
-  m_interaction.prevMousePos = m_interaction.currMousePos;
-  vec2 screenPos = {(float)e.motion.x, (float)e.motion.y};
-  vec2 mousePos = m_viewport.screenToCanvas(screenPos, m_docTransform);
-  m_interaction.currMousePos = clampToCanvas(mousePos);
-
-  tool->onMouseMove(m_interaction.currMousePos, ctx);
-}
-
-void Editor::handleMouseUp(const SDL_Event &e) {
-  if (e.button.button == SDL_BUTTON_MIDDLE) {
-    m_panning = false;
-    return;
-  }
-  if (e.button.button != SDL_BUTTON_LEFT)
-    return;
-
-  if (!m_interaction.active)
-    return;
-
-  BaseTool *tool = m_tools.getActive();
-
-  if (!tool)
-    return;
-
-  ToolContext ctx = makeToolContext();
-
-  vec2 screenPos = {(float)e.button.x, (float)e.button.y};
-  vec2 mousePos = m_viewport.screenToCanvas(screenPos, m_docTransform);
-  std::unique_ptr<Command> command = tool->onMouseUp(mousePos, ctx);
-
-  if (command) {
-    m_commands.pushCommand(std::move(command), "Draw Stroke");
-  }
-
-  m_interaction.active = false;
-  m_interaction.mouseDown = false;
-}
-
+// void Editor::handleMouseDown(const SDL_Event &e) {
+//   if (m_spaceHeld && e.button.button == SDL_BUTTON_LEFT) {
+//     m_panning = true;
+//     m_lastPanMouse = {(float)e.button.x, (float)e.button.y};
+//     return;
+//   }
+//   if (e.button.button != SDL_BUTTON_LEFT)
+//     return;
+//   BaseTool *tool = m_tools.getActive();
+//   if (!tool)
+//     return;
+//
+//   ToolContext ctx = makeToolContext();
+//
+//   vec2 screenPos = {(float)e.button.x, (float)e.button.y};
+//   vec2 mousePos = m_viewport.screenToCanvas(screenPos, m_docTransform);
+//
+//   if (!inCanvas(mousePos))
+//     return;
+//
+//   m_interaction.active = true;
+//   m_interaction.mouseDown = true;
+//
+//   m_interaction.startMousePos = mousePos;
+//   m_interaction.currMousePos = mousePos;
+//   m_interaction.prevMousePos = mousePos;
+//
+//   tool->onMouseDown(mousePos, ctx);
+// }
+//
+// void Editor::handleMouseMove(const SDL_Event &e) {
+//   if (m_panning) {
+//     vec2 current = {(float)e.motion.x, (float)e.motion.y};
+//     vec2 delta = {current.x - m_lastPanMouse.x, current.y -
+//     m_lastPanMouse.y}; m_viewport.setPan(m_viewport.getPan() + delta);
+//     m_lastPanMouse = current;
+//     return;
+//   }
+//   if (!m_interaction.active)
+//     return;
+//
+//   BaseTool *tool = m_tools.getActive();
+//
+//   if (!tool)
+//     return;
+//
+//   ToolContext ctx = makeToolContext();
+//
+//   m_interaction.prevMousePos = m_interaction.currMousePos;
+//   vec2 screenPos = {(float)e.motion.x, (float)e.motion.y};
+//   vec2 mousePos = m_viewport.screenToCanvas(screenPos, m_docTransform);
+//   m_interaction.currMousePos = clampToCanvas(mousePos);
+//
+//   tool->onMouseMove(m_interaction.currMousePos, ctx);
+// }
+//
+// void Editor::handleMouseUp(const SDL_Event &e) {
+//   if (m_panning && e.button.button == SDL_BUTTON_LEFT) {
+//     m_panning = false;
+//     return;
+//   }
+//   if (e.button.button != SDL_BUTTON_LEFT)
+//     return;
+//
+//   if (!m_interaction.active)
+//     return;
+//
+//   BaseTool *tool = m_tools.getActive();
+//
+//   if (!tool)
+//     return;
+//
+//   ToolContext ctx = makeToolContext();
+//
+//   vec2 screenPos = {(float)e.button.x, (float)e.button.y};
+//   vec2 mousePos = m_viewport.screenToCanvas(screenPos, m_docTransform);
+//   std::unique_ptr<Command> command = tool->onMouseUp(mousePos, ctx);
+//
+//   if (command) {
+//     m_commands.pushCommand(std::move(command), "Draw Stroke");
+//   }
+//
+//   m_interaction.active = false;
+//   m_interaction.mouseDown = false;
+// }
+//
 void Editor::handleEvent(const SDL_Event &e) {
 
-  m_input.updateKeyInput(e);
+  ImGuiIO &io = ImGui::GetIO();
 
-  switch (e.type) {
-  case SDL_EVENT_MOUSE_WHEEL: {
-    // Zoom event prototype
-    float factor = e.wheel.y > 0 ? 1.1f : 0.9f;
-    float mx, my;
-    SDL_GetMouseState(&mx, &my);
-    m_viewport.ZoomAt({(float)mx, (float)my}, factor);
-    break;
+  // m_input.beginFrame();
+  m_input.update(e);
+  // temp resize
+  //
+  // BLOCK
+  if (e.type == SDL_EVENT_KEY_DOWN) {
+
+    if (e.key.scancode == SDL_SCANCODE_EQUALS && (e.key.mod & SDL_KMOD_CTRL)) {
+      m_canvas.resize(m_canvas.getWidth() + 64, m_canvas.getHeight() + 64);
+      m_preview.resize(m_canvas.getWidth(), m_canvas.getHeight());
+      centerCanvas();
+      Logger::debug("Canvas enlarged");
+    }
+
+    if (e.key.scancode == SDL_SCANCODE_MINUS && (e.key.mod & SDL_KMOD_CTRL)) {
+      int newW = std::max(64, m_canvas.getWidth() - 64);
+      int newH = std::max(64, m_canvas.getHeight() - 64);
+      m_canvas.resize(newW, newH);
+      m_preview.resize(newW, newH);
+      centerCanvas();
+      Logger::debug("Canvas shrunk");
+    }
   }
-  case SDL_EVENT_MOUSE_BUTTON_DOWN:
-    handleMouseDown(e);
-    break;
-  case SDL_EVENT_MOUSE_MOTION:
-    handleMouseMove(e);
-    break;
-  case SDL_EVENT_MOUSE_BUTTON_UP:
-    handleMouseUp(e);
-    break;
-  default:
-    break;
+
+  // DEBUG BLOCK ENDs
+  /*
+    UI owns input
+  */
+
+  if (io.WantCaptureMouse || io.WantCaptureKeyboard) {
+    return;
+  }
+
+  /*
+    Zoom
+  */
+
+  if (m_input.zoomTriggered()) {
+    m_viewport.ZoomAt(m_input.getMouseScreenPos(), m_input.getZoomFactor());
+  }
+
+  /*
+    Pan
+  */
+
+  if (m_input.isPanning()) {
+    m_viewport.setPan(m_viewport.getPan() + m_input.getMouseDelta());
+    return;
+  }
+
+  /*
+    Tool mouse down
+  */
+
+  if (m_input.leftMousePressed()) {
+
+    BaseTool *tool = m_tools.getActive();
+
+    LX_ASSERT(tool != nullptr, "Active tool missing");
+
+    ToolContext ctx = makeToolContext();
+
+    vec2 mousePos =
+        m_viewport.screenToCanvas(m_input.getMouseScreenPos(), m_docTransform);
+
+    if (!inCanvas(mousePos))
+      return;
+
+    mousePos = clampToCanvas(mousePos);
+
+    m_interaction.active = true;
+    m_interaction.mouseDown = true;
+
+    m_interaction.startMousePos = mousePos;
+    m_interaction.currMousePos = mousePos;
+    m_interaction.prevMousePos = mousePos;
+
+    tool->onMouseDown(mousePos, ctx);
+  }
+
+  /*
+    Tool mouse move
+  */
+
+  if (m_interaction.active && m_input.leftMouseDown()) {
+
+    BaseTool *tool = m_tools.getActive();
+
+    LX_ASSERT(tool != nullptr, "Active tool missing");
+    ToolContext ctx = makeToolContext();
+    m_interaction.prevMousePos = m_interaction.currMousePos;
+    vec2 mousePos =
+        m_viewport.screenToCanvas(m_input.getMouseScreenPos(), m_docTransform);
+    m_interaction.currMousePos = clampToCanvas(mousePos);
+    tool->onMouseMove(m_interaction.currMousePos, ctx);
+  }
+
+  /*
+    Tool mouse up
+  */
+
+  if (m_input.leftMouseReleased()) {
+
+    if (!m_interaction.active)
+      return;
+
+    BaseTool *tool = m_tools.getActive();
+    LX_ASSERT(tool != nullptr, "Active tool missing");
+    ToolContext ctx = makeToolContext();
+
+    vec2 mousePos =
+        m_viewport.screenToCanvas(m_input.getMouseScreenPos(), m_docTransform);
+
+    std::unique_ptr<Command> command = tool->onMouseUp(mousePos, ctx);
+
+    if (command) {
+      m_commands.pushCommand(std::move(command), "Draw Stroke");
+    }
+
+    m_interaction.active = false;
+    m_interaction.mouseDown = false;
   }
 }
 
 void Editor::renderUI() {
-  ImGui::Begin("Edit History");
+
+  ImGui::Begin("History");
 
   if (ImGui::Button("Undo", ImVec2(100, 0))) {
     m_commands.undo(m_canvas);
   }
+
   ImGui::SameLine();
   if (ImGui::Button("Redo", ImVec2(100, 0))) {
     m_commands.redo(m_canvas);
@@ -208,10 +311,36 @@ void Editor::renderUI() {
 
   ImGui::Separator();
   ImGui::TextDisabled("%s", m_commands.getDebugInfo().c_str());
+
+  /*
+    Optional quick stats
+  */
+
+  ImGui::Separator();
+
+  ImGui::Text("Undo Count: %d", m_commands.undoCount());
+  ImGui::Text("Redo Count: %d", m_commands.redoCount());
+  ImGui::Text("Memory Usage: %.2f MB", m_commands.memoryUsageMB());
+
   ImGui::End();
 }
 
-void Editor::update() {}
+void Editor::centerCanvas() {
+
+  int w = 0;
+  int h = 0;
+
+  SDL_GetRenderOutputSize(m_renderer.getSDLRenderer(), &w, &h);
+  float zoom = m_viewport.getZoom();
+  float canvasW = m_canvas.getWidth() * zoom;
+  float canvasH = m_canvas.getHeight() * zoom;
+  float x = (w - canvasW) * 0.5f;
+  float y = (h - canvasH) * 0.5f;
+
+  m_viewport.setPan({x, y});
+}
+
+void Editor::update() { m_input.beginFrame(); }
 
 void Editor::render() {
   m_renderer.renderTarget(m_canvas, m_viewport, m_docTransform);

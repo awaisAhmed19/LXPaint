@@ -25,22 +25,25 @@ LXPaint
 ├── Toolbar
 ├── ColorPalette
 └── BrushSizeSlider
+
 ========================
 CRITICAL
 ========================
 
 [X] Fix DrawCommand snapshot timing (capture BEFORE on mouse down, AFTER on mouse up)
+
 [X] Add canvas.markDirty() inside DrawCommand::undo() and execute()
 
-[ ] Fix coordinate transform pipeline: ALL tools must use renderer.screenToCanvas()
+[X] Fix coordinate transform pipeline: ALL tools must use renderer.screenToCanvas()
 
-[ ] Unify coordinate spaces (screen space vs canvas space vs viewport space)
+[~] Unify coordinate spaces (screen space vs canvas space vs viewport space)
+-> mostly stabilized, final ownership cleanup pending
 
 [X] Fix Bresenham steep-line transpose logic (missing coordinate swapping)
 
 [X] Fix Pencil continuous rasterization/presentation inconsistencies
 
-[ ] Fix UI input passthrough / click-through interaction issues
+[X] Fix UI input passthrough / click-through interaction issues
 
 [X] Prevent tools from directly mutating interaction state ownership
 
@@ -51,35 +54,41 @@ HIGH
 ========================
 
 [ ] Replace SDL_TEXTUREACCESS_STREAMING with SDL_TEXTUREACCESS_STATIC
--> actually opposite probably needed eventually for frequent uploads
+-> actually incorrect direction for dynamic paint uploads
+-> STREAMING probably remains correct
 
 [X] Add null/error guards for texture creation, upload, and render paths
 
 [X] Ensure preview layer clears correctly after modal commits
--> effectively solved via conditional preview rendering
 
-[ ] Fix thick-line rasterization ("sausage" thickness inconsistency)
+[~] Fix thick-line rasterization ("sausage" thickness inconsistency)
 
-[ ] Fix inconsistent surface locking across rasterizer paths
+[X] Fix inconsistent surface locking across rasterizer paths
 
 [ ] Fix Renderer::sync() updating entire texture every frame instead of dirty regions
-
-[ ] Add maximum undo/redo stack limit to prevent OOM crashes
+this is for after
+save/load
+resize
+layers
+fill tool
+stability
+[X] Add maximum undo/redo stack limit to prevent OOM crashes
 
 [X] Fix DrawCommand memory lifecycle leaks in modal tools
 
-[ ] Fix coordinate mismatch for preview rendering with zoom/pan
+[X] Fix coordinate mismatch for preview rendering with zoom/pan
+-> verified working under zoom/pan tests
 
 [ ] Add proper texture recreation handling on canvas resize
 
 [ ] Fix incomplete SDL surface locking in dda/rectFill paths
 
-[ ] Fix race condition in Logger history access
--> partially solved with mutex, but erase/history iteration may still race
+[~] Fix race condition in Logger history access
+-> mutex added, erase/iteration still potentially unsafe
 
 [ ] Add thread safety to Profiler static containers
 
-[ ] Add proper canvas coordinate clamping during zoom/pan
+[X] Add proper canvas coordinate clamping during zoom/pan
 
 ========================
 MEDIUM
@@ -92,7 +101,6 @@ MEDIUM
 [X] Add RenderTarget::clearRGBA() abstraction
 
 [X] Make PreviewLayer initialize transparent and Canvas initialize opaque white
--> mostly solved assuming your preview clearRGBA(0,0,0,0) path is active
 
 [ ] Centralize dirty invalidation closer to raster mutation source
 
@@ -113,7 +121,6 @@ MEDIUM
 [ ] Add const correctness across rendering/tool APIs
 
 [X] Improve DrawCommand snapshot efficiency for tiny dirty regions
--> much better now with region-based stroke snapshots
 
 [ ] Fix inconsistent line/rect snapshot padding causing ghost pixels
 
@@ -124,13 +131,14 @@ LOW
 ========================
 
 [X] Remove dead Renderer::begin()/end() lifecycle code completely
--> effectively dead/unused now
 
-[ ] Add Canvas::resize() support
+[~] Add Canvas::resize() support
+-> groundwork partially exists through RenderTarget abstraction
 
-[ ] Add viewport-centered canvas rendering
+[X] Add viewport-centered canvas rendering
 
-[ ] Add proper viewport/pan/zoom ownership system
+[X] Add proper viewport/pan/zoom ownership system
+-> stabilized through Viewport + InputDispatcher split
 
 [ ] Add layer system foundation
 
