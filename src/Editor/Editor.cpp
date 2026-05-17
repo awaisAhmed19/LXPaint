@@ -201,17 +201,13 @@ void Editor::renderUI() {
   if (ImGui::Button("Undo", ImVec2(100, 0))) {
     m_commands.undo(m_canvas);
   }
-
   ImGui::SameLine();
-
   if (ImGui::Button("Redo", ImVec2(100, 0))) {
     m_commands.redo(m_canvas);
   }
 
   ImGui::Separator();
-
   ImGui::TextDisabled("%s", m_commands.getDebugInfo().c_str());
-
   ImGui::End();
 }
 

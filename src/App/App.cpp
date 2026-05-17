@@ -43,6 +43,7 @@ void App::render() {
                          255); // background color of app
   SDL_RenderClear(m_renderer);
   m_editor->render();
+  m_editor->renderUI();
 
   // DrawLogConsole(m_editor->getCanvas(), m_screenW, m_screenH, frameTimes,
   //                frameOffset);
