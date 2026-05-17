@@ -16,6 +16,8 @@
 #include <SDL3/SDL.h>
 class Editor {
 private:
+  bool m_panning = false;
+  vec2 m_lastPanMouse{0.0f, 0.0f};
   Canvas m_canvas;
   PreviewLayer m_preview;
   Renderer m_renderer;
@@ -30,7 +32,7 @@ private:
 
   ToolContext makeToolContext();
 
-  vec2 screenToCanvas(vec2 screenPos) const;
+  // vec2 screenToCanvas(vec2 screenPos) const;
 
   void handleMouseDown(const SDL_Event &e);
   void handleMouseMove(const SDL_Event &e);

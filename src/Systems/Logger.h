@@ -92,7 +92,7 @@ public:
   }
 
   static void debug(std::string_view msg) {
-    if constexpr (Config::ENABLE_DEBUG_LOGS) {
+    if (Config::ENABLE_DEBUG_LOGS) {
       log(LogLevel::DEBUG, msg);
     }
   }

@@ -71,12 +71,6 @@ ToolContext Editor::makeToolContext() {
                      .interaction = &m_interaction};
 }
 
-vec2 Editor::screenToCanvas(vec2 screenPos) const {
-  vec2 worldPos = m_viewport.screenToWorld(screenPos);
-  return {worldPos.x - m_docTransform.position.x,
-          worldPos.y - m_docTransform.position.y};
-}
-
 bool Editor::inCanvas(vec2 mousePos) {
   return mousePos.x >= 0 && mousePos.y >= 0 &&
          mousePos.x < m_canvas.getWidth() && mousePos.y < m_canvas.getHeight();
@@ -89,6 +83,11 @@ vec2 Editor::clampToCanvas(vec2 p) {
 }
 
 void Editor::handleMouseDown(const SDL_Event &e) {
+  if (e.button.button == SDL_BUTTON_MIDDLE) {
+    m_panning = true;
+    m_lastPanMouse = {(float)e.button.x, (float)e.button.y};
+    return;
+  }
   if (e.button.button != SDL_BUTTON_LEFT)
     return;
   BaseTool *tool = m_tools.getActive();
@@ -98,8 +97,7 @@ void Editor::handleMouseDown(const SDL_Event &e) {
   ToolContext ctx = makeToolContext();
 
   vec2 screenPos = {(float)e.button.x, (float)e.button.y};
-
-  vec2 mousePos = screenToCanvas(screenPos);
+  vec2 mousePos = m_viewport.screenToCanvas(screenPos, m_docTransform);
 
   if (!inCanvas(mousePos))
     return;
@@ -115,7 +113,13 @@ void Editor::handleMouseDown(const SDL_Event &e) {
 }
 
 void Editor::handleMouseMove(const SDL_Event &e) {
-
+  if (m_panning) {
+    vec2 current = {(float)e.motion.x, (float)e.motion.y};
+    vec2 delta = {current.x - m_lastPanMouse.x, current.y - m_lastPanMouse.y};
+    m_viewport.setPan(m_viewport.getPan() + delta);
+    m_lastPanMouse = current;
+    return;
+  }
   if (!m_interaction.active)
     return;
 
@@ -128,14 +132,17 @@ void Editor::handleMouseMove(const SDL_Event &e) {
 
   m_interaction.prevMousePos = m_interaction.currMousePos;
   vec2 screenPos = {(float)e.motion.x, (float)e.motion.y};
-  vec2 mousePos = screenToCanvas(screenPos);
+  vec2 mousePos = m_viewport.screenToCanvas(screenPos, m_docTransform);
   m_interaction.currMousePos = clampToCanvas(mousePos);
 
   tool->onMouseMove(m_interaction.currMousePos, ctx);
 }
 
 void Editor::handleMouseUp(const SDL_Event &e) {
-
+  if (e.button.button == SDL_BUTTON_MIDDLE) {
+    m_panning = false;
+    return;
+  }
   if (e.button.button != SDL_BUTTON_LEFT)
     return;
 
@@ -150,8 +157,7 @@ void Editor::handleMouseUp(const SDL_Event &e) {
   ToolContext ctx = makeToolContext();
 
   vec2 screenPos = {(float)e.button.x, (float)e.button.y};
-  vec2 mousePos = screenToCanvas(screenPos);
-
+  vec2 mousePos = m_viewport.screenToCanvas(screenPos, m_docTransform);
   std::unique_ptr<Command> command = tool->onMouseUp(mousePos, ctx);
 
   if (command) {
@@ -167,6 +173,14 @@ void Editor::handleEvent(const SDL_Event &e) {
   m_input.updateKeyInput(e);
 
   switch (e.type) {
+  case SDL_EVENT_MOUSE_WHEEL: {
+    // Zoom event prototype
+    float factor = e.wheel.y > 0 ? 1.1f : 0.9f;
+    float mx, my;
+    SDL_GetMouseState(&mx, &my);
+    m_viewport.ZoomAt({(float)mx, (float)my}, factor);
+    break;
+  }
   case SDL_EVENT_MOUSE_BUTTON_DOWN:
     handleMouseDown(e);
     break;

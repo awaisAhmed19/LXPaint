@@ -6,6 +6,8 @@
 
 void Eraser::onMouseDown(vec2 pos, ToolContext &ctx) {
 
+  LX_ASSERT(ctx.canvas != nullptr, "Eraser canvas missing");
+  LX_ASSERT(ctx.interaction != nullptr, "Eraser interaction missing");
   Logger::debug("ERASER START");
 
   m_start = pos;
@@ -37,6 +39,7 @@ void Eraser::onMouseDown(vec2 pos, ToolContext &ctx) {
 
 void Eraser::onMouseMove(vec2 pos, ToolContext &ctx) {
 
+  LX_ASSERT(ctx.canvas != nullptr, "Eraser move canvas missing");
   if (!ctx.interaction->active)
     return;
 
@@ -53,6 +56,7 @@ void Eraser::onMouseMove(vec2 pos, ToolContext &ctx) {
 
 std::unique_ptr<Command> Eraser::onMouseUp(vec2 pos, ToolContext &ctx) {
 
+  LX_ASSERT(m_backupSurface != nullptr, "Eraser backup surface missing");
   Logger::debug("ERASER END");
 
   if (!ctx.interaction->active)
@@ -61,6 +65,7 @@ std::unique_ptr<Command> Eraser::onMouseUp(vec2 pos, ToolContext &ctx) {
   updateBounds(pos, brushSize, ctx.canvas->getSurface()->w,
                ctx.canvas->getSurface()->h);
 
+  LX_ASSERT(m_boundingBox.w > 0 && m_boundingBox.h > 0, "Invalid bounding box");
   auto before = SnapshotCommand::copyRegion(m_backupSurface, m_boundingBox);
 
   auto after =

@@ -1,14 +1,21 @@
 #include "Rasterizer.h"
-
+#include "../Systems/Assert.h"
 namespace Rasterizer {
 
 static inline uint32_t *getPixels(SDL_Surface *surface) {
+  LX_ASSERT(surface != nullptr, "Surface null in getPixels");
+  LX_ASSERT(surface->pixels != nullptr, "Surface pixels null");
   return static_cast<uint32_t *>(surface->pixels);
 }
 
-static inline int getPitch(SDL_Surface *surface) { return surface->pitch >> 2; }
+static inline int getPitch(SDL_Surface *surface) {
+  LX_ASSERT(surface != nullptr, "Surface null in getPitch");
+  LX_ASSERT(surface->pitch > 0, "Invalid surface pitch");
+  return surface->pitch >> 2;
+}
 
 void drawPixel(SDL_Surface *surface, int x, int y, uint32_t color) {
+  LX_ASSERT(surface != nullptr, "drawPixel received null surface");
   if (x < 0 || x >= surface->w || y < 0 || y >= surface->h)
     return;
 
@@ -20,7 +27,8 @@ void drawPixel(SDL_Surface *surface, int x, int y, uint32_t color) {
 
 void drawVerticalSpan(SDL_Surface *surface, int x, int y, int thickness,
                       uint32_t color, bool useXOR) {
-
+  LX_ASSERT(surface != nullptr, "drawVerticalSpan surface null");
+  LX_ASSERT(thickness > 0, "Invalid brush thickness");
   if (x < 0 || x >= surface->w)
     return;
 
@@ -46,7 +54,8 @@ void drawVerticalSpan(SDL_Surface *surface, int x, int y, int thickness,
 
 void drawHorizontalSpan(SDL_Surface *surface, int x, int y, int thickness,
                         uint32_t color, bool useXOR) {
-
+  LX_ASSERT(surface != nullptr, "drawHorizontalSpan surface null");
+  LX_ASSERT(thickness > 0, "Invalid brush thickness");
   if (y < 0 || y >= surface->h)
     return;
 
@@ -129,7 +138,8 @@ void drawRect(SDL_Surface *surface, vec2 a, vec2 b, uint32_t color,
 
 void dda(vec2 start, vec2 end, SDL_Surface *surface, uint32_t color,
          int brushSize, bool useXOR) {
-
+  LX_ASSERT(surface != nullptr, "DDA surface null");
+  LX_ASSERT(brushSize > 0, "Invalid brush size");
   float dx = end.x - start.x;
   float dy = end.y - start.y;
 
@@ -186,7 +196,8 @@ void dda(vec2 start, vec2 end, SDL_Surface *surface, uint32_t color,
 
 void bresenham(vec2 start, vec2 end, SDL_Surface *surface, uint32_t color,
                int brushSize, bool useXOR) {
-
+  LX_ASSERT(surface != nullptr, "Bresenham surface null");
+  LX_ASSERT(brushSize > 0, "Invalid brush size");
   if (!lockSurface(surface))
     return;
 

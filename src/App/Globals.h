@@ -45,6 +45,7 @@ struct vec2 {
 
   // Binary Operators
   vec2 operator+(const vec2 &other) const { return {x + other.x, y + other.y}; }
+  vec2 operator-(const vec2 &other) const { return {x - other.x, y - other.y}; }
   vec2 operator+(const float scalar) const { return {x + scalar, y + scalar}; }
   vec2 operator-(const float scalar) const { return {x - scalar, y - scalar}; }
 
@@ -78,8 +79,9 @@ typedef struct {
 } Image;
 
 namespace Config {
-inline constexpr bool ENABLE_DEBUG_LOGS = true;
-inline constexpr bool ENABLE_PERFORMANCE_LOGS = true;
+inline bool ENABLE_DEBUG_LOGS = true;
+inline bool ENABLE_ASSERTS = true;
+inline bool ENABLE_PERFORMANCE_LOGS = true;
 } // namespace Config
 namespace COLORS {
 // SDL3 uses ARGB8888 or ABGR8888 depending on platform,

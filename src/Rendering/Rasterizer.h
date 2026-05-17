@@ -1,5 +1,6 @@
 #pragma once
 #include "../App/Globals.h"
+#include "../Systems/Assert.h"
 #include <SDL3/SDL.h>
 #include <algorithm>
 namespace Rasterizer {

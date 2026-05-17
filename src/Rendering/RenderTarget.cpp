@@ -1,4 +1,3 @@
-
 #include "RenderTarget.h"
 
 RenderTarget::RenderTarget(int w, int h) {
@@ -6,6 +5,7 @@ RenderTarget::RenderTarget(int w, int h) {
   this->m_height = h;
   this->m_surface = SDL_CreateSurface(this->m_width, this->m_height,
                                       SDL_PIXELFORMAT_ARGB8888);
+  LX_ASSERT(this->m_surface != nullptr, "RenderTarget surface creation failed");
   if (!this->m_surface) {
     SDL_Log("Failed to create preview surface: %s", SDL_GetError());
   }
@@ -35,6 +35,7 @@ void RenderTarget::markDirty() {
 
 bool RenderTarget::isDirty() const { return m_dirty; }
 void RenderTarget::clear(uint32_t color) {
+  LX_ASSERT(m_surface != nullptr, "clear called with null surface");
   if (!m_surface)
     return;
 
@@ -42,6 +43,7 @@ void RenderTarget::clear(uint32_t color) {
   markDirty();
 }
 void RenderTarget::clearRGBA(uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
+  LX_ASSERT(m_surface != nullptr, "clearRGBA null surface");
   const SDL_PixelFormatDetails *fmt =
       SDL_GetPixelFormatDetails(m_surface->format);
 

@@ -1,9 +1,9 @@
 #pragma once
 
 #include "../../Document/Canvas.h"
+#include "../../Systems/Assert.h"
 #include "../../Systems/Logger.h"
 #include "./Command.h"
-
 #include <SDL3/SDL.h>
 #include <memory>
 
@@ -27,7 +27,8 @@ private:
 private:
   static void restoreRegion(SDL_Surface *dst, SDL_Surface *src,
                             SDL_Rect bounds) {
-
+    LX_ASSERT(dst != nullptr, "restoreRegion dst null");
+    LX_ASSERT(src != nullptr, "restoreRegion src null");
     Logger::debug(std::format("Snapshot restoreRegion x={} y={} w={} h={}",
                               bounds.x, bounds.y, bounds.w, bounds.h));
 
@@ -84,33 +85,24 @@ public:
   }
 
   void undo(Canvas &canvas) override {
-
-    Logger::debug("Snapshot undo");
-
-    if (!m_before) {
-      Logger::log(LogLevel::ERR, "Undo failed: m_before missing");
-      return;
-    }
-
+    LX_ASSERT(m_before != nullptr, "Undo snapshot missing");
+    // if (!m_before) {
+    //   Logger::log(LogLevel::ERR, "Undo failed: m_before missing");
+    //   return;
+    // }
     restoreRegion(canvas.getSurface(), m_before.get(), m_bounds);
-
     canvas.markDirty();
   }
 
   void redo(Canvas &canvas) override {
-
-    Logger::debug("Snapshot redo");
-
-    if (!m_after) {
-      Logger::log(LogLevel::ERR, "Redo failed: m_after missing");
-      return;
-    }
-
+    LX_ASSERT(m_after != nullptr, "Redo snapshot missing");
     restoreRegion(canvas.getSurface(), m_after.get(), m_bounds);
-
     canvas.markDirty();
   }
   static UniqueSurface copyRegion(SDL_Surface *src, SDL_Rect bounds) {
+    LX_ASSERT(src != nullptr, "copyRegion source null");
+    LX_ASSERT(bounds.w > 0, "Invalid snapshot width");
+    LX_ASSERT(bounds.h > 0, "Invalid snapshot height");
 
     Logger::debug(std::format("Snapshot copyRegion x={} y={} w={} h={}",
                               bounds.x, bounds.y, bounds.w, bounds.h));
@@ -138,7 +130,6 @@ public:
   size_t memoryUsage() const override {
 
     size_t before = m_before ? m_before->w * m_before->h * 4 : 0;
-
     size_t after = m_after ? m_after->w * m_after->h * 4 : 0;
 
     return before + after;

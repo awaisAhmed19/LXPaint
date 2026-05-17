@@ -1,24 +1,22 @@
 #include "Renderer.h"
-
+#include "../Systems/Assert.h"
+#include <format>
 Renderer::Renderer(SDL_Renderer *renderer) { this->m_renderer = renderer; }
 
 void Renderer::sync(RenderTarget &target) {
-  Logger::debug("Renderer::sync START");
+  // Logger::debug("Renderer::sync START");
+  LX_ASSERT(target.getSurface() != nullptr, "RenderTarget surface missing");
   if (!target.m_texture) {
-
     target.m_texture = SDL_CreateTexture(
         this->m_renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STATIC,
         target.getWidth(), target.getHeight());
 
-    if (!target.m_texture) {
-      SDL_Log("Texture creation failed: %s", SDL_GetError());
-      return;
-    }
-
-    Logger::debug("Texture created");
-
-    SDL_SetTextureBlendMode(target.m_texture, SDL_BLENDMODE_BLEND);
+    LX_ASSERT(target.m_texture != nullptr, "Texture creation failed");
   }
+
+  Logger::debug("Texture created");
+
+  SDL_SetTextureBlendMode(target.m_texture, SDL_BLENDMODE_BLEND);
 
   Logger::debug("Updating texture from surface");
   bool updated =
@@ -37,8 +35,7 @@ void Renderer::sync(RenderTarget &target) {
 
 void Renderer::renderTarget(RenderTarget &target, const Viewport &viewport,
                             const Transform2D &transform) {
-  Logger::debug(std::format("renderTarget dirty={} texture={}",
-                            target.isDirty(), (void *)target.getTexture()));
+  LX_ASSERT(target.getSurface() != nullptr, "RenderTarget surface null");
   if (target.isDirty()) {
     sync(target);
   }

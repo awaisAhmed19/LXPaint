@@ -1,4 +1,5 @@
 #pragma once
+#include "../../Systems/Assert.h"
 #include "../App/Globals.h"
 #include "../Commands/Command.h"
 #include <SDL3/SDL.h>

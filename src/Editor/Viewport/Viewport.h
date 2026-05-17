@@ -1,6 +1,8 @@
 
 #pragma once
 #include "../../App/Globals.h"
+#include "../../Rendering/Transform2D.h"
+#include "../../Systems/Assert.h"
 #include <SDL3/SDL.h>
 
 class Viewport {
@@ -13,7 +15,7 @@ public:
   // Viewport();
   // ~Viewport();
   vec2 screenToWorld(vec2 screen) const;
-
+  vec2 screenToCanvas(vec2 screen, const Transform2D &docTransform) const;
   vec2 worldToScreen(vec2 world) const;
 
   SDL_FRect worldRectToScreen(SDL_FRect rect) const;
@@ -22,7 +24,6 @@ public:
   float getZoom() const;
   void setPan(vec2 pan);
   void setZoom(float zoom);
-
   bool isVisible(SDL_FRect rect) const;
   SDL_FRect getVisibleCanvasBounds() const;
   void setScreenRect(SDL_FRect rect);

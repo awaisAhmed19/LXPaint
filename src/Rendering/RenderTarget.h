@@ -1,4 +1,5 @@
 #pragma once
+#include "../Systems/Assert.h"
 #include "../Systems/Logger.h"
 #include <SDL3/SDL.h>
 class Renderer;

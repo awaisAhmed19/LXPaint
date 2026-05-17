@@ -4,9 +4,9 @@
 #include "../Interaction/ToolContext.h"
 #include "../Interaction/ToolInteractionState.h"
 void Pencil::onMouseDown(vec2 pos, ToolContext &ctx) {
-
+  LX_ASSERT(ctx.canvas != nullptr, "Pencil canvas missing");
+  LX_ASSERT(ctx.interaction != nullptr, "Pencil interaction missing");
   Logger::debug("PENCIL START");
-
   m_start = pos;
   m_last = pos;
 
@@ -35,7 +35,7 @@ void Pencil::onMouseDown(vec2 pos, ToolContext &ctx) {
 }
 
 void Pencil::onMouseMove(vec2 pos, ToolContext &ctx) {
-
+  LX_ASSERT(ctx.canvas != nullptr, "Pencil move canvas missing");
   if (!ctx.interaction->active)
     return;
 
@@ -51,7 +51,7 @@ void Pencil::onMouseMove(vec2 pos, ToolContext &ctx) {
 }
 
 std::unique_ptr<Command> Pencil::onMouseUp(vec2 pos, ToolContext &ctx) {
-
+  LX_ASSERT(m_backupSurface != nullptr, "Pencil backup surface missing");
   Logger::debug("PENCIL END");
 
   if (!ctx.interaction->active)
@@ -60,6 +60,7 @@ std::unique_ptr<Command> Pencil::onMouseUp(vec2 pos, ToolContext &ctx) {
   updateBounds(pos, brushSize, ctx.canvas->getSurface()->w,
                ctx.canvas->getSurface()->h);
 
+  LX_ASSERT(m_boundingBox.w > 0 && m_boundingBox.h > 0, "Invalid bounding box");
   auto before = SnapshotCommand::copyRegion(m_backupSurface, m_boundingBox);
 
   auto after =

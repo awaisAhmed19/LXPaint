@@ -39,21 +39,16 @@ void App::render() {
   ImGui_ImplSDL3_NewFrame();
 
   ImGui::NewFrame();
-
   SDL_SetRenderDrawColor(m_renderer, 128, 128, 128,
                          255); // background color of app
-
   SDL_RenderClear(m_renderer);
-
   m_editor->render();
 
   // DrawLogConsole(m_editor->getCanvas(), m_screenW, m_screenH, frameTimes,
   //                frameOffset);
 
   ImGui::Render();
-
   ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), m_renderer);
-
   SDL_RenderPresent(m_renderer);
 }
 void App::run() {
@@ -61,15 +56,10 @@ void App::run() {
 
   while (m_running) {
     uint64_t now = SDL_GetTicks();
-
     float deltaTime = (now - last) / 1000.0f;
-
     last = now;
-
     handleEvents();
-
     m_editor->update();
-
     render();
   }
 }
