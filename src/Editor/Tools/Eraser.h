@@ -3,9 +3,9 @@
 #include "../Rendering/Rasterizer.h"
 #include "../Systems/Logger.h"
 #include "../Systems/Profiler.h"
-#include "./BaseTool.h"
+#include "./StrokeTool.h"
 
-class Eraser : public BaseTool {
+class Eraser : public StrokeTool {
   bool m_useXOR = false;
   uint32_t m_color = COLORS::WHITE;
   std::unique_ptr<SnapshotCommand> m_command;

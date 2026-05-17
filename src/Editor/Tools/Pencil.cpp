@@ -3,16 +3,30 @@
 #include "../Commands/SnapshotCommand.h"
 #include "../Interaction/ToolContext.h"
 #include "../Interaction/ToolInteractionState.h"
-
 void Pencil::onMouseDown(vec2 pos, ToolContext &ctx) {
-  Logger::log(LogLevel::DEBUG, "PENCIL STARTED DRAWING");
 
-  ctx.interaction->active = true;
+  Logger::debug("PENCIL START");
 
   m_start = pos;
   m_last = pos;
 
   resetBounds(pos, brushSize);
+
+  if (m_backupSurface) {
+    SDL_DestroySurface(m_backupSurface);
+    m_backupSurface = nullptr;
+  }
+
+  m_backupSurface = SDL_DuplicateSurface(ctx.canvas->getSurface());
+
+  if (!m_backupSurface) {
+
+    Logger::log(
+        LogLevel::ERR,
+        std::format("Failed to duplicate backup surface: {}", SDL_GetError()));
+
+    return;
+  }
 
   Rasterizer::bresenham(pos, pos, ctx.canvas->getSurface(), color, brushSize,
                         false);
@@ -21,6 +35,7 @@ void Pencil::onMouseDown(vec2 pos, ToolContext &ctx) {
 }
 
 void Pencil::onMouseMove(vec2 pos, ToolContext &ctx) {
+
   if (!ctx.interaction->active)
     return;
 
@@ -36,26 +51,35 @@ void Pencil::onMouseMove(vec2 pos, ToolContext &ctx) {
 }
 
 std::unique_ptr<Command> Pencil::onMouseUp(vec2 pos, ToolContext &ctx) {
-  Logger::log(LogLevel::DEBUG, "PENCIL STOPPED DRAWING");
+
+  Logger::debug("PENCIL END");
 
   if (!ctx.interaction->active)
     return nullptr;
 
-  ctx.interaction->active = false;
+  updateBounds(pos, brushSize, ctx.canvas->getSurface()->w,
+               ctx.canvas->getSurface()->h);
 
-  if (m_last != pos) {
-    updateBounds(pos, brushSize, ctx.canvas->getSurface()->w,
-                 ctx.canvas->getSurface()->h);
+  auto before = SnapshotCommand::copyRegion(m_backupSurface, m_boundingBox);
 
-    m_command = std::make_unique<SnapshotCommand>(ctx.canvas->getSurface(),
-                                                  m_boundingBox);
-    Rasterizer::bresenham(m_last, pos, ctx.canvas->getSurface(), color,
-                          brushSize, false);
+  auto after =
+      SnapshotCommand::copyRegion(ctx.canvas->getSurface(), m_boundingBox);
 
-    ctx.canvas->markDirty();
+  if (!before || !after) {
+
+    Logger::log(LogLevel::ERR, "Snapshot region capture failed");
+
+    SDL_DestroySurface(m_backupSurface);
+    m_backupSurface = nullptr;
+
+    return nullptr;
   }
 
-  m_command->captureAfter(ctx.canvas->getSurface());
+  auto cmd = std::make_unique<SnapshotCommand>(std::move(before),
+                                               std::move(after), m_boundingBox);
 
-  return std::move(m_command);
+  SDL_DestroySurface(m_backupSurface);
+  m_backupSurface = nullptr;
+
+  return cmd;
 }

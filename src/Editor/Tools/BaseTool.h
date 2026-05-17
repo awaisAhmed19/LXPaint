@@ -46,6 +46,7 @@ public:
   virtual ~BaseTool() { freeSnapshot(); }
   virtual void deactivate() { freeSnapshot(); }
   // virtual BaseTool();
+  virtual bool usesPreview() const { return false; }
   virtual void onMouseDown(vec2 pos, ToolContext &ctx) = 0;
   virtual void onMouseMove(vec2 pos, ToolContext &ctx) = 0;
   virtual std::unique_ptr<Command> onMouseUp(vec2 pos, ToolContext &ctx) = 0;

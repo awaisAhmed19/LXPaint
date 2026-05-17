@@ -4,9 +4,9 @@
 #include "../Rendering/Rasterizer.h"
 #include "../Systems/Logger.h"
 #include "../Systems/Profiler.h"
-#include "./BaseTool.h"
+#include "./GeometricTool.h"
 
-class Rect : public BaseTool {
+class Rect : public GeometricTool {
 private:
   bool m_useXOR = false;
   vec2 m_start;
@@ -19,6 +19,7 @@ public:
   uint32_t Wcolor = COLORS::WHITE;
   uint32_t color = COLORS::BLACK;
   const int brushSize = 1;
+  bool usesPreview() const override { return true; }
   void onMouseDown(vec2 pos, ToolContext &ctx) override;
   void onMouseMove(vec2 pos, ToolContext &ctx) override;
   std::unique_ptr<Command> onMouseUp(vec2 pos, ToolContext &ctx) override;

@@ -23,7 +23,6 @@ private:
 
   SDL_Window *m_window = nullptr;
   SDL_Renderer *m_renderer = nullptr;
-
   SDL_Event m_event;
   std::unique_ptr<Editor> m_editor;
 

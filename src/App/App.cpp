@@ -12,6 +12,8 @@ App::App(const char *title) : m_editor(nullptr) {
   this->m_window = SDL_CreateWindow(title, this->m_screenW, this->m_screenH,
                                     SDL_WINDOW_FULLSCREEN);
   this->m_renderer = SDL_CreateRenderer(this->m_window, NULL);
+
+  Logger::init();
   this->m_editor = std::make_unique<Editor>(this->m_renderer);
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();

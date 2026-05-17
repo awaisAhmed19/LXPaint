@@ -28,7 +28,10 @@ SDL_Texture *RenderTarget::getTexture() { return this->m_texture; }
 int RenderTarget::getWidth() const { return this->m_width; }
 int RenderTarget::getHeight() const { return this->m_height; }
 
-void RenderTarget::markDirty() { m_dirty = true; }
+void RenderTarget::markDirty() {
+  Logger::debug("RenderTarget marked dirty");
+  m_dirty = true;
+}
 
 bool RenderTarget::isDirty() const { return m_dirty; }
 void RenderTarget::clear(uint32_t color) {

@@ -3,11 +3,11 @@
 #include "../Rendering/Rasterizer.h"
 #include "../Systems/Logger.h"
 #include "../Systems/Profiler.h"
-#include "./BaseTool.h"
+#include "./StrokeTool.h"
 #include <chrono>
 #include <memory>
 
-class Pencil : public BaseTool {
+class Pencil : public StrokeTool {
 private:
   vec2 m_last = {0.0f, 0.0f};
   vec2 m_start = {0.0f, 0.0f};

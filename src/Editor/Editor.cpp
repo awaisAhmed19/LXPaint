@@ -205,6 +205,7 @@ void Editor::update() {}
 
 void Editor::render() {
   m_renderer.renderTarget(m_canvas, m_viewport, m_docTransform);
-
-  m_renderer.renderTarget(m_preview, m_viewport, m_docTransform);
+  if (m_tools.getActive()->usesPreview()) {
+    m_renderer.renderTarget(m_preview, m_viewport, m_docTransform);
+  }
 }
