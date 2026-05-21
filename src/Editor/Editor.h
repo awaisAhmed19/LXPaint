@@ -1,18 +1,16 @@
 
 #pragma once
-#include "../Document/Canvas.h"
-#include "../Editor/Commands/CommandManager.h"
-#include "../Editor/Interaction/ToolInteractionState.h"
-#include "../Editor/Preview/PreviewLayer.h"
-#include "../Editor/Tools/ToolManager.h"
-#include "../Input/InputDispatcher.h"
-#include "../Rendering/Renderer.h"
-#include "../Rendering/Transform2D.h"
-#include "./Interaction/ToolContext.h"
-#include "./Viewport/Viewport.h"
-#include "imgui.h"
+#include "Document/Canvas.h"
+#include "Document/PreviewLayer.h"
+#include "Editor/Commands/CommandManager.h"
+#include "Editor/Interaction/ToolInteractionState.h"
+#include "Editor/Tools/ToolManager.h"
+#include "Input/InputDispatcher.h"
+#include "Interaction/ToolContext.h"
+#include "Rendering/Renderer.h"
+#include "Rendering/Transform2D.h"
+#include "Viewport/Viewport.h"
 #include "imgui_impl_sdl3.h"
-#include "imgui_impl_sdlrenderer3.h"
 #include <SDL3/SDL.h>
 class Editor {
 private:
@@ -44,6 +42,7 @@ public:
   void handleEvent(const SDL_Event &event);
   void update();
   void centerCanvas();
+  void resizeCanvas(int w, int h, const ResizePolicy &policy);
   void render();
   void renderUI();
   vec2 clampToCanvas(vec2 p);

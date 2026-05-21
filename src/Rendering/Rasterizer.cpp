@@ -1,5 +1,6 @@
 #include "Rasterizer.h"
-#include "../Systems/Assert.h"
+#include "Systems/Assert.h"
+#include <cmath>
 namespace Rasterizer {
 
 static inline uint32_t *getPixels(SDL_Surface *surface) {

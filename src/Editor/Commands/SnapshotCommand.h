@@ -1,9 +1,9 @@
 #pragma once
 
-#include "../../Document/Canvas.h"
-#include "../../Systems/Assert.h"
-#include "../../Systems/Logger.h"
-#include "./Command.h"
+#include "Command.h"
+#include "Document/Canvas.h"
+#include "Systems/Assert.h"
+#include "Systems/Logger.h"
 #include <SDL3/SDL.h>
 #include <memory>
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../App/Globals.h"
+#include "App/Globals.h"
 
 #include <SDL3/SDL.h>
 

@@ -1,7 +1,7 @@
 
 #pragma once
 
-#include "../App/Globals.h"
+#include "App/Globals.h"
 
 #include <chrono>
 #include <format>

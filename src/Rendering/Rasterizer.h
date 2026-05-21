@@ -1,9 +1,6 @@
 #pragma once
-#include "../App/Globals.h"
-#include "../Systems/Assert.h"
+#include "App/Globals.h"
 #include <SDL3/SDL.h>
-#include <algorithm>
-#include <cmath>
 namespace Rasterizer {
 void bresenham(vec2 start, vec2 end, SDL_Surface *surface, uint32_t color,
                int brushSize, bool useXOR);

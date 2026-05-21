@@ -1,5 +1,5 @@
 #pragma once
-#include "../App/Globals.h"
+#include "App/Globals.h"
 struct Transform2D {
   vec2 position;
   vec2 scale = {1, 1};

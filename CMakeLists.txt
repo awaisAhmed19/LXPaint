@@ -1,24 +1,29 @@
 cmake_minimum_required(VERSION 3.10)
+
 project(lxpaint VERSION 1.0)
 
-# 1. SDL3 Configuration
+# SDL3
 set(SDL_TESTS OFF CACHE BOOL "" FORCE)
 set(SDL_INSTALL OFF CACHE BOOL "" FORCE)
+
 add_subdirectory(external/SDL)
 
+# Project Sources
 set(PROJECT_SOURCES
     src/App/main.cpp
     src/App/App.cpp
+
     src/Input/InputDispatcher.cpp
 
-    src/Editor/Preview/PreviewLayer.cpp
     src/Editor/Viewport/Viewport.cpp
-    src/Editor/Editor.cpp   # Core
+    src/Editor/Editor.cpp
+
     src/Rendering/Rasterizer.cpp
     src/Rendering/Renderer.cpp
-    src/Rendering/RenderTarget.cpp
-    src/Document/Canvas.cpp
 
+    src/Document/Canvas.cpp
+    src/Document/RenderTarget.cpp
+    src/Document/PreviewLayer.cpp
 
     # Tools
     src/Editor/Tools/Pencil.cpp
@@ -27,7 +32,7 @@ set(PROJECT_SOURCES
     src/Editor/Tools/Rect.cpp
 )
 
-# 3. Define ImGui Sources
+# ImGui
 set(IMGUI_SRCS
     external/imgui/imgui.cpp
     external/imgui/imgui_draw.cpp
@@ -38,28 +43,25 @@ set(IMGUI_SRCS
     external/imgui/backends/imgui_impl_sdlrenderer3.cpp
 )
 
-# 4. Create Single Executable
-# We combine PROJECT_SOURCES and IMGUI_SRCS here
-add_executable(${PROJECT_NAME} ${PROJECT_SOURCES} ${IMGUI_SRCS})
+# Executable
+add_executable(${PROJECT_NAME}
+    ${PROJECT_SOURCES}
+    ${IMGUI_SRCS}
+)
 
-# 5. Include Directories
+# Include Directories
 target_include_directories(${PROJECT_NAME} PRIVATE
     src
-    src/Tools
-    src/Document
-    src/Commands
-    src/Systems
-    src/Rendering
-    src/UI
     external/imgui
     external/imgui/backends
 )
 
-# 6. Linking
-# Ensure we link against the SDL3 target created by add_subdirectory
-target_link_libraries(${PROJECT_NAME} PRIVATE SDL3::SDL3)
+# Link Libraries
+target_link_libraries(${PROJECT_NAME} PRIVATE
+    SDL3::SDL3
+)
 
-# 7. C++ Standard
+# C++ Standard
 set_target_properties(${PROJECT_NAME} PROPERTIES
     CXX_STANDARD 20
     CXX_STANDARD_REQUIRED ON

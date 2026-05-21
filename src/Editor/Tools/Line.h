@@ -1,9 +1,6 @@
 #pragma once
-#include "../Commands/SnapshotCommand.h"
-#include "../Rendering/Rasterizer.h"
-#include "../Systems/Logger.h"
-#include "../Systems/Profiler.h"
-#include "./GeometricTool.h"
+#include "Editor/Commands/SnapshotCommand.h"
+#include "GeometricTool.h"
 class Line : public GeometricTool {
 private:
   vec2 m_start;

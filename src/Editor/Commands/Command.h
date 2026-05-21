@@ -1,5 +1,5 @@
 #pragma once
-#include "../../Document/Canvas.h"
+#include "Document/Canvas.h"
 #include <cstddef>
 
 class Command {

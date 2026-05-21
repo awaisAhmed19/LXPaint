@@ -1,9 +1,6 @@
 #pragma once
-#include "../Commands/SnapshotCommand.h"
-#include "../Rendering/Rasterizer.h"
-#include "../Systems/Logger.h"
-#include "../Systems/Profiler.h"
-#include "./StrokeTool.h"
+#include "Editor/Commands/SnapshotCommand.h"
+#include "StrokeTool.h"
 
 class Eraser : public StrokeTool {
   bool m_useXOR = false;

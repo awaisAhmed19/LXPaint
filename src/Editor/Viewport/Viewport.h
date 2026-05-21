@@ -1,8 +1,7 @@
 
 #pragma once
-#include "../../App/Globals.h"
-#include "../../Rendering/Transform2D.h"
-#include "../../Systems/Assert.h"
+#include "App/Globals.h"
+#include "Rendering/Transform2D.h"
 #include <SDL3/SDL.h>
 
 class Viewport {

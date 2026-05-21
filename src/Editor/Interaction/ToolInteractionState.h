@@ -1,4 +1,5 @@
-#include "../../App/Globals.h"
+#pragma once
+#include "App/Globals.h"
 struct ToolInteractionState {
   bool active = false;
 

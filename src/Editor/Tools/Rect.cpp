@@ -1,9 +1,11 @@
 #include "Rect.h"
 
-#include "../Commands/SnapshotCommand.h"
-#include "../Interaction/ToolContext.h"
-#include "../Interaction/ToolInteractionState.h"
-#include "../Preview/PreviewLayer.h"
+#include "Document/PreviewLayer.h"
+#include "Editor/Commands/SnapshotCommand.h"
+#include "Editor/Interaction/ToolContext.h"
+#include "Editor/Interaction/ToolInteractionState.h"
+#include "Rendering/Rasterizer.h"
+#include "Systems/Logger.h"
 
 #include <algorithm>
 

@@ -1,8 +1,7 @@
 #pragma once
-#include "../App/Globals.h"
-#include "../Editor/Viewport/Viewport.h"
-#include "./RenderTarget.h"
-#include "./Transform2D.h"
+#include "Document/RenderTarget.h"
+#include "Editor/Viewport/Viewport.h"
+#include "Transform2D.h"
 #include <SDL3/SDL.h>
 class Renderer {
 protected:

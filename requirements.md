@@ -26,136 +26,104 @@ LXPaint
 ├── ColorPalette
 └── BrushSizeSlider
 
-========================
-CRITICAL
-========================
+## DONE
 
-[X] Fix DrawCommand snapshot timing (capture BEFORE on mouse down, AFTER on mouse up)
-
-[X] Add canvas.markDirty() inside DrawCommand::undo() and execute()
-
-[X] Fix coordinate transform pipeline: ALL tools must use renderer.screenToCanvas()
-
-[~] Unify coordinate spaces (screen space vs canvas space vs viewport space)
--> mostly stabilized, final ownership cleanup pending
-
-[X] Fix Bresenham steep-line transpose logic (missing coordinate swapping)
-
-[X] Fix Pencil continuous rasterization/presentation inconsistencies
-
-[X] Fix UI input passthrough / click-through interaction issues
-
-[X] Prevent tools from directly mutating interaction state ownership
-
-[X] Fix potential undo/redo snapshot corruption outside dirty region bounds
-
-========================
-HIGH
-========================
-
-[ ] Replace SDL_TEXTUREACCESS_STREAMING with SDL_TEXTUREACCESS_STATIC
--> actually incorrect direction for dynamic paint uploads
--> STREAMING probably remains correct
-
-[X] Add null/error guards for texture creation, upload, and render paths
-
-[X] Ensure preview layer clears correctly after modal commits
-
-[~] Fix thick-line rasterization ("sausage" thickness inconsistency)
-
-[X] Fix inconsistent surface locking across rasterizer paths
-
-[ ] Fix Renderer::sync() updating entire texture every frame instead of dirty regions
-this is for after
-save/load
-resize
-layers
-fill tool
-stability
-[X] Add maximum undo/redo stack limit to prevent OOM crashes
-
-[X] Fix DrawCommand memory lifecycle leaks in modal tools
-
-[X] Fix coordinate mismatch for preview rendering with zoom/pan
--> verified working under zoom/pan tests
-
-[ ] Add proper texture recreation handling on canvas resize
-
-[ ] Fix incomplete SDL surface locking in dda/rectFill paths
-
-[~] Fix race condition in Logger history access
--> mutex added, erase/iteration still potentially unsafe
-
-[ ] Add thread safety to Profiler static containers
-
-[X] Add proper canvas coordinate clamping during zoom/pan
+[X] DrawCommand snapshot timing
+[X] canvas.markDirty() undo/execute
+[X] screenToCanvas transform correctness
+[X] Bresenham steep transpose fix
+[X] Pencil raster consistency
+[X] UI click-through/input passthrough
+[X] Interaction ownership violations
+[X] Snapshot corruption bounds
+[X] Null/error guards
+[X] Preview clearing
+[X] Surface locking correctness
+[X] Undo stack limits
+[X] DrawCommand lifecycle leaks
+[X] Preview zoom/pan mismatch
+[X] Texture recreation on resize
+[X] Canvas coordinate clamping
+[X] RenderTarget::clearRGBA()
+[X] Preview transparent / Canvas opaque init
+[X] Modal tool lifecycle
+[X] Freehand tool lifecycle
+[X] Logger label cleanup
+[X] Snapshot efficiency improvements
+[X] Redundant interaction toggles
+[X] Remove dead renderer lifecycle
+[X] Viewport-centered rendering
+[X] Pan/zoom ownership system
 
 ========================
-MEDIUM
+PHASE 1 — CORE PRODUCT COMPLETION
 ========================
 
-[ ] Replace hardcoded packed color constants with SDL_MapRGBA()
+[ ] Finalize Canvas::resize() architecture
+-> ensure viewport, texture lifecycle, preview, and future layers remain coherent
 
-[ ] Separate color semantics from pixel storage representation
+[ ] Add save/load support
+-> PNG export/import pipeline
+-> document persistence foundation
 
-[X] Add RenderTarget::clearRGBA() abstraction
+[ ] Implement flood fill tool
+-> proper bounds handling
+-> stack-safe traversal
+-> undo integration
 
-[X] Make PreviewLayer initialize transparent and Canvas initialize opaque white
+[ ] Add layer system foundation
+-> layer abstraction
+-> active layer ownership
+-> renderer composition pipeline
 
-[ ] Centralize dirty invalidation closer to raster mutation source
+========================
+PHASE 2 — STABILITY HARDENING
+========================
 
-[X] Formalize modal tool lifecycle (begin/update/commit/cancel/clear)
-
-[X] Formalize freehand tool lifecycle separately from modal tools
-
-[ ] Fix drawRect always filling white internally
-
-[X] Remove stale/copy-pasted logger labels
-
-[ ] Refactor duplicated bounds calculation logic
-
-[ ] Reduce Globals.h header pollution
-
-[ ] Remove mixed SDL_Log and custom Logger inconsistency
-
-[ ] Add const correctness across rendering/tool APIs
-
-[X] Improve DrawCommand snapshot efficiency for tiny dirty regions
+[ ] Centralize dirty invalidation near raster mutation source
 
 [ ] Fix inconsistent line/rect snapshot padding causing ghost pixels
 
-[X] Remove redundant manual interaction state toggles in tools
+[ ] Fix drawRect always filling white internally
+
+[ ] Refactor duplicated bounds calculation logic
 
 ========================
-LOW
+PHASE 3 — PERFORMANCE
 ========================
 
-[X] Remove dead Renderer::begin()/end() lifecycle code completely
+[ ] Implement dirty-region texture uploads in Renderer::sync()
 
-[~] Add Canvas::resize() support
--> groundwork partially exists through RenderTarget abstraction
+[ ] Add thread safety to Profiler static containers
 
-[X] Add viewport-centered canvas rendering
+[ ] Fully resolve Logger history race conditions
 
-[X] Add proper viewport/pan/zoom ownership system
--> stabilized through Viewport + InputDispatcher split
+========================
+PHASE 4 — ARCHITECTURE CLEANUP
+========================
 
-[ ] Add layer system foundation
+[ ] Separate color semantics from pixel storage representation
 
-[ ] Add save/load support
+[ ] Replace hardcoded packed color constants with SDL_MapRGBA()
 
-[ ] Implement flood fill tool
+[ ] Reduce Globals.h header pollution
 
-[ ] Add fullscreen escape handling
+[ ] Remove mixed SDL_Log / Logger inconsistency
 
-[ ] Add rasterizer unit tests
+[ ] Add const correctness across rendering/tool APIs
+
+========================
+PHASE 5 — FUTURE SYSTEMS
+========================
 
 [ ] Add proper anti-aliased line rendering
 
-[ ] Remove unused DDA benchmarking dead paths
+[ ] Add rasterizer unit tests
 
-[ ] Add tablet/pressure support later
+[ ] Add fullscreen escape handling
 
 [ ] Handle high-DPI scaling correctly
+
+[ ] Add tablet/pressure support
 
 [ ] Clean up profiler state persistence between sessions

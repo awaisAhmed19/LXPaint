@@ -1,5 +1,5 @@
 #pragma once
-#include "./Logger.h"
+#include "Logger.h"
 #include "imgui.h"
 #include <chrono>
 #include <cmath>

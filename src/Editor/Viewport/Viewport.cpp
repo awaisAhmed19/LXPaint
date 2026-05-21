@@ -1,9 +1,10 @@
 #include "Viewport.h"
-
+#include "Systems/Assert.h"
+#include <algorithm>
 void Viewport::setPan(vec2 pan) { this->m_pan = pan; }
 
 void Viewport::setZoom(float zoom) {
-  this->m_zoom = std::clamp(zoom, 5.0f, 16.0f);
+  this->m_zoom = std::clamp(zoom, 0.1f, 16.0f);
   this->m_zoom = zoom;
 }
 

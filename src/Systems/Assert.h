@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../App/Globals.h"
-#include "./Logger.h"
+#include "App/Globals.h"
+#include "Logger.h"
 
 #include <SDL3/SDL.h>
 #include <cstdlib>

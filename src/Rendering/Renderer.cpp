@@ -1,5 +1,5 @@
 #include "Renderer.h"
-#include "../Systems/Assert.h"
+#include "Systems/Assert.h"
 #include <format>
 Renderer::Renderer(SDL_Renderer *renderer) { this->m_renderer = renderer; }
 

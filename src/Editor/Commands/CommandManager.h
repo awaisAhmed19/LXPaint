@@ -1,12 +1,10 @@
 
 #pragma once
 
-#include "../../Systems/Logger.h"
 #include "Command.h"
-
 #include <deque>
+#include <format>
 #include <memory>
-#include <optional>
 #include <string>
 
 class CommandManager {

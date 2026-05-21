@@ -1,12 +1,8 @@
 #pragma once
-#include "../Editor/Editor.h"
-#include "../Systems/Logger.h"
-#include "imgui.h"
+#include "Editor/Editor.h"
 #include "imgui_impl_sdl3.h"
-#include "imgui_impl_sdlrenderer3.h"
 #include <SDL3/SDL.h>
 #include <memory>
-#include <vector>
 constexpr int DEFAULT_WINDOW_WIDTH = 1280;
 constexpr int DEFAULT_WINDOW_HEIGHT = 720;
 class App {
