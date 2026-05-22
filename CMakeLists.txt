@@ -30,6 +30,7 @@ set(PROJECT_SOURCES
     src/Editor/Tools/Line.cpp
     src/Editor/Tools/Eraser.cpp
     src/Editor/Tools/Rect.cpp
+    src/Editor/Tools/Circle.cpp
 )
 
 # ImGui
