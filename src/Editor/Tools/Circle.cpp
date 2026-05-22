@@ -9,11 +9,13 @@
 #include "Editor/Interaction/ToolInteractionState.h"
 #include "Rendering/Rasterizer.h"
 #include "Systems/Logger.h"
-static SDL_Rect computeRectBounds(vec2 a, vec2 b, int brushSize, int maxW, int maxH) {
-    int minX = std::max(0, std::min((int)a.x, (int)b.x) - brushSize - 4);
-    int minY = std::max(0, std::min((int)a.y, (int)b.y) - brushSize - 4);
-    int maxX = std::min(maxW - 1, std::max((int)a.x, (int)b.x) + brushSize + 4);
-    int maxY = std::min(maxH - 1, std::max((int)a.y, (int)b.y) + brushSize + 4);
+static SDL_Rect computeEllipseBounds(vec2 center, int rx, int ry, int padding, int maxW, int maxH) {
+    int minX = std::max(0, (int)(center.x - rx - padding));
+    int minY = std::max(0, (int)(center.y - ry - padding));
+
+    int maxX = std::min(maxW - 1, (int)(center.x + rx + padding));
+    int maxY = std::min(maxH - 1, (int)(center.y + ry + padding));
+
     return SDL_Rect{minX, minY, maxX - minX + 1, maxY - minY + 1};
 }
 
@@ -25,8 +27,8 @@ void Circle::onMouseDown(vec2 pos, ToolContext& ctx) {
     m_start = pos;
     m_last = pos;
 
-    m_boundingBox = computeRectBounds(pos, pos, brushSize, ctx.canvas->getSurface()->w,
-                                      ctx.canvas->getSurface()->h);
+    // m_boundingBox = computeRectBounds(pos, pos, brushSize, ctx.canvas->getSurface()->w,
+    //                                   ctx.canvas->getSurface()->h);
 }
 
 void Circle::onMouseMove(vec2 pos, ToolContext& ctx) {
@@ -34,15 +36,15 @@ void Circle::onMouseMove(vec2 pos, ToolContext& ctx) {
 
     m_last = pos;
 
-    m_boundingBox = computeRectBounds(m_start, pos, brushSize, ctx.canvas->getSurface()->w,
-                                      ctx.canvas->getSurface()->h);
-
     ctx.preview->clearRGBA(0, 0, 0, 0);
     int dx = (int)(pos.x - m_start.x);
     int dy = (int)(pos.y - m_start.y);
 
     int rx = std::abs(pos.x - m_start.x);
     int ry = std::abs(pos.y - m_start.y);
+
+    m_boundingBox = computeEllipseBounds(m_start, rx, ry, brushSize, ctx.canvas->getSurface()->w,
+                                         ctx.canvas->getSurface()->h);
 
     Rasterizer::drawEllipse(ctx.preview->getSurface(), (int)m_start.x, (int)m_start.y, rx, ry,
                             color);
@@ -61,16 +63,16 @@ std::unique_ptr<Command> Circle::onMouseUp(vec2 pos, ToolContext& ctx) {
     ctx.preview->markDirty();
     m_last = pos;
 
-    m_boundingBox = computeRectBounds(m_start, pos, brushSize, ctx.canvas->getSurface()->w,
-                                      ctx.canvas->getSurface()->h);
-
-    m_command = std::make_unique<SnapshotCommand>(ctx.canvas->getSurface(), m_boundingBox);
     int dx = (int)(pos.x - m_start.x);
     int dy = (int)(pos.y - m_start.y);
 
     int rx = std::abs(pos.x - m_start.x);
     int ry = std::abs(pos.y - m_start.y);
 
+    m_boundingBox = computeEllipseBounds(m_start, rx, ry, brushSize, ctx.canvas->getSurface()->w,
+                                         ctx.canvas->getSurface()->h);
+
+    m_command = std::make_unique<SnapshotCommand>(ctx.canvas->getSurface(), m_boundingBox);
     Rasterizer::drawEllipse(ctx.canvas->getSurface(), (int)m_start.x, (int)m_start.y, rx, ry,
                             color);
 
