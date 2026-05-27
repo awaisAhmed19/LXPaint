@@ -1,8 +1,11 @@
-#include "BaseTool.h"
-#include "Systems/Logger.h"
 #include <map>
 #include <memory>
 #include <string>
+
+#include "BaseTool.h"
+
+#include "Systems/Logger.h"
+
 class ToolManager {
   std::map<std::string, std::unique_ptr<BaseTool>> registry;
   BaseTool *activeTool = nullptr;
@@ -23,6 +26,13 @@ public:
       std::string message = "THE ACTIVE TOOL:" + name;
       Logger::log(LogLevel::INFO, message);
     }
+  }
+  void reset() {
+    if (activeTool) {
+      activeTool->deactivate();
+      //     activeTool = nullptr;
+    }
+    Logger::debug("ToolManager reset");
   }
   BaseTool *getActive() { return activeTool; }
 };

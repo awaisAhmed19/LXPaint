@@ -1,6 +1,7 @@
 #include "Canvas.h"
 
 #include "Systems/Logger.h"
+
 Canvas::Canvas(int w, int h) : RenderTarget(w, h), m_preview(w, h) {
   clearRGBA(255, 255, 255, 255);
 }
@@ -11,9 +12,9 @@ void Canvas::resize(int w, int h, const ResizePolicy &policy) {
 
   RenderTarget newTarget;
   newTarget.allocate(w, h);
-
   SDL_Rect srcRect = computeSourceRect(oldW, oldH, w, h, policy);
   SDL_Rect dstRect = computeDestinationRect(oldW, oldH, w, h, policy);
+  clearRGBA(255, 255, 255, 255);
   newTarget.blitFrom(*this, &srcRect, &dstRect);
 
   swapTarget(newTarget);
@@ -21,19 +22,17 @@ void Canvas::resize(int w, int h, const ResizePolicy &policy) {
 
   Logger::debug(
       std::format("Canvas final size {}x{}", getWidth(), getHeight()));
-  // markDirty();
+  markDirty();
 }
 
 SDL_Rect Canvas::computeDestinationRect(int oldW, int oldH, int newW, int newH,
                                         const ResizePolicy &policy) const {
 
   SDL_Rect rect{};
-
   rect.w = std::min(oldW, newW);
   rect.h = std::min(oldH, newH);
 
   switch (policy.anchor) {
-
   case ResizeAnchor::TOPLEFT:
     rect.x = 0;
     rect.y = 0;
@@ -51,12 +50,10 @@ SDL_Rect Canvas::computeSourceRect(int oldW, int oldH, int newW, int newH,
                                    const ResizePolicy &policy) const {
 
   SDL_Rect rect{};
-
   rect.w = std::min(oldW, newW);
   rect.h = std::min(oldH, newH);
 
   switch (policy.anchor) {
-
   case ResizeAnchor::TOPLEFT:
     rect.x = 0;
     rect.y = 0;

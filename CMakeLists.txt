@@ -6,8 +6,7 @@ project(lxpaint VERSION 1.0)
 set(SDL_TESTS OFF CACHE BOOL "" FORCE)
 set(SDL_INSTALL OFF CACHE BOOL "" FORCE)
 
-add_subdirectory(external/SDL)
-
+find_package(SDL3 REQUIRED)
 # Project Sources
 set(PROJECT_SOURCES
     src/App/main.cpp
@@ -57,10 +56,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     external/imgui/backends
 )
 
-# Link Libraries
-target_link_libraries(${PROJECT_NAME} PRIVATE
-    SDL3::SDL3
-)
+target_link_libraries(${PROJECT_NAME} PRIVATE SDL3::SDL3)
 
 # C++ Standard
 set_target_properties(${PROJECT_NAME} PROPERTIES

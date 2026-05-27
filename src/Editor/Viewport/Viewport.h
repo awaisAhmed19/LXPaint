@@ -1,14 +1,18 @@
 
 #pragma once
-#include "App/Globals.h"
-#include "Rendering/Transform2D.h"
 #include <SDL3/SDL.h>
+
+#include "App/Globals.h"
+
+#include "Rendering/Transform2D.h"
 
 class Viewport {
 private:
   vec2 m_pan = {0.0f, 0.0f};
   float m_zoom = 1.0f;
   SDL_FRect m_screenRect;
+  int m_canvasWidth = 0;
+  int m_canvasHeight = 0;
 
 public:
   // Viewport();
@@ -31,4 +35,9 @@ public:
 
   SDL_FRect getVisibleCanvasBounds() const;
   void ZoomAt(vec2 screenPoint, float factor);
+
+  void onCanvasResized(int cW, int cH);
+  void clampPan();
+
+  void fitCanvasToScreen();
 };

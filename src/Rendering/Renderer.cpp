@@ -32,6 +32,7 @@ void Renderer::ensureTexture(RenderTarget &target) {
 
   SDL_SetTextureBlendMode(target.m_texture, SDL_BLENDMODE_BLEND);
 }
+
 void Renderer::sync(RenderTarget &target) {
 
   ensureTexture(target);

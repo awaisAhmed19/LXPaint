@@ -1,6 +1,8 @@
 #include "App.h"
-#include "UI/Console.h"
+
 #include "imgui_impl_sdlrenderer3.h"
+
+#include "UI/Console.h"
 
 App::App(const char *title) : m_editor(nullptr) {
   SDL_Init(SDL_INIT_VIDEO);

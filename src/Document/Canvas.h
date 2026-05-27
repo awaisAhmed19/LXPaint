@@ -1,16 +1,10 @@
 #pragma once
+#include <SDL3/SDL.h>
+
+#include <vector>
+
 #include "PreviewLayer.h"
 #include "RenderTarget.h"
-#include <SDL3/SDL.h>
-#include <vector>
-/*
- * canvas ownrship stack
- *- resize policy
-   - layers
-- document bounds
-- undo integration
-- document transforms
- * */
 
 enum class ResizeAnchor { TOPLEFT, CENTER };
 enum class ResizeFill { TRANSPARENT, BACKGROUNDCOLOR };
@@ -19,6 +13,12 @@ struct ResizePolicy {
   ResizeAnchor anchor = ResizeAnchor::TOPLEFT;
   ResizeFill fill = ResizeFill::TRANSPARENT;
   bool preservePixels = true;
+};
+
+struct ResizeRequest {
+  int newWidth, newHeight;
+  ResizePolicy policy;
+  bool preserveUndoHistory = true;
 };
 
 class Canvas : public RenderTarget {
@@ -33,7 +33,7 @@ public:
                              const ResizePolicy &policy) const;
   SDL_Rect computeDestinationRect(int oldW, int oldH, int newW, int newH,
                                   const ResizePolicy &policy) const;
-
+  bool validateResize(const ResizeRequest &req);
   void resize(int w, int h, const ResizePolicy &policy);
   /* resize Transform pipeline
     {

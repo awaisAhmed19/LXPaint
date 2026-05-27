@@ -1,8 +1,6 @@
 
 #pragma once
 
-#include "App/Globals.h"
-
 #include <chrono>
 #include <format>
 #include <fstream>
@@ -11,6 +9,8 @@
 #include <string>
 #include <string_view>
 #include <vector>
+
+#include "App/Globals.h"
 
 enum class LogLevel { INFO, WARNING, ERR, DEBUG };
 
@@ -96,4 +96,6 @@ public:
       log(LogLevel::DEBUG, msg);
     }
   }
+  static void err(std::string_view msg) { log(LogLevel::ERR, msg); }
+  static void warn(std::string_view msg) { log(LogLevel::WARNING, msg); }
 };

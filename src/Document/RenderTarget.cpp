@@ -13,9 +13,11 @@ RenderTarget::RenderTarget(int w, int h) {
     SDL_Log("Failed to create preview surface: %s", SDL_GetError());
   }
 }
+
 RenderTarget::RenderTarget()
     : m_surface(nullptr), m_texture(nullptr), m_textureWidth(0),
       m_textureHeight(0), m_width(0), m_height(0), m_dirty(false) {}
+
 RenderTarget::~RenderTarget() {
   if (this->m_surface) {
     SDL_DestroySurface(this->m_surface);
@@ -83,6 +85,7 @@ void RenderTarget::allocate(int w, int h) {
 
   markDirty();
 }
+
 void RenderTarget::blitFrom(const RenderTarget &src, const SDL_Rect *srcRect,
                             const SDL_Rect *dstRect) {
   LX_ASSERT(m_surface != nullptr, "Destination surface is null");
@@ -95,14 +98,10 @@ void RenderTarget::blitFrom(const RenderTarget &src, const SDL_Rect *srcRect,
 }
 
 void RenderTarget::resize(int w, int h) {
-
   LX_ASSERT(w > 0 && h > 0, "Invalid RenderTarget resize");
-
   Logger::debug(std::format("Resizing RenderTarget {}x{} -> {}x{}", m_width,
                             m_height, w, h));
-
   SDL_Surface *newSurface = SDL_CreateSurface(w, h, SDL_PIXELFORMAT_ARGB8888);
-
   LX_ASSERT(newSurface != nullptr, "Failed to create resized surface");
 
   /*
@@ -143,27 +142,27 @@ void RenderTarget::resize(int w, int h) {
 
   markDirty();
 }
+
 void RenderTarget::markDirty() {
   Logger::debug("RenderTarget marked dirty");
   m_dirty = true;
 }
+
 void RenderTarget::swapTarget(RenderTarget &other) {
-
   std::swap(m_surface, other.m_surface);
-
   std::swap(m_texture, other.m_texture);
-
   std::swap(m_width, other.m_width);
   std::swap(m_height, other.m_height);
-
   std::swap(m_textureWidth, other.m_textureWidth);
   std::swap(m_textureHeight, other.m_textureHeight);
-
-  std::swap(m_dirty, other.m_dirty);
+  m_dirty = true;
+  // std::swap(m_dirty, other.m_dirty);
   Logger::debug(std::format("Swapping targets {}x{} <-> {}x{}", m_width,
                             m_height, other.m_width, other.m_height));
 }
+
 bool RenderTarget::isDirty() const { return m_dirty; }
+
 void RenderTarget::clear(uint32_t color) {
   LX_ASSERT(m_surface != nullptr, "clear called with null surface");
   if (!m_surface)
@@ -172,6 +171,7 @@ void RenderTarget::clear(uint32_t color) {
   SDL_FillSurfaceRect(m_surface, nullptr, color);
   markDirty();
 }
+
 void RenderTarget::clearRGBA(uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
   LX_ASSERT(m_surface != nullptr, "clearRGBA null surface");
   const SDL_PixelFormatDetails *fmt =
