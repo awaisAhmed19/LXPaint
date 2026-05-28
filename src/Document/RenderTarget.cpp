@@ -1,3 +1,7 @@
+#include <SDL3/SDL_surface.h>
+
+#include <algorithm>
+
 #include "RenderTarget.h"
 
 #include "Systems/Assert.h"
@@ -36,7 +40,7 @@ SDL_Texture *RenderTarget::getTexture() { return this->m_texture; }
 int RenderTarget::getWidth() const { return this->m_width; }
 int RenderTarget::getHeight() const { return this->m_height; }
 
-void RenderTarget::allocate(int w, int h) {
+void RenderTarget::allocate(int w, int h, FillColor fill) {
 
   LX_ASSERT(w > 0 && h > 0, "Invalid RenderTarget allocation");
 
@@ -54,8 +58,19 @@ void RenderTarget::allocate(int w, int h) {
       especially after canvas expansion.
   */
 
-  SDL_FillSurfaceRect(newSurface, nullptr,
-                      SDL_MapSurfaceRGBA(newSurface, 0, 0, 0, 0));
+  uint32_t fillcolor;
+  switch (fill) {
+  case FillColor::TRANSPARENT:
+    fillcolor = SDL_MapSurfaceRGBA(newSurface, 0, 0, 0, 0);
+    break;
+  case FillColor::WHITE:
+    fillcolor = SDL_MapSurfaceRGBA(newSurface, 255, 255, 255, 255);
+    break;
+  case FillColor::BLACK:
+    fillcolor = SDL_MapSurfaceRGBA(newSurface, 0, 0, 0, 255);
+    break;
+  }
+  SDL_FillSurfaceRect(newSurface, nullptr, fillcolor);
 
   /*
       Destroy previous surface.

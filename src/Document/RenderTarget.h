@@ -15,7 +15,9 @@ protected:
 
 public:
   friend class Renderer;
+  enum class FillColor { TRANSPARENT, WHITE, BLACK };
 
+  void allocate(int w, int h, FillColor fill = FillColor::TRANSPARENT);
   RenderTarget(int w, int h);
   RenderTarget();
   virtual ~RenderTarget();
@@ -30,8 +32,6 @@ public:
   int getHeight() const;
 
   void swapTarget(RenderTarget &other);
-
-  void allocate(int w, int h);
 
   void blitFrom(const RenderTarget &src, const SDL_Rect *srcRect,
                 const SDL_Rect *dstRect);

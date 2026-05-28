@@ -1,7 +1,7 @@
+#include <cstring>
+
 #include "App.h"
 #include "Globals.h"
-
-#include <cstring>
 
 #define APP_NAME "LXPAINT"
 
@@ -19,7 +19,6 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  App app(APP_NAME);
-  app.run();
-  return 0;
+  App::Application app(APP_NAME);
+  return app.run();
 }

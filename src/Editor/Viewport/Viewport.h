@@ -22,6 +22,12 @@ public:
   vec2 worldToScreen(vec2 world) const;
   SDL_FRect worldRectToScreen(SDL_FRect rect) const;
 
+  SDL_FRect getCanvasBoundsScreen() const;
+  vec2 getCanvasTopLeftScreen(const Transform2D &docTransform) const;
+  vec2 getCanvasTopRightScreen(const Transform2D &docTransform) const;
+  vec2 getCanvasBottomLeftScreen(const Transform2D &docTransform) const;
+  vec2 getCanvasBottomRightScreen(const Transform2D &docTransform) const;
+  bool isPointInCanvas(vec2 screenPos, const Transform2D &docTransform) const;
   void setScreenRect(SDL_FRect rect);
   SDL_FRect getScreenRect() const;
 

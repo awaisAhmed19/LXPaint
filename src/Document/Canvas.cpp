@@ -11,18 +11,22 @@ void Canvas::resize(int w, int h, const ResizePolicy &policy) {
   int oldH = getHeight();
 
   RenderTarget newTarget;
-  newTarget.allocate(w, h);
+  // TODO:add a color field in either the ResizeFill or somewhere else which
+  // will set the color from default white to current color
+  FillColor fillColor = (policy.fill == ResizeFill::BACKGROUNDCOLOR)
+                            ? FillColor::WHITE
+                            : FillColor::TRANSPARENT;
+  newTarget.allocate(w, h, fillColor);
   SDL_Rect srcRect = computeSourceRect(oldW, oldH, w, h, policy);
   SDL_Rect dstRect = computeDestinationRect(oldW, oldH, w, h, policy);
-  clearRGBA(255, 255, 255, 255);
   newTarget.blitFrom(*this, &srcRect, &dstRect);
 
   swapTarget(newTarget);
   // m_preview.allocate(w, h);
 
+  markDirty();
   Logger::debug(
       std::format("Canvas final size {}x{}", getWidth(), getHeight()));
-  markDirty();
 }
 
 SDL_Rect Canvas::computeDestinationRect(int oldW, int oldH, int newW, int newH,

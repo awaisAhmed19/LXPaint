@@ -59,7 +59,7 @@ LXPaint
 PHASE 1 — CORE PRODUCT COMPLETION
 ========================
 
-[ ] Finalize Canvas::resize() architecture
+[X] Finalize Canvas::resize() architecture
 -> ensure viewport, texture lifecycle, preview, and future layers remain coherent
 
 [ ] Add save/load support

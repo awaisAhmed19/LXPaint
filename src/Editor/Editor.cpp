@@ -1,5 +1,9 @@
 #include "Editor.h"
 
+#include "App/Utils.h"
+
+#include "Document/Canvas.h"
+
 #include "Editor/Interaction/ToolContext.h"
 
 #include "Editor/Tools/Circle.h"
@@ -21,7 +25,7 @@ constexpr auto Circle = "circle";
 
 Editor::Editor(SDL_Renderer *renderer)
     : m_canvas(800, 550), m_preview(800, 550), m_renderer(renderer),
-      m_commands(50, 256) {
+      m_commands(50, 256), m_docTransform({0.0f, 0.0f}) {
   setupTools();
   setupInputBindings();
 
@@ -87,6 +91,7 @@ vec2 Editor::clampToCanvas(vec2 p) {
   p.y = std::clamp(p.y, 0.0f, (float)m_canvas.getHeight() - 1);
   return p;
 }
+
 void Editor::resizeCanvas(int w, int h, const ResizePolicy &policy) {
   if (this->m_interaction.active) {
     Logger::warn("Cannot resize: tool in progress");
@@ -115,7 +120,11 @@ void Editor::resizeCanvas(int w, int h, const ResizePolicy &policy) {
   m_commands.clear();
   Logger::debug(std::format("Canvas resize to {}x{}", w, h));
 }
-
+/*
+bool isMouseOverCanvasCorners() {
+  vec2 cornerpos = m_viewport.getCanvasTopLeftScreen(m_docTransform);
+}
+*/
 void Editor::handleEvent(const SDL_Event &e) {
   ImGuiIO &io = ImGui::GetIO();
 
@@ -128,14 +137,14 @@ void Editor::handleEvent(const SDL_Event &e) {
     if (e.key.scancode == SDL_SCANCODE_EQUALS && (e.key.mod & SDL_KMOD_CTRL)) {
       ResizePolicy policy;
       policy.anchor = ResizeAnchor::CENTER;
-
+      policy.fill = ResizeFill::BACKGROUNDCOLOR;
       resizeCanvas(m_canvas.getWidth() + 64, m_canvas.getHeight() + 64, policy);
     }
 
     if (e.key.scancode == SDL_SCANCODE_MINUS && (e.key.mod & SDL_KMOD_CTRL)) {
       ResizePolicy policy;
       policy.anchor = ResizeAnchor::CENTER;
-
+      policy.fill = ResizeFill::BACKGROUNDCOLOR;
       resizeCanvas(std::max(64, m_canvas.getWidth() - 64),
                    std::max(64, m_canvas.getHeight() - 64), policy);
     }

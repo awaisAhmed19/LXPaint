@@ -1,31 +1,34 @@
+#include <SDL3/SDL.h>
+#include <SDL3/SDL_main.h>
+
+#include <memory>
+
 #include "App.h"
 
 #include "imgui_impl_sdlrenderer3.h"
 
-#include "UI/Console.h"
+#include "Systems/Logger.h"
 
-App::App(const char *title) : m_editor(nullptr) {
-  SDL_Init(SDL_INIT_VIDEO);
+namespace App {
 
-  // Get Display Bounds
-  SDL_DisplayID id = SDL_GetPrimaryDisplay();
-  const SDL_DisplayMode *mode = SDL_GetCurrentDisplayMode(id);
-  this->m_screenW = mode->w;
-  this->m_screenH = mode->h;
-
-  this->m_window = SDL_CreateWindow(title, this->m_screenW, this->m_screenH,
-                                    SDL_WINDOW_FULLSCREEN);
-  this->m_renderer = SDL_CreateRenderer(this->m_window, NULL);
-
+Application::Application(const char *title) : m_editor(nullptr) {
+  unsigned int init_flags = SDL_INIT_VIDEO;
   Logger::init();
-  this->m_editor = std::make_unique<Editor>(this->m_renderer);
+  if (!SDL_Init(init_flags)) {
+    Logger::err(SDL_GetError());
+    throw std::runtime_error("SDL_Init failed");
+  }
+
+  this->m_window = std::make_unique<Window>(Window::Settings{"LXPAINT"});
+  this->m_editor = std::make_unique<Editor>(m_window->getNativeRenderer());
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
-  ImGui_ImplSDL3_InitForSDLRenderer(this->m_window, this->m_renderer);
-  ImGui_ImplSDLRenderer3_Init(this->m_renderer);
+  ImGui_ImplSDL3_InitForSDLRenderer(m_window->getNativeWindow(),
+                                    m_window->getNativeRenderer());
+  ImGui_ImplSDLRenderer3_Init(m_window->getNativeRenderer());
 }
 
-void App::handleEvents() {
+void Application::handleEvents() {
   while (SDL_PollEvent(&this->m_event)) {
     ImGui_ImplSDL3_ProcessEvent(&this->m_event);
     // 1. System Events
@@ -38,14 +41,14 @@ void App::handleEvents() {
     this->m_editor->handleEvent(this->m_event);
   }
 }
-void App::render() {
+void Application::render() {
   ImGui_ImplSDLRenderer3_NewFrame();
   ImGui_ImplSDL3_NewFrame();
 
   ImGui::NewFrame();
-  SDL_SetRenderDrawColor(m_renderer, 128, 128, 128,
+  SDL_SetRenderDrawColor(m_window->getNativeRenderer(), 128, 128, 128,
                          255); // background color of app
-  SDL_RenderClear(m_renderer);
+  SDL_RenderClear(m_window->getNativeRenderer());
   m_editor->render();
   m_editor->renderUI();
 
@@ -53,12 +56,15 @@ void App::render() {
   //                frameOffset);
 
   ImGui::Render();
-  ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), m_renderer);
-  SDL_RenderPresent(m_renderer);
+  ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(),
+                                        m_window->getNativeRenderer());
+  SDL_RenderPresent(m_window->getNativeRenderer());
 }
-void App::run() {
+int Application::run() {
   uint64_t last = SDL_GetTicks();
-
+  if (m_exist_status == 1) {
+    return m_exist_status;
+  }
   while (m_running) {
     uint64_t now = SDL_GetTicks();
     float deltaTime = (now - last) / 1000.0f;
@@ -67,13 +73,13 @@ void App::run() {
     m_editor->update();
     render();
   }
+  return m_exist_status;
 }
-
-App::~App() {
+void Application::stop() { m_running = false; }
+Application::~Application() {
   ImGui_ImplSDLRenderer3_Shutdown();
   ImGui_ImplSDL3_Shutdown();
   ImGui::DestroyContext();
-  SDL_DestroyRenderer(this->m_renderer);
-  SDL_DestroyWindow(this->m_window);
   SDL_Quit();
 }
+}; // namespace App

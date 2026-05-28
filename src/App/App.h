@@ -1,37 +1,36 @@
 #pragma once
-#include "Editor/Editor.h"
-#include "imgui_impl_sdl3.h"
 #include <SDL3/SDL.h>
+
 #include <memory>
+
+#include "Window.h"
+#include "imgui_impl_sdl3.h"
+
+#include "Editor/Editor.h"
+
+namespace App {
+
 constexpr int DEFAULT_WINDOW_WIDTH = 1280;
 constexpr int DEFAULT_WINDOW_HEIGHT = 720;
-class App {
+
+class Application {
 public:
-  App(const char *title);
-  ~App();
+  Application(const char *title);
+  ~Application();
 
-  void run();
-
-  static inline float frameTimes[100] = {0};
-  static inline int frameOffset = 0;
+  int run();
+  void stop();
 
 private:
   bool m_running = true;
-  int m_screenW = 0, m_screenH = 0;
-
-  SDL_Window *m_window = nullptr;
-  SDL_Renderer *m_renderer = nullptr;
+  int m_exist_status = 0;
   SDL_Event m_event;
-  std::unique_ptr<Editor> m_editor;
+  std::unique_ptr<Editor> m_editor = nullptr;
+  std::unique_ptr<Window> m_window = nullptr;
 
 private:
   void handleEvents();
   void update(float deltatime);
   void render();
-  // bool inCanvas(float x, float y) {
-  //   if ((x > 0 && x < cW) && (y > 0 && y < cH))
-  //     return true;
-  //   else
-  //     return false;
-  // }
 };
+}; // namespace App

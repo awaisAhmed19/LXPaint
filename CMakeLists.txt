@@ -5,13 +5,15 @@ project(lxpaint VERSION 1.0)
 # SDL3
 set(SDL_TESTS OFF CACHE BOOL "" FORCE)
 set(SDL_INSTALL OFF CACHE BOOL "" FORCE)
-
+set(CMAKE_BUILD_TYPE Debug)
+set(CMAKE_CXX_FLAGS_DEBUG "-g -O0")
 find_package(SDL3 REQUIRED)
 # Project Sources
 set(PROJECT_SOURCES
     src/App/main.cpp
+    src/App/Window.cpp
     src/App/App.cpp
-
+    
     src/Input/InputDispatcher.cpp
 
     src/Editor/Viewport/Viewport.cpp

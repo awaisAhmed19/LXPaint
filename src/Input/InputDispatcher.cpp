@@ -1,3 +1,5 @@
+#include <cmath>
+
 #include "InputDispatcher.h"
 
 void InputDispatcher::beginFrame() {

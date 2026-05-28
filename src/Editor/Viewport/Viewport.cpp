@@ -48,6 +48,45 @@ vec2 Viewport::getPan() const { return this->m_pan; }
 
 float Viewport::getZoom() const { return this->m_zoom; }
 
+SDL_FRect Viewport::getCanvasBoundsScreen() const {
+  SDL_FRect canvasWorldRect = {0.0f, 0.0f, (float)m_canvasWidth,
+                               (float)m_canvasHeight};
+  return worldRectToScreen(canvasWorldRect);
+}
+vec2 Viewport::getCanvasTopLeftScreen(const Transform2D &docTransform) const {
+  vec2 topleft = {0.0f, 0.0f};
+  vec2 topleftworld = {topleft.x + docTransform.position.x,
+                       topleft.y + docTransform.position.y};
+  return worldToScreen(topleftworld);
+}
+vec2 Viewport::getCanvasTopRightScreen(const Transform2D &docTransform) const {
+  vec2 topright = {(float)(m_canvasWidth - 1), 0.0f};
+  vec2 toprightworld = {topright.x + docTransform.position.x,
+                        topright.y + docTransform.position.y};
+  return worldToScreen(toprightworld);
+}
+vec2 Viewport::getCanvasBottomLeftScreen(
+    const Transform2D &docTransform) const {
+
+  vec2 bottomleft = {0.0f, (float)(m_canvasHeight - 1)};
+  vec2 bottomleftworld = {bottomleft.x + docTransform.position.x,
+                          bottomleft.y + docTransform.position.y};
+  return worldToScreen(bottomleftworld);
+}
+vec2 Viewport::getCanvasBottomRightScreen(
+    const Transform2D &docTransform) const {
+
+  vec2 bottomright = {(float)(m_canvasWidth - 1), (float)(m_canvasHeight - 1)};
+  vec2 bottomrightworld = {bottomright.x + docTransform.position.x,
+                           bottomright.y + docTransform.position.y};
+  return worldToScreen(bottomrightworld);
+}
+bool Viewport::isPointInCanvas(vec2 screenPos,
+                               const Transform2D &docTransform) const {
+  vec2 canvasPos = screenToCanvas(screenPos, docTransform);
+  return canvasPos.x >= 0.0f && canvasPos.x < m_canvasWidth &&
+         canvasPos.y >= 0.0f && canvasPos.y < m_canvasHeight;
+}
 void Viewport::setScreenRect(SDL_FRect rect) { this->m_screenRect = rect; }
 SDL_FRect Viewport::getScreenRect() const { return m_screenRect; }
 
