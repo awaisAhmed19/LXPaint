@@ -109,8 +109,8 @@ void Editor::resizeCanvas(int w, int h, const ResizePolicy &policy) {
   }
 
   m_canvas.resize(w, h, policy);
-  m_preview.allocate(w, h);
-  // TODO:Future:  Canvas::resize() should resize preview atomically
+  //   m_preview.allocate(w, h);
+  // TODO[Done]:Future:  Canvas::resize() should resize preview atomically
   // m_viewport.onCanvasResized(w, h);
   centerCanvas();
 
@@ -213,6 +213,7 @@ void Editor::handleEvent(const SDL_Event &e) {
 
     LX_ASSERT(tool != nullptr, "Active tool missing");
     ToolContext ctx = makeToolContext();
+
     m_interaction.prevMousePos = m_interaction.currMousePos;
     vec2 mousePos =
         m_viewport.screenToCanvas(m_input.getMouseScreenPos(), m_docTransform);
@@ -234,7 +235,7 @@ void Editor::handleEvent(const SDL_Event &e) {
 
     vec2 mousePos =
         m_viewport.screenToCanvas(m_input.getMouseScreenPos(), m_docTransform);
-
+    mousePos = clampToCanvas(mousePos);
     std::unique_ptr<Command> command = tool->onMouseUp(mousePos, ctx);
 
     if (command) {
@@ -260,10 +261,6 @@ void Editor::renderUI() {
 
   ImGui::Separator();
   ImGui::TextDisabled("%s", m_commands.getDebugInfo().c_str());
-
-  /*
-    Optional quick stats
-  */
 
   ImGui::Separator();
 

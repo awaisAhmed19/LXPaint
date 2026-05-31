@@ -8,7 +8,7 @@ Makefile
 .cache/
 github_LXpaint
 github_LXpaint.pub
-
+Notes/
 # Compiled binaries
 *.out
 *.txt
@@ -18,6 +18,9 @@ github_LXpaint.pub
 *.dll
 *.so
 *.dylib
+*.ini
+*.log
+
 
 # IDE and Editor junk
 *.log

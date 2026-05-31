@@ -15,12 +15,10 @@ void Eraser::onMouseDown(vec2 pos, ToolContext &ctx) {
   m_start = pos;
   m_last = pos;
 
-  resetBounds(pos, brushSize);
+  beginStrokeBounds(pos, brushSize, ctx.canvas->getSurface()->w,
+                    ctx.canvas->getSurface()->h);
 
-  if (m_backupSurface) {
-    SDL_DestroySurface(m_backupSurface);
-    m_backupSurface = nullptr;
-  }
+  freeBackupSurface();
 
   m_backupSurface = SDL_DuplicateSurface(ctx.canvas->getSurface());
 
@@ -35,8 +33,10 @@ void Eraser::onMouseDown(vec2 pos, ToolContext &ctx) {
 
   Rasterizer::bresenham(pos, pos, ctx.canvas->getSurface(), m_color, brushSize,
                         false);
+  SDL_Rect initialRect{(int)pos.x - brushSize, (int)pos.y - brushSize,
+                       brushSize * 2 + 1, brushSize * 2 + 1};
 
-  ctx.canvas->markDirty();
+  ctx.canvas->invalidateRect(initialRect);
 }
 
 void Eraser::onMouseMove(vec2 pos, ToolContext &ctx) {
@@ -45,13 +45,18 @@ void Eraser::onMouseMove(vec2 pos, ToolContext &ctx) {
   if (!ctx.interaction->active)
     return;
 
-  updateBounds(pos, brushSize, ctx.canvas->getSurface()->w,
-               ctx.canvas->getSurface()->h);
+  expandStrokeBounds(pos, brushSize, ctx.canvas->getSurface()->w,
+                     ctx.canvas->getSurface()->h);
+
+  SDL_Rect segmentRect{std::min((int)m_last.x, (int)pos.x) - brushSize,
+                       std::min((int)m_last.y, (int)pos.y) - brushSize,
+                       std::abs((int)(pos.x - m_last.x)) + brushSize * 2 + 1,
+                       std::abs((int)(pos.y - m_last.y)) + brushSize * 2 + 1};
 
   Rasterizer::bresenham(m_last, pos, ctx.canvas->getSurface(), m_color,
                         brushSize, false);
 
-  ctx.canvas->markDirty();
+  ctx.canvas->invalidateRect(segmentRect);
 
   m_last = pos;
 }
@@ -64,30 +69,31 @@ std::unique_ptr<Command> Eraser::onMouseUp(vec2 pos, ToolContext &ctx) {
   if (!ctx.interaction->active)
     return nullptr;
 
-  updateBounds(pos, brushSize, ctx.canvas->getSurface()->w,
-               ctx.canvas->getSurface()->h);
+  expandStrokeBounds(pos, brushSize, ctx.canvas->getSurface()->w,
+                     ctx.canvas->getSurface()->h);
 
-  LX_ASSERT(m_boundingBox.w > 0 && m_boundingBox.h > 0, "Invalid bounding box");
-  auto before = SnapshotCommand::copyRegion(m_backupSurface, m_boundingBox);
+  LX_ASSERT(m_hasStrokeBounds, "Invalid stroke bounds");
+
+  auto before = SnapshotCommand::copyRegion(m_backupSurface, m_strokeBounds);
 
   auto after =
-      SnapshotCommand::copyRegion(ctx.canvas->getSurface(), m_boundingBox);
+      SnapshotCommand::copyRegion(ctx.canvas->getSurface(), m_strokeBounds);
 
   if (!before || !after) {
 
     Logger::log(LogLevel::ERR, "Snapshot region capture failed");
 
-    SDL_DestroySurface(m_backupSurface);
-    m_backupSurface = nullptr;
+    freeBackupSurface();
 
     return nullptr;
   }
 
-  auto cmd = std::make_unique<SnapshotCommand>(std::move(before),
-                                               std::move(after), m_boundingBox);
+  auto cmd = std::make_unique<SnapshotCommand>(
+      std::move(before), std::move(after), m_strokeBounds);
 
-  SDL_DestroySurface(m_backupSurface);
-  m_backupSurface = nullptr;
+  freeBackupSurface();
+
+  m_hasStrokeBounds = false;
 
   return cmd;
 }

@@ -1,6 +1,6 @@
 #pragma once
+#include "App/Globals.h"
 #include <SDL3/SDL.h>
-
 class Renderer;
 class RenderTarget {
 protected:
@@ -10,12 +10,14 @@ protected:
   int m_textureHeight = 0;
   int m_width = 0;
   int m_height = 0;
+  SDL_Rect m_dirtyRect{0, 0, 0, 0};
   enum KIND { PREVIEW, CANVAS, LAYER };
-  bool m_dirty = true;
+  bool m_dirty = false;
 
 public:
   friend class Renderer;
   enum class FillColor { TRANSPARENT, WHITE, BLACK };
+  SDL_Rect m_boundingBox = {0, 0, 0, 0};
 
   void allocate(int w, int h, FillColor fill = FillColor::TRANSPARENT);
   RenderTarget(int w, int h);
@@ -30,9 +32,12 @@ public:
 
   int getWidth() const;
   int getHeight() const;
-
+  SDL_Rect getDirtyRect() const;
+  void clearDirty();
   void swapTarget(RenderTarget &other);
-
+  SDL_Rect updateBounds(vec2 pos, int brushSize, int maxW, int maxH);
+  void resetBounds(vec2 pos, int brushSize);
+  void invalidateRect(const SDL_Rect &rect);
   void blitFrom(const RenderTarget &src, const SDL_Rect *srcRect,
                 const SDL_Rect *dstRect);
 

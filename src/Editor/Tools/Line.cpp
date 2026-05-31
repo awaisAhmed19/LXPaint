@@ -24,7 +24,7 @@ void Line::onMouseDown(vec2 pos, ToolContext &ctx) {
   m_start = pos;
   m_last = pos;
 
-  m_boundingBox =
+  ctx.canvas->m_boundingBox =
       computeLineBounds(pos, pos, brushSize, ctx.canvas->getSurface()->w,
                         ctx.canvas->getSurface()->h);
 }
@@ -33,7 +33,7 @@ void Line::onMouseMove(vec2 pos, ToolContext &ctx) {
   if (!ctx.interaction->active)
     return;
   m_last = pos;
-  m_boundingBox =
+  ctx.canvas->m_boundingBox =
       computeLineBounds(m_start, pos, brushSize, ctx.canvas->getSurface()->w,
                         ctx.canvas->getSurface()->h);
   ctx.preview->clearRGBA(0, 0, 0, 0);
@@ -46,16 +46,15 @@ std::unique_ptr<Command> Line::onMouseUp(vec2 pos, ToolContext &ctx) {
   Logger::log(LogLevel::DEBUG, "LINE TOOL: END");
   if (!ctx.interaction->active)
     return nullptr;
-  ctx.interaction->active = false;
   ctx.preview->clearRGBA(0, 0, 0, 0);
   ctx.preview->markDirty();
   m_last = pos;
 
-  m_boundingBox =
+  ctx.canvas->m_boundingBox =
       computeLineBounds(m_start, pos, brushSize, ctx.canvas->getSurface()->w,
                         ctx.canvas->getSurface()->h);
   m_command = std::make_unique<SnapshotCommand>(ctx.canvas->getSurface(),
-                                                m_boundingBox);
+                                                ctx.canvas->m_boundingBox);
 
   Rasterizer::bresenham(m_start, pos, ctx.canvas->getSurface(), color,
                         brushSize, false);

@@ -22,7 +22,7 @@ void Canvas::resize(int w, int h, const ResizePolicy &policy) {
   newTarget.blitFrom(*this, &srcRect, &dstRect);
 
   swapTarget(newTarget);
-  // m_preview.allocate(w, h);
+  m_preview.allocate(w, h);
 
   markDirty();
   Logger::debug(

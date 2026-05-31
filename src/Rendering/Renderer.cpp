@@ -1,6 +1,7 @@
 #include "Renderer.h"
 #include "Systems/Assert.h"
-#include <format>
+#include <SDL3/SDL_render.h>
+
 Renderer::Renderer(SDL_Renderer *renderer) { this->m_renderer = renderer; }
 
 SDL_Renderer *Renderer::getSDLRenderer() const { return m_renderer; }
@@ -15,7 +16,7 @@ void Renderer::ensureTexture(RenderTarget &target) {
   if (!needsRecreate)
     return;
 
-  Logger::debug("Recreating render texture");
+  //   Logger::debug("Recreating render texture");
   if (target.m_texture) {
     SDL_DestroyTexture(target.m_texture);
     target.m_texture = nullptr;
@@ -37,20 +38,25 @@ void Renderer::sync(RenderTarget &target) {
 
   ensureTexture(target);
   LX_ASSERT(target.m_texture != nullptr, "Texture missing after ensureTexture");
-  Logger::debug("Updating texture from surface");
+  //   Logger::debug("Updating texture from surface");
 
-  bool updated =
-      SDL_UpdateTexture(target.m_texture, nullptr, target.getSurface()->pixels,
-                        target.getSurface()->pitch);
+  bool updated = false;
+  if (target.isDirty()) {
+    SDL_Rect dirty = target.getDirtyRect();
+
+    uint8_t *pixels = static_cast<uint8_t *>(target.getSurface()->pixels);
+    int pitch = target.getSurface()->pitch;
+    uint8_t *start = pixels + dirty.y * pitch + dirty.x * 4;
+
+    updated = SDL_UpdateTexture(target.m_texture, &dirty, start, pitch);
+    target.clearDirty();
+  }
 
   if (!updated) {
     SDL_Log("UpdateTexture failed: %s", SDL_GetError());
+    Logger::err("UpdateTexture Failed");
     return;
   }
-
-  Logger::debug("Texture updated successfully");
-  target.m_dirty = false;
-  Logger::debug("Dirty flag reset");
 }
 
 void Renderer::renderTarget(RenderTarget &target, const Viewport &viewport,
@@ -62,6 +68,7 @@ void Renderer::renderTarget(RenderTarget &target, const Viewport &viewport,
 
   if (!target.getTexture()) {
     SDL_Log("Texture missing!");
+    Logger::err("RenderTarget texture missing after sync");
     return;
   }
   SDL_FRect mainRect = {transform.position.x, transform.position.y,

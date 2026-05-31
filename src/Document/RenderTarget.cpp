@@ -1,3 +1,4 @@
+#include <SDL3/SDL_rect.h>
 #include <SDL3/SDL_surface.h>
 
 #include <algorithm>
@@ -5,7 +6,6 @@
 #include "RenderTarget.h"
 
 #include "Systems/Assert.h"
-#include "Systems/Logger.h"
 
 RenderTarget::RenderTarget(int w, int h) {
   this->m_width = w;
@@ -33,13 +33,56 @@ RenderTarget::~RenderTarget() {
     this->m_texture = nullptr;
   }
 }
+SDL_Rect RenderTarget::updateBounds(vec2 pos, int brushSize, int maxW,
+                                    int maxH) {
+  int minX = std::min(m_boundingBox.x, (int)pos.x - brushSize);
+  int minY = std::min(m_boundingBox.y, (int)pos.y - brushSize);
+  int maxX =
+      std::max(m_boundingBox.x + m_boundingBox.w, (int)pos.x + brushSize);
+  int maxY =
+      std::max(m_boundingBox.y + m_boundingBox.h, (int)pos.y + brushSize);
+
+  int newMinX = std::clamp(minX, 0, maxW - 1);
+  int newMinY = std::clamp(minY, 0, maxH - 1);
+  int newMaxX = std::clamp(maxX, 0, maxW - 1);
+  int newMaxY = std::clamp(maxY, 0, maxH - 1);
+
+  m_boundingBox.x = newMinX;
+  m_boundingBox.y = newMinY;
+  m_boundingBox.w = std::max(0, newMaxX - newMinX + 1);
+  m_boundingBox.h = std::max(0, newMaxY - newMinY + 1);
+  return m_boundingBox;
+}
+
+// void RenderTarget::resetBounds(vec2 pos, int brushSize) {
+//   m_boundingBox = {(int)pos.x - brushSize, (int)pos.y - brushSize,
+//                    brushSize * 2 + 1, brushSize * 2 + 1};
+// }
+
+void RenderTarget::invalidateRect(const SDL_Rect &rect) {
+  if (!m_dirty) {
+    m_dirtyRect = rect;
+    m_dirty = true;
+    return;
+  }
+
+  SDL_Rect result;
+
+  SDL_GetRectUnion(&m_dirtyRect, &rect, &result);
+
+  m_dirtyRect = result;
+}
 
 SDL_Surface *RenderTarget::getSurface() { return this->m_surface; }
 SDL_Texture *RenderTarget::getTexture() { return this->m_texture; }
 
 int RenderTarget::getWidth() const { return this->m_width; }
 int RenderTarget::getHeight() const { return this->m_height; }
-
+SDL_Rect RenderTarget::getDirtyRect() const { return this->m_dirtyRect; }
+void RenderTarget::clearDirty() {
+  m_dirty = false;
+  m_dirtyRect = {0, 0, 0, 0};
+}
 void RenderTarget::allocate(int w, int h, FillColor fill) {
 
   LX_ASSERT(w > 0 && h > 0, "Invalid RenderTarget allocation");
@@ -119,17 +162,8 @@ void RenderTarget::resize(int w, int h) {
   SDL_Surface *newSurface = SDL_CreateSurface(w, h, SDL_PIXELFORMAT_ARGB8888);
   LX_ASSERT(newSurface != nullptr, "Failed to create resized surface");
 
-  /*
-    Initialize new surface memory.
-    Otherwise expanded regions contain garbage pixels.
-  */
-
   SDL_FillSurfaceRect(newSurface, nullptr,
                       SDL_MapSurfaceRGBA(newSurface, 255, 255, 255, 255));
-
-  /*
-    Copy overlapping region from old surface.
-  */
 
   if (m_surface) {
     SDL_Rect src = {0, 0, std::min(m_width, w), std::min(m_height, h)};
@@ -141,11 +175,6 @@ void RenderTarget::resize(int w, int h) {
 
   m_width = w;
   m_height = h;
-
-  /*
-    GPU texture is now invalid.
-    Force clean recreation next sync().
-  */
 
   if (m_texture) {
     SDL_DestroyTexture(m_texture);
@@ -159,7 +188,7 @@ void RenderTarget::resize(int w, int h) {
 }
 
 void RenderTarget::markDirty() {
-  Logger::debug("RenderTarget marked dirty");
+  //   Logger::debug("RenderTarget marked dirty");
   m_dirty = true;
 }
 
