@@ -1,7 +1,10 @@
+#include <SDL3/SDL_surface.h>
 #include <cmath>
 
 #include "Rasterizer.h"
 #include "Systems/Assert.h"
+
+#define TAU 6.2831853
 namespace Rasterizer {
 
 static inline uint32_t *getPixels(SDL_Surface *surface) {
@@ -25,6 +28,16 @@ void drawPixel(SDL_Surface *surface, int x, int y, uint32_t color) {
   int pitch = getPitch(surface);
 
   pixels[y * pitch + x] = color;
+}
+
+inline void drawPolygon(SDL_Surface *surface, const std::vector<vec2> points,
+                        uint32_t color) {
+  if (points.size() < 2)
+    return;
+  for (int p = 0; p < points.size() - 1; ++p) {
+    bresenham(points[p], points[p + 1], surface, color, 1, false);
+  }
+  bresenham(points.back(), points.front(), surface, color, 1, false);
 }
 
 void drawVerticalSpan(SDL_Surface *surface, int x, int y, int thickness,
@@ -56,6 +69,7 @@ void drawVerticalSpan(SDL_Surface *surface, int x, int y, int thickness,
 
 void drawHorizontalSpan(SDL_Surface *surface, int x, int y, int thickness,
                         uint32_t color, bool useXOR) {
+
   LX_ASSERT(surface != nullptr, "drawHorizontalSpan surface null");
   LX_ASSERT(thickness > 0, "Invalid brush thickness");
   if (y < 0 || y >= surface->h)
@@ -140,6 +154,44 @@ void drawEllipse(SDL_Surface *surface, int xc, int yc, int rx, int ry,
     }
   }
 }
+
+void drawEllipse_theta(SDL_Surface *surface, int x, int y, int w, int h,
+                       uint32_t color) {
+  const int cx = x + w / 2.0f;
+  const int cy = y + h / 2.0f;
+
+  const float step = 0.05f;
+  std::vector<vec2> points{0};
+  for (float theta = 0.0f; theta <= TAU; theta += step) {
+    float newX = (cx + std::cos(theta) * w / 2.0f);
+    float newY = (cy + std::sin(theta) * h / 2.0f);
+    points.push_back({newX, newY});
+  }
+  drawPolygon(surface, points, color);
+}
+
+/*Function draw_ellipse(ctx, x, y, w, h, stroke, fill) {
+        const center_x = x + w / 2;
+        const center_y = y + h / 2;
+
+        if (aliasing) {
+                const points = [];
+                const step = 0.05;
+                for (let theta = 0; theta < TAU; theta += step) {
+                        points.push({
+                                x: center_x + Math.cos(theta) * w / 2,
+                                y: center_y + Math.sin(theta) * h / 2,
+                        });
+                }
+                draw_polygon(ctx, points, stroke, fill);
+        } else {
+                ctx.beginPath();
+                ctx.ellipse(center_x, center_y, Math.abs(w / 2), Math.abs(h /
+2), 0, 0, TAU, false); ctx.stroke(); ctx.fill();
+        }
+}
+ */
+
 void drawCircle(SDL_Surface *surface, int x_centre, int y_centre, int r,
                 uint32_t color) {
   int x = r;
@@ -301,16 +353,13 @@ void bresenham(vec2 start, vec2 end, SDL_Surface *surface, uint32_t color,
   int y2 = (int)end.y;
 
   int dx = abs(x2 - x1);
-  int sx = x1 < x2 ? 1 : -1;
+  int dy = abs(y2 - y1);
 
-  int dy = -abs(y2 - y1);
-  int sy = y1 < y2 ? 1 : -1;
+  int sx = (x1 < x2) ? 1 : -1;
+  int sy = (y1 < y2) ? 1 : -1;
 
-  int err = dx + dy;
+  int err = dx - dy;
 
-  // FIXED: Steep-line transpose logic
-  // When slope > 1 (steep line), we step in Y more than X
-  // In this case, use horizontal spans (X-thickness) not vertical
   bool steep = abs(y2 - y1) > abs(x2 - x1);
 
   while (true) {
@@ -328,12 +377,12 @@ void bresenham(vec2 start, vec2 end, SDL_Surface *surface, uint32_t color,
 
     int e2 = 2 * err;
 
-    if (e2 >= dy) {
-      err += dy;
+    if (e2 > -dy) {
+      err -= dy;
       x1 += sx;
     }
 
-    if (e2 <= dx) {
+    if (e2 < dx) {
       err += dx;
       y1 += sy;
     }

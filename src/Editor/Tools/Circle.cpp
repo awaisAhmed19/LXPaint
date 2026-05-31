@@ -21,7 +21,7 @@ static SDL_Rect computeEllipseBounds(vec2 center, int rx, int ry, int padding,
 }
 
 void Circle::onMouseDown(vec2 pos, ToolContext &ctx) {
-  Logger::log(LogLevel::DEBUG, "RECT TOOL: START");
+  Logger::log(LogLevel::DEBUG, "CIRCLE TOOL: START");
 
   ctx.interaction->active = true;
 
@@ -39,15 +39,15 @@ void Circle::onMouseMove(vec2 pos, ToolContext &ctx) {
   int dx = (int)(pos.x - m_start.x);
   int dy = (int)(pos.y - m_start.y);
 
-  int rx = std::abs(pos.x - m_start.x);
-  int ry = std::abs(pos.y - m_start.y);
+  int rx = (int)(pos.x - m_start.x);
+  int ry = (int)(pos.y - m_start.y);
 
-  ctx.canvas->m_boundingBox = computeEllipseBounds(m_start, rx, ry, brushSize,
-                                                   ctx.canvas->getSurface()->w,
-                                                   ctx.canvas->getSurface()->h);
+  ctx.canvas->m_boundingBox = computeEllipseBounds(
+      m_start, std::abs(rx), std::abs(ry), brushSize,
+      ctx.canvas->getSurface()->w, ctx.canvas->getSurface()->h);
 
-  Rasterizer::drawEllipse(ctx.preview->getSurface(), (int)m_start.x,
-                          (int)m_start.y, rx, ry, color);
+  Rasterizer::drawEllipse_theta(ctx.preview->getSurface(), (int)m_start.x,
+                                (int)m_start.y, rx, ry, color);
 
   ctx.preview->markDirty();
 }
@@ -65,18 +65,18 @@ std::unique_ptr<Command> Circle::onMouseUp(vec2 pos, ToolContext &ctx) {
   int dx = (int)(pos.x - m_start.x);
   int dy = (int)(pos.y - m_start.y);
 
-  int rx = std::abs(pos.x - m_start.x);
-  int ry = std::abs(pos.y - m_start.y);
+  int rx = (int)(pos.x - m_start.x);
+  int ry = (int)(pos.y - m_start.y);
 
-  SDL_Rect affected = computeEllipseBounds(m_start, rx, ry, brushSize,
-                                           ctx.canvas->getSurface()->w,
-                                           ctx.canvas->getSurface()->h);
+  SDL_Rect affected = computeEllipseBounds(
+      m_start, std::abs(rx), std::abs(ry), brushSize,
+      ctx.canvas->getSurface()->w, ctx.canvas->getSurface()->h);
 
   m_command =
       std::make_unique<SnapshotCommand>(ctx.canvas->getSurface(), affected);
-  Rasterizer::drawEllipse(ctx.canvas->getSurface(), (int)m_start.x,
-                          (int)m_start.y, rx, ry, color);
-
+  Rasterizer::drawEllipse_theta(ctx.canvas->getSurface(), (int)m_start.x,
+                                (int)m_start.y, rx, ry, color);
+  // TODO:add settings to tools so that we can distiguish the stoke, fill etc
   ctx.canvas->invalidateRect(affected);
   m_command->captureAfter(ctx.canvas->getSurface());
 

@@ -9,6 +9,8 @@ void bresenham(vec2 start, vec2 end, SDL_Surface *surface, uint32_t color,
 void dda(vec2 start, vec2 end, SDL_Surface *surface, uint32_t color,
          int brushSize, bool useXOR);
 
+void drawEllipse_theta(SDL_Surface *surface, int x, int y, int w, int h,
+                       uint32_t color);
 void drawEllipse(SDL_Surface *surface, int xc, int yc, int rx, int ry,
                  uint32_t color);
 void drawCircle(SDL_Surface *surface, int x_centre, int y_centre, int r,

@@ -190,6 +190,7 @@ void RenderTarget::resize(int w, int h) {
 void RenderTarget::markDirty() {
   //   Logger::debug("RenderTarget marked dirty");
   m_dirty = true;
+  m_dirtyRect = {0, 0, m_width, m_height};
 }
 
 void RenderTarget::swapTarget(RenderTarget &other) {

@@ -7,7 +7,6 @@ Renderer::Renderer(SDL_Renderer *renderer) { this->m_renderer = renderer; }
 SDL_Renderer *Renderer::getSDLRenderer() const { return m_renderer; }
 
 void Renderer::ensureTexture(RenderTarget &target) {
-
   LX_ASSERT(target.getSurface() != nullptr, "RenderTarget surface missing");
   bool needsRecreate = !target.m_texture ||
                        target.m_textureWidth != target.getWidth() ||
@@ -40,23 +39,22 @@ void Renderer::sync(RenderTarget &target) {
   LX_ASSERT(target.m_texture != nullptr, "Texture missing after ensureTexture");
   //   Logger::debug("Updating texture from surface");
 
-  bool updated = false;
-  if (target.isDirty()) {
-    SDL_Rect dirty = target.getDirtyRect();
-
-    uint8_t *pixels = static_cast<uint8_t *>(target.getSurface()->pixels);
-    int pitch = target.getSurface()->pitch;
-    uint8_t *start = pixels + dirty.y * pitch + dirty.x * 4;
-
-    updated = SDL_UpdateTexture(target.m_texture, &dirty, start, pitch);
-    target.clearDirty();
+  if (!target.isDirty())
+    return;
+  SDL_Rect dirty = target.getDirtyRect();
+  if (dirty.w <= 0 || dirty.h <= 0) {
+    dirty = {0, 0, target.getWidth(), target.getHeight()};
   }
+  uint8_t *pixels = static_cast<uint8_t *>(target.getSurface()->pixels);
+  int pitch = target.getSurface()->pitch;
+  uint8_t *start = pixels + dirty.y * pitch + dirty.x * 4;
 
-  if (!updated) {
+  if (!SDL_UpdateTexture(target.m_texture, &dirty, start, pitch)) {
     SDL_Log("UpdateTexture failed: %s", SDL_GetError());
     Logger::err("UpdateTexture Failed");
     return;
   }
+  target.clearDirty();
 }
 
 void Renderer::renderTarget(RenderTarget &target, const Viewport &viewport,
