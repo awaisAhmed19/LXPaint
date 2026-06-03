@@ -33,31 +33,6 @@ RenderTarget::~RenderTarget() {
     this->m_texture = nullptr;
   }
 }
-SDL_Rect RenderTarget::updateBounds(vec2 pos, int brushSize, int maxW,
-                                    int maxH) {
-  int minX = std::min(m_boundingBox.x, (int)pos.x - brushSize);
-  int minY = std::min(m_boundingBox.y, (int)pos.y - brushSize);
-  int maxX =
-      std::max(m_boundingBox.x + m_boundingBox.w, (int)pos.x + brushSize);
-  int maxY =
-      std::max(m_boundingBox.y + m_boundingBox.h, (int)pos.y + brushSize);
-
-  int newMinX = std::clamp(minX, 0, maxW - 1);
-  int newMinY = std::clamp(minY, 0, maxH - 1);
-  int newMaxX = std::clamp(maxX, 0, maxW - 1);
-  int newMaxY = std::clamp(maxY, 0, maxH - 1);
-
-  m_boundingBox.x = newMinX;
-  m_boundingBox.y = newMinY;
-  m_boundingBox.w = std::max(0, newMaxX - newMinX + 1);
-  m_boundingBox.h = std::max(0, newMaxY - newMinY + 1);
-  return m_boundingBox;
-}
-
-// void RenderTarget::resetBounds(vec2 pos, int brushSize) {
-//   m_boundingBox = {(int)pos.x - brushSize, (int)pos.y - brushSize,
-//                    brushSize * 2 + 1, brushSize * 2 + 1};
-// }
 
 void RenderTarget::invalidateRect(const SDL_Rect &rect) {
   if (!m_dirty) {

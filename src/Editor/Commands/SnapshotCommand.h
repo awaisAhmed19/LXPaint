@@ -91,13 +91,13 @@ public:
     //   return;
     // }
     restoreRegion(canvas.getSurface(), m_before.get(), m_bounds);
-    canvas.markDirty();
+    canvas.invalidateRect(m_bounds);
   }
 
   void redo(Canvas &canvas) override {
     LX_ASSERT(m_after != nullptr, "Redo snapshot missing");
     restoreRegion(canvas.getSurface(), m_after.get(), m_bounds);
-    canvas.markDirty();
+    canvas.invalidateRect(m_bounds);
   }
   static UniqueSurface copyRegion(SDL_Surface *src, SDL_Rect bounds) {
     LX_ASSERT(src != nullptr, "copyRegion source null");

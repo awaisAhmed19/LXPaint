@@ -1,173 +1,308 @@
-# LXPAINT
+# LXPaint
 
-A lightweight paint application built with **SDL3** and **ImGui**, designed to explore **low-level rendering, algorithm behavior, and clean system architecture**.
+A lightweight paint application built with **SDL3** and **ImGui**, created to explore how modern graphics editors work internally.
 
-This is not just a drawing app. It’s a controlled environment for understanding how graphics pipelines and tools actually work.
+LXPaint is not intended to compete with professional art software. Its primary goal is educational: understanding rendering pipelines, rasterization algorithms, viewport systems, undo/redo architectures, and graphics editor design through a real-world implementation.
+
+---
+
+## Goals
+
+LXPaint exists to explore:
+
+* Raster graphics algorithms
+* Dirty rectangle rendering optimization
+* GPU texture synchronization
+* Undo/redo architectures
+* Tool interaction systems
+* Viewport and coordinate transforms
+* Clean graphics editor architecture
+* Modern C++ design patterns
+
+The project prioritizes clarity, maintainability, and architectural experimentation over feature completeness.
 
 ---
 
 ## Features
 
-- Pencil, Line, and Eraser tools
-- Undo / Redo via Command Pattern
-- Real-time comparison of:
-  - Bresenham Line Algorithm
-  - DDA (Digital Differential Analyzer)
+### Drawing Tools
 
-- Built-in profiler (microsecond precision)
-- Fullscreen SDL3 rendering
-- ImGui debug console and overlays
-- Modular architecture for easy extension
+* Pencil
+* Line
+* Rectangle
+* Circle
+* Eraser
 
----
+### Rendering Features
 
-## Core Ideas
+* Dirty rectangle tracking
+* Partial texture uploads
+* Interactive preview rendering
+* Zoom and pan support
+* Viewport-aware input handling
 
-### Command Pattern (Undo/Redo)
+### Undo / Redo
 
-Every drawing operation is stored as a command with:
+* Command pattern architecture
+* Snapshot-based undo/redo
+* Region-based restoration
+* Bounded command history
 
-- A snapshot before execution
-- A snapshot after execution
+### Developer Tooling
 
-This allows reversible operations without hacks.
-
----
-
-### CPU → GPU Rendering Flow
-
-Rendering is split cleanly:
-
-- CPU: draw pixels to `SDL_Surface`
-- GPU: sync to `SDL_Texture`
-- Renderer: display texture
+* Integrated profiling utilities
+* Debug logging
+* FPS monitoring
+* Performance instrumentation
 
 ---
 
-### Algorithm Comparison System
+## Architecture Overview
 
-Each stroke runs both algorithms:
+LXPaint is organized around a strict separation of responsibilities.
 
-- Bresenham
-- DDA
-
-Execution time is recorded and stored continuously for analysis.
-
----
-
-### Tool Architecture
-
-Tools are not random logic blobs. They follow a strict lifecycle:
-
-Base Abstraction:
-
-```
-onMouseDown → onMouseMove → onMouseUp → Command
+```text
+Input Layer
+    ↓
+Viewport Transform System
+    ↓
+Tool Layer
+    ↓
+Canvas (Document State)
+    ↓
+Command System
+    ↓
+Renderer
+    ↓
+SDL3
 ```
 
+### Core Principles
+
+#### Tools Express Intent
+
+Tools do not own rendering logic or undo history.
+
+A tool simply expresses what the user wants to do.
+
+Examples:
+
+* Draw a line
+* Draw a rectangle
+* Erase pixels
+* Paint a stroke
+
+#### Canvas Owns Document State
+
+The canvas is the authoritative bitmap.
+
+Responsibilities:
+
+* Pixel storage
+* Canvas dimensions
+* Dirty region tracking
+
+The canvas does not manage user interaction or viewport behavior.
+
+#### Commands Make Operations Reversible
+
+Every committed drawing action becomes a command.
+
+This enables:
+
+* Undo
+* Redo
+* History management
+
+#### Renderer Synchronizes GPU State
+
+The renderer is responsible for:
+
+* Texture synchronization
+* Viewport-aware rendering
+* GPU presentation
+
 ---
 
-### Event Handling Pipeline
+## Rendering Pipeline
 
-Input is layered:
+LXPaint uses a CPU-first rendering model.
 
-1. SDL processes raw events
-2. ImGui captures UI interactions
-3. Tools execute only if UI is not consuming input
+```text
+Tool
+    ↓
+Rasterizer
+    ↓
+Canvas Surface
+    ↓
+Dirty Region Tracking
+    ↓
+Texture Synchronization
+    ↓
+GPU Rendering
+```
+
+Only modified regions are uploaded to the GPU whenever possible.
+
+This significantly reduces texture upload bandwidth during interactive drawing.
+
+---
+
+## Viewport System
+
+The viewport provides coordinate transformation between screen space and canvas space.
+
+```text
+Screen Space
+    ↓
+Viewport Transform
+    ↓
+Canvas Space
+```
+
+Features:
+
+* Zoom
+* Pan
+* Coordinate conversion
+* Visible region calculations
+
+Tools operate exclusively in canvas coordinates and remain independent from viewport implementation details.
+
+---
+
+## Undo / Redo System
+
+LXPaint uses a command-based architecture.
+
+```text
+Mouse Input
+    ↓
+Tool Interaction
+    ↓
+Command Creation
+    ↓
+Command Execution
+    ↓
+Undo Stack
+```
+
+Commands store only the affected region of the canvas rather than full-canvas snapshots whenever possible.
+
+This keeps history operations efficient and predictable.
 
 ---
 
 ## Project Structure
 
-```
+```text
 src/
-├── Commands/        # Undo/Redo system
-├── Core/            # Canvas, Renderer, Logger, Profiler
-├── Tools/           # Pencil, Line, Eraser
-├── UI/              # Console and overlays
-├── App.*            # Main loop and orchestration
-├── Globals.h        # Shared config and utilities
-└── main.cpp         # Entry point
+├── App/
+├── Document/
+├── Editor/
+│   ├── Commands/
+│   ├── Input/
+│   ├── Interaction/
+│   ├── Tools/
+│   └── Viewport/
+├── Rendering/
+├── Systems/
+└── UI/
 ```
+
+### Major Subsystems
+
+| Directory | Responsibility                        |
+| --------- | ------------------------------------- |
+| App       | Application startup and main loop     |
+| Document  | Canvas and bitmap state               |
+| Editor    | User interaction orchestration        |
+| Commands  | Undo/redo infrastructure              |
+| Tools     | Drawing behavior                      |
+| Rendering | Rasterization and GPU synchronization |
+| Systems   | Logging, profiling, utilities         |
+| UI        | ImGui-based interface                 |
 
 ---
 
 ## Controls
 
-| Action    | Key      |
-| --------- | -------- |
-| Undo      | Ctrl + Z |
-| Redo      | Ctrl + Y |
-| Pencil    | Ctrl + P |
-| Line Tool | Ctrl + L |
-| Eraser    | Ctrl + E |
+| Action    | Shortcut         |
+| --------- | ---------------- |
+| Pencil    | P                |
+| Line      | L                |
+| Rectangle | R                |
+| Circle    | C                |
+| Eraser    | E                |
+| Undo      | Ctrl + Z         |
+| Redo      | Ctrl + Y         |
+| Zoom In   | Mouse Wheel Up   |
+| Zoom Out  | Mouse Wheel Down |
+| Pan       | Space + Drag     |
 
 ---
 
-## Build & Run
+## Building
 
 ### Requirements
 
-- SDL3
-- ImGui (SDL3 + Renderer backend)
-- C++20
+* C++20
+* SDL3
+* ImGui
+* CMake 3.10+
 
 ### Build
 
 ```bash
+git clone <repository>
+cd LXPaint
+
 mkdir build
 cd build
+
 cmake ..
-make
-./LXPAINT
+cmake --build .
+
+./lxpaint
 ```
 
 ---
 
-## Why This Project Matters
+## Documentation
 
-This project focuses on fundamentals most people skip:
+Additional documentation can be found in the `docs/` directory.
 
-- Manual CPU → GPU data flow
-- Real-time algorithm benchmarking
-- Proper undo/redo design
-- Separation of intent (tools) vs execution (engine)
+Suggested structure:
 
-It’s not about features. It’s about understanding the system.
-
----
-
-## Future Improvements
-
-- Shape tools (rectangle, circle)
-- Flood fill (bucket tool)
-- Layers
-- Texture brushes
-- GPU rendering pipeline
-- File save/load support
-- Plugin-based tool system
-
----
-
-## Known Limitations
-
-- No file persistence yet
-- CPU rendering may limit scalability
-- Undo stack increases memory usage
-
----
-
-## Entry Point
-
-Start here:
+```text
+docs/
+├── ARCHITECTURE.md
+├── COMMAND_SYSTEM.md
+├── RENDERING.md
+├── VIEWPORT.md
+├── ROADMAP.md
+└── AUDIT.md
+```
 
 ---
 
 ## Philosophy
 
-Tools express intent.
-Engine enforces rules.
-Renderer pushes pixels.
-UI only connects everything.
+> Tools express intent. Engine enforces rules. Renderer pushes pixels. UI connects everything.
+
+Each subsystem should have a single responsibility and clear ownership boundaries.
+
+The project favors explicit architecture over convenience abstractions and serves as a playground for understanding how graphics software is built from first principles.
 
 ---
+
+## Contributing
+
+Before modifying core systems, familiarize yourself with:
+
+1. Dirty rectangle propagation
+2. Command lifecycle
+3. Viewport coordinate transforms
+4. Tool interaction contracts
+5. Rendering synchronization
+

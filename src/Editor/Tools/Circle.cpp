@@ -9,6 +9,8 @@
 #include "Editor/Interaction/ToolInteractionState.h"
 #include "Rendering/Rasterizer.h"
 #include "Systems/Logger.h"
+
+static SDL_Rect affected{0};
 static SDL_Rect computeEllipseBounds(vec2 center, int rx, int ry, int padding,
                                      int maxW, int maxH) {
   int minX = std::max(0, (int)(center.x - rx - padding));
@@ -27,6 +29,9 @@ void Circle::onMouseDown(vec2 pos, ToolContext &ctx) {
 
   m_start = pos;
   m_last = pos;
+  affected =
+      computeEllipseBounds(pos, 0, 0, brushSize, ctx.canvas->getSurface()->w,
+                           ctx.canvas->getSurface()->h);
 }
 
 void Circle::onMouseMove(vec2 pos, ToolContext &ctx) {
@@ -42,14 +47,14 @@ void Circle::onMouseMove(vec2 pos, ToolContext &ctx) {
   int rx = (int)(pos.x - m_start.x);
   int ry = (int)(pos.y - m_start.y);
 
-  ctx.canvas->m_boundingBox = computeEllipseBounds(
-      m_start, std::abs(rx), std::abs(ry), brushSize,
-      ctx.canvas->getSurface()->w, ctx.canvas->getSurface()->h);
+  affected = computeEllipseBounds(m_start, std::abs(rx), std::abs(ry),
+                                  brushSize, ctx.canvas->getSurface()->w,
+                                  ctx.canvas->getSurface()->h);
 
   Rasterizer::drawEllipse_theta(ctx.preview->getSurface(), (int)m_start.x,
                                 (int)m_start.y, rx, ry, color);
 
-  ctx.preview->markDirty();
+  ctx.preview->invalidateRect(affected);
 }
 
 std::unique_ptr<Command> Circle::onMouseUp(vec2 pos, ToolContext &ctx) {
@@ -59,7 +64,8 @@ std::unique_ptr<Command> Circle::onMouseUp(vec2 pos, ToolContext &ctx) {
     return nullptr;
 
   ctx.preview->clearRGBA(0, 0, 0, 0);
-  ctx.preview->markDirty();
+  ctx.preview->invalidateRect(affected);
+
   m_last = pos;
 
   int dx = (int)(pos.x - m_start.x);
@@ -68,9 +74,9 @@ std::unique_ptr<Command> Circle::onMouseUp(vec2 pos, ToolContext &ctx) {
   int rx = (int)(pos.x - m_start.x);
   int ry = (int)(pos.y - m_start.y);
 
-  SDL_Rect affected = computeEllipseBounds(
-      m_start, std::abs(rx), std::abs(ry), brushSize,
-      ctx.canvas->getSurface()->w, ctx.canvas->getSurface()->h);
+  affected = computeEllipseBounds(m_start, std::abs(rx), std::abs(ry),
+                                  brushSize, ctx.canvas->getSurface()->w,
+                                  ctx.canvas->getSurface()->h);
 
   m_command =
       std::make_unique<SnapshotCommand>(ctx.canvas->getSurface(), affected);
