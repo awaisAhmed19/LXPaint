@@ -1,17 +1,27 @@
 
 #pragma once
+#include <SDL3/SDL.h>
+
+#include "imgui_impl_sdl3.h"
+
 #include "Document/Canvas.h"
 #include "Document/PreviewLayer.h"
+
 #include "Editor/Commands/CommandManager.h"
+
 #include "Editor/Interaction/ToolInteractionState.h"
+
 #include "Editor/Tools/ToolManager.h"
+
 #include "Input/InputDispatcher.h"
+
 #include "Interaction/ToolContext.h"
+
 #include "Rendering/Renderer.h"
 #include "Rendering/Transform2D.h"
+
 #include "Viewport/Viewport.h"
-#include "imgui_impl_sdl3.h"
-#include <SDL3/SDL.h>
+
 class Editor {
 private:
   // bool m_panning = false;

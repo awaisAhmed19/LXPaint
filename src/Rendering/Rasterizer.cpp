@@ -98,21 +98,26 @@ void drawHorizontalSpan(SDL_Surface *surface, int x, int y, int thickness,
 
 void drawEllipse(SDL_Surface *surface, int xc, int yc, int rx, int ry,
                  uint32_t color) {
-  float dx, dy, d1, d2;
+  rx = std::abs(rx);
+  ry = std::abs(ry);
+  double dx, dy, d1, d2;
   int x = 0;
   int y = ry;
 
-  // Region 1
-  d1 = (ry * ry) - (rx * rx * ry) + (0.25f * rx * rx);
+  auto plot4 = [&](int px, int py) {
+    drawPixel(surface, xc + px, yc + py, color);
+    drawPixel(surface, xc - px, yc + py, color);
+    drawPixel(surface, xc + px, yc - py, color);
+    drawPixel(surface, xc - px, yc - py, color);
+  };
+
+  d1 = (ry * ry) - (rx * rx * ry) + (0.25 * rx * rx);
 
   dx = 2 * ry * ry * x;
   dy = 2 * rx * rx * y;
 
-  while (dx < dy) {
-    drawPixel(surface, x + xc, y + yc, color);
-    drawPixel(surface, -x + xc, y + yc, color);
-    drawPixel(surface, x + xc, -y + yc, color);
-    drawPixel(surface, -x + xc, -y + yc, color);
+  while (dx <= dy) {
+    plot4(x, y);
 
     if (d1 < 0) {
       x++;
@@ -129,15 +134,11 @@ void drawEllipse(SDL_Surface *surface, int xc, int yc, int rx, int ry,
     }
   }
 
-  // Region 2
-  d2 = ((ry * ry) * ((x + 0.5f) * (x + 0.5f))) +
-       ((rx * rx) * ((y - 1) * (y - 1))) - (rx * rx * ry * ry);
+  d2 = ((ry * ry) * ((x + 0.5) * (x + 0.5))) +
+       ((rx * rx) * ((y - 1) * (y - 1))) - ((rx * rx) * (ry * ry));
 
   while (y >= 0) {
-    drawPixel(surface, x + xc, y + yc, color);
-    drawPixel(surface, -x + xc, y + yc, color);
-    drawPixel(surface, x + xc, -y + yc, color);
-    drawPixel(surface, -x + xc, -y + yc, color);
+    plot4(x, y);
 
     if (d2 > 0) {
       y--;
@@ -389,6 +390,29 @@ void bresenham(vec2 start, vec2 end, SDL_Surface *surface, uint32_t color,
   }
 
   unlockSurface(surface);
+}
+void floodFillHelper(SDL_Surface *surface, vec2 pos, uint32_t color,
+                     uint32_t newcolor) {
+  uint32_t *pixels = getPixels(surface);
+  int pitch = getPitch(surface);
+  int m = surface->h;
+  int n = surface->w;
+  float x = pos.x;
+  float y = pos.y;
+  uint32_t currColor = pixels[(int)y * pitch + (int)x];
+
+  if (currColor == color) {
+    pixels[(int)y * pitch + (int)x] = newcolor;
+
+    if (x >= 1)
+      floodFillHelper(surface, {x - 1.0f, y}, color, newcolor);
+    if (y >= 1)
+      floodFillHelper(surface, {x, y - 1.0f}, color, newcolor);
+    if (x + 1 < m)
+      floodFillHelper(surface, {x - 1.0f, y}, color, newcolor);
+    if (y + 1 < n)
+      floodFillHelper(surface, {x, y - 1.0f}, color, newcolor);
+  }
 }
 
 } // namespace Rasterizer
