@@ -17,7 +17,6 @@ protected:
 public:
   friend class Renderer;
   enum class FillColor { TRANSPARENT, WHITE, BLACK };
-  // SDL_Rect m_boundingBox = {0, 0, 0, 0};
 
   void allocate(int w, int h, FillColor fill = FillColor::TRANSPARENT);
   RenderTarget(int w, int h);
