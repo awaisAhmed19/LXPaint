@@ -5,12 +5,13 @@
 
 #include "App.h"
 
+#include "UI/Theme.h"
 #include "imgui_impl_sdlrenderer3.h"
 
 #include "Systems/Logger.h"
 
 namespace App {
-
+const auto &AppBg = LXTheme::AppBackground;
 Application::Application(const char *title) : m_editor(nullptr) {
   unsigned int init_flags = SDL_INIT_VIDEO;
   Logger::init();
@@ -26,6 +27,8 @@ Application::Application(const char *title) : m_editor(nullptr) {
   ImGui_ImplSDL3_InitForSDLRenderer(m_window->getNativeWindow(),
                                     m_window->getNativeRenderer());
   ImGui_ImplSDLRenderer3_Init(m_window->getNativeRenderer());
+
+  LXTheme::applyMainTheme();
 }
 
 void Application::handleEvents() {
@@ -46,8 +49,9 @@ void Application::render() {
   ImGui_ImplSDL3_NewFrame();
 
   ImGui::NewFrame();
-  SDL_SetRenderDrawColor(m_window->getNativeRenderer(), 128, 128, 128,
-                         255); // background color of app
+  SDL_SetRenderDrawColor(m_window->getNativeRenderer(), AppBg.r, AppBg.g,
+                         AppBg.b,
+                         AppBg.a); // background color of app
   SDL_RenderClear(m_window->getNativeRenderer());
   m_editor->render();
   m_editor->renderUI();

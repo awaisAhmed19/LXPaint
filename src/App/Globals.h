@@ -4,6 +4,9 @@
 
 #include <cstdint>
 
+typedef uint8_t ui8;
+typedef uint16_t ui16;
+typedef uint32_t ui32;
 /*
 ========================================
 Core Math Types
@@ -70,6 +73,62 @@ struct vec2 {
   }
 };
 
+struct dim {
+  uint16_t w;
+  uint16_t h;
+};
+
+struct coords {
+  int x;
+  int y;
+  constexpr coords() = default;
+
+  constexpr coords(int _x, int _y) : x(_x), y(_y) {}
+
+  constexpr coords operator+(const coords &other) const {
+    return {x + other.x, y + other.y};
+  }
+
+  constexpr coords operator-(const coords &other) const {
+    return {x - other.x, y - other.y};
+  }
+
+  constexpr coords operator*(float scalar) const {
+
+    return {(int)(x * scalar), (int)(y * scalar)};
+  }
+
+  constexpr coords operator/(float scalar) const {
+
+    return {(int)(x / scalar), (int)(y / scalar)};
+  }
+
+  constexpr coords &operator+=(const coords &other) {
+
+    x += other.x;
+    y += other.y;
+
+    return *this;
+  }
+
+  constexpr coords &operator-=(const coords &other) {
+
+    x -= other.x;
+    y -= other.y;
+
+    return *this;
+  }
+
+  constexpr bool operator==(const coords &other) const {
+
+    return x == other.x && y == other.y;
+  }
+
+  constexpr bool operator!=(const coords &other) const {
+
+    return !(*this == other);
+  }
+};
 struct vec3 {
 
   float x = 0.0f;

@@ -39,6 +39,25 @@ Editor::Editor(SDL_Renderer *renderer)
   centerCanvas();
 }
 
+// move all the tool initalization to the Ui module after it done.... also move
+// the input dispatcher too
+// Interaction
+// ├── InteractionController
+// ├── ToolContext
+// ├── ToolState
+// └── InputDispatcher
+//
+// move the Rendering pipeline into the
+// renderer
+// CanvasRenderer
+// PreviewRenderer
+// viewport [not sure yet]
+// Editor
+// ├── InteractionController
+// ├── Document
+// ├── Renderer[rendere,CanvasRenderer,PreviewRenderer]
+// ├── History
+// └── ToolRegistry
 void Editor::setupTools() {
   m_tools.registerTool(ToolID::Pencil, std::make_unique<Pencil>());
   m_tools.registerTool(ToolID::Line, std::make_unique<Line>());
@@ -262,6 +281,7 @@ void Editor::handleEvent(const SDL_Event &e) {
 }
 
 void Editor::renderUI() {
+  m_topribbon.render();
   ImGui::Begin("History");
 
   if (ImGui::Button("Undo", ImVec2(100, 0))) {
