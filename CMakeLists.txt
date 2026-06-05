@@ -29,6 +29,7 @@ set(PROJECT_SOURCES
 
     # Tools
     src/Editor/Tools/Pencil.cpp
+    src/Editor/Tools/FloodFill.cpp
     src/Editor/Tools/Line.cpp
     src/Editor/Tools/Eraser.cpp
     src/Editor/Tools/Rect.cpp

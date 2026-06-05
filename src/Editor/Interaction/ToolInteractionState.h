@@ -12,7 +12,6 @@ struct ToolInteractionState {
 
   SDL_Keymod modifier = SDL_KMOD_NONE;
   uint64_t interactionID = 0;
-
   void reset() {
     active = false;
     startMousePos = {0.0f, 0.0f};

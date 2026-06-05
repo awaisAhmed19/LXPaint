@@ -138,7 +138,7 @@ inline bool lockSurface(SDL_Surface *surface) {
 
   if (SDL_MUSTLOCK(surface)) {
 
-    if (SDL_LockSurface(surface) < 0)
+    if (!SDL_LockSurface(surface))
       return false;
   }
 

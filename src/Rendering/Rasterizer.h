@@ -37,4 +37,6 @@ void drawRectStroke(SDL_Surface *surface, vec2 a, vec2 b, uint32_t color,
 void drawRectFill(SDL_Surface *surface, vec2 a, vec2 b, uint32_t color,
                   int brushSize, bool isWhiteFill);
 
+void floodFill(SDL_Surface *surface, vec2 pos, uint32_t newcolor);
+
 }; // namespace Rasterizer

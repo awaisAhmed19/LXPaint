@@ -2,6 +2,7 @@
 #include "Systems/Assert.h"
 #include <SDL3/SDL_surface.h>
 #include <cmath>
+#include <cstdint>
 #define TAU 6.2831853
 namespace Rasterizer {
 
@@ -395,28 +396,61 @@ void bresenham(vec2 start, vec2 end, SDL_Surface *surface, uint32_t color,
 
   unlockSurface(surface);
 }
-void floodFillHelper(SDL_Surface *surface, vec2 pos, uint32_t color,
-                     uint32_t newcolor) {
-  uint32_t *pixels = getPixels(surface);
-  int pitch = getPitch(surface);
-  int m = surface->h;
-  int n = surface->w;
-  float x = pos.x;
-  float y = pos.y;
-  uint32_t currColor = pixels[(int)y * pitch + (int)x];
+void floodFillHelper(uint32_t *pixels, int pitch, int startX, int startY,
+                     uint32_t oldColor, uint32_t newColor, int w, int h) {
+  struct Point {
+    int x;
+    int y;
+  };
 
-  if (currColor == color) {
-    pixels[(int)y * pitch + (int)x] = newcolor;
+  std::vector<Point> stack;
+  stack.push_back({startX, startY});
 
-    if (x >= 1)
-      floodFillHelper(surface, {x - 1.0f, y}, color, newcolor);
-    if (y >= 1)
-      floodFillHelper(surface, {x, y - 1.0f}, color, newcolor);
-    if (x + 1 < m)
-      floodFillHelper(surface, {x - 1.0f, y}, color, newcolor);
-    if (y + 1 < n)
-      floodFillHelper(surface, {x, y - 1.0f}, color, newcolor);
+  while (!stack.empty()) {
+    Point p = stack.back();
+    stack.pop_back();
+
+    int x = p.x;
+    int y = p.y;
+
+    if (x < 0 || x >= w || y < 0 || y >= h) {
+      continue;
+    }
+
+    uint32_t &pixel = pixels[y * pitch + x];
+
+    if (pixel != oldColor) {
+      continue;
+    }
+
+    pixel = newColor;
+
+    stack.push_back({x - 1, y});
+    stack.push_back({x + 1, y});
+    stack.push_back({x, y - 1});
+    stack.push_back({x, y + 1});
   }
 }
+void floodFill(SDL_Surface *surface, vec2 pos, uint32_t newColor) {
+  uint32_t *pixels = getPixels(surface);
 
+  int pitch = getPitch(surface);
+  int w = surface->w;
+  int h = surface->h;
+
+  int x = (int)pos.x;
+  int y = (int)pos.y;
+
+  if (x < 0 || x >= w || y < 0 || y >= h) {
+    return;
+  }
+
+  uint32_t oldColor = pixels[y * pitch + x];
+
+  if (oldColor == newColor) {
+    return;
+  }
+
+  floodFillHelper(pixels, pitch, x, y, oldColor, newColor, w, h);
+}
 } // namespace Rasterizer

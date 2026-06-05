@@ -6,8 +6,11 @@
 
 #include "Editor/Interaction/ToolContext.h"
 
+#include "Editor/Tools/BaseTool.h"
 #include "Editor/Tools/Circle.h"
+#include "Editor/Tools/ClickTool.h"
 #include "Editor/Tools/Eraser.h"
+#include "Editor/Tools/FloodFill.h"
 #include "Editor/Tools/Line.h"
 #include "Editor/Tools/Pencil.h"
 #include "Editor/Tools/Rect.h"
@@ -20,7 +23,7 @@ constexpr auto Line = "line";
 constexpr auto Rect = "rect";
 constexpr auto Eraser = "eraser";
 constexpr auto Circle = "circle";
-
+constexpr auto FloodFill = "floodfill";
 } // namespace ToolID
 
 Editor::Editor(SDL_Renderer *renderer)
@@ -42,6 +45,7 @@ void Editor::setupTools() {
   m_tools.registerTool(ToolID::Rect, std::make_unique<Rect>());
   m_tools.registerTool(ToolID::Eraser, std::make_unique<Eraser>());
   m_tools.registerTool(ToolID::Circle, std::make_unique<Circle>());
+  m_tools.registerTool(ToolID::FloodFill, std::make_unique<FloodFill>());
   m_tools.setActiveTool(ToolID::Pencil);
 }
 
@@ -53,6 +57,7 @@ void Editor::setupInputBindings() {
   m_input.keyBinds(SDL_SCANCODE_R, InputCommand::RECT);
   m_input.keyBinds(SDL_SCANCODE_E, InputCommand::ERASER);
   m_input.keyBinds(SDL_SCANCODE_C, InputCommand::CIRCLE);
+  m_input.keyBinds(SDL_SCANCODE_F, InputCommand::FILL);
   m_input.bindActions(InputCommand::UNDO, [this]() {
     if (!m_commands.undo(m_canvas)) {
       Logger::log(LogLevel::DEBUG, "Nothing to undo");
@@ -73,6 +78,8 @@ void Editor::setupInputBindings() {
                       [this]() { m_tools.setActiveTool(ToolID::Rect); });
   m_input.bindActions(InputCommand::ERASER,
                       [this]() { m_tools.setActiveTool(ToolID::Eraser); });
+  m_input.bindActions(InputCommand::FILL,
+                      [this]() { m_tools.setActiveTool(ToolID::FloodFill); });
 }
 
 ToolContext Editor::makeToolContext() {
@@ -109,9 +116,7 @@ void Editor::resizeCanvas(int w, int h, const ResizePolicy &policy) {
   }
 
   m_canvas.resize(w, h, policy);
-  //   m_preview.allocate(w, h);
-  // TODO[Done]:Future:  Canvas::resize() should resize preview atomically
-  // m_viewport.onCanvasResized(w, h);
+  m_viewport.onCanvasResized(w, h);
   centerCanvas();
 
   m_interaction.reset();
@@ -120,11 +125,7 @@ void Editor::resizeCanvas(int w, int h, const ResizePolicy &policy) {
   m_commands.clear();
   Logger::debug(std::format("Canvas resize to {}x{}", w, h));
 }
-/*
-bool isMouseOverCanvasCorners() {
-  vec2 cornerpos = m_viewport.getCanvasTopLeftScreen(m_docTransform);
-}
-*/
+
 void Editor::handleEvent(const SDL_Event &e) {
   ImGuiIO &io = ImGui::GetIO();
 
@@ -180,10 +181,9 @@ void Editor::handleEvent(const SDL_Event &e) {
   */
 
   if (m_input.leftMousePressed()) {
-    BaseTool *tool = m_tools.getActive();
-
-    LX_ASSERT(tool != nullptr, "Active tool missing");
-
+    BaseTool *tool = m_tools.getActiveTool();
+    ClickTool *clicktool = m_tools.getActiveClickTool();
+    LX_ASSERT(tool || clicktool, "No active tool");
     ToolContext ctx = makeToolContext();
 
     vec2 mousePos =
@@ -201,7 +201,18 @@ void Editor::handleEvent(const SDL_Event &e) {
     m_interaction.currMousePos = mousePos;
     m_interaction.prevMousePos = mousePos;
 
-    tool->onMouseDown(mousePos, ctx);
+    if (tool) {
+      tool->onMouseDown(mousePos, ctx);
+    }
+    if (clicktool) {
+      auto cmd = clicktool->onMouseClick(mousePos, ctx);
+
+      if (cmd)
+        m_commands.pushCommand(std::move(cmd), "Flood Fill Executed");
+
+      m_interaction.active = false;
+      m_interaction.mouseDown = false;
+    }
   }
 
   /*
@@ -209,16 +220,19 @@ void Editor::handleEvent(const SDL_Event &e) {
   */
 
   if (m_interaction.active && m_input.leftMouseDown()) {
-    BaseTool *tool = m_tools.getActive();
+    BaseTool *tool = m_tools.getActiveTool();
+    ClickTool *clicktool = m_tools.getActiveClickTool();
+    LX_ASSERT(tool || clicktool, "No active tool");
+    if (tool) {
+      ToolContext ctx = makeToolContext();
 
-    LX_ASSERT(tool != nullptr, "Active tool missing");
-    ToolContext ctx = makeToolContext();
+      m_interaction.prevMousePos = m_interaction.currMousePos;
+      vec2 mousePos = m_viewport.screenToCanvas(m_input.getMouseScreenPos(),
+                                                m_docTransform);
+      m_interaction.currMousePos = clampToCanvas(mousePos);
 
-    m_interaction.prevMousePos = m_interaction.currMousePos;
-    vec2 mousePos =
-        m_viewport.screenToCanvas(m_input.getMouseScreenPos(), m_docTransform);
-    m_interaction.currMousePos = clampToCanvas(mousePos);
-    tool->onMouseMove(m_interaction.currMousePos, ctx);
+      tool->onMouseMove(m_interaction.currMousePos, ctx);
+    }
   }
 
   /*
@@ -228,20 +242,20 @@ void Editor::handleEvent(const SDL_Event &e) {
   if (m_input.leftMouseReleased()) {
     if (!m_interaction.active)
       return;
-
-    BaseTool *tool = m_tools.getActive();
-    LX_ASSERT(tool != nullptr, "Active tool missing");
+    BaseTool *tool = m_tools.getActiveTool();
+    ClickTool *clicktool = m_tools.getActiveClickTool();
+    LX_ASSERT(tool || clicktool, "No active tool");
     ToolContext ctx = makeToolContext();
+    if (tool) {
+      vec2 mousePos = m_viewport.screenToCanvas(m_input.getMouseScreenPos(),
+                                                m_docTransform);
+      mousePos = clampToCanvas(mousePos);
+      std::unique_ptr<Command> command = tool->onMouseUp(mousePos, ctx);
 
-    vec2 mousePos =
-        m_viewport.screenToCanvas(m_input.getMouseScreenPos(), m_docTransform);
-    mousePos = clampToCanvas(mousePos);
-    std::unique_ptr<Command> command = tool->onMouseUp(mousePos, ctx);
-
-    if (command) {
-      m_commands.pushCommand(std::move(command), "Draw Stroke");
+      if (command) {
+        m_commands.pushCommand(std::move(command), "Draw Stroke");
+      }
     }
-
     m_interaction.active = false;
     m_interaction.mouseDown = false;
   }
@@ -290,8 +304,9 @@ void Editor::update() { m_input.beginFrame(); }
 void Editor::render() {
   m_renderer.renderTarget(m_canvas, m_viewport, m_docTransform);
 
-  BaseTool *activeTool = m_tools.getActive();
-  if (activeTool != nullptr && activeTool->usesPreview()) {
+  BaseTool *activeTool = m_tools.getActiveTool();
+
+  if (activeTool && activeTool->usesPreview()) {
     m_renderer.renderTarget(m_preview, m_viewport, m_docTransform);
   }
 }
