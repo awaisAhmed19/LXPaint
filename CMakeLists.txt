@@ -15,7 +15,7 @@ set(PROJECT_SOURCES
     src/App/Window.cpp
     src/App/App.cpp
 
-    src/UI/Theme.cpp
+    #src/UI/Theme.cpp
     src/UI/TopRibbon/TopRibbon.cpp
     src/Input/InputDispatcher.cpp
 

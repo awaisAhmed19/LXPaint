@@ -1,55 +1,50 @@
 #include "TopRibbon.h"
-#include "UI/Theme.h"
-#include <imgui.h>
+#include "UI/Components/UIComponents.h"
+#include "UI/Layout/UILayout.h"
+#include "UI/Styling/UIDrawHelper.h"
+#include "UI/Styling/UIStyle.h"
+#include "imgui.h"
 
-namespace {
+TopRibbon::TopRibbon() {
+  m_menus = {
+      {"File", MenuType::File, [] {}},   {"Edit", MenuType::Edit, [] {}},
+      {"View", MenuType::View, [] {}},   {"Image", MenuType::Image, [] {}},
+      {"Color", MenuType::Color, [] {}}, {"Help", MenuType::Help, [] {}},
+  };
+}
 
-constexpr MenuEntry Menus[] = {
-    {"File", MenuType::File},   {"Edit", MenuType::Edit},
-    {"View", MenuType::View},   {"Image", MenuType::Image},
-    {"Color", MenuType::Color}, {"Help", MenuType::Help},
-};
+void TopRibbon::bindMenu(MenuType type, std::function<void()> fn) {
+  for (auto &entry : m_menus) {
+    if (entry.type == type) {
+      entry.onActivate = std::move(fn);
+    }
+  }
+}
 
-constexpr float RibbonHeight = 20.0f;
-constexpr float ButtonWidth = 45.0f;
-
-} // namespace
-
-void TopRibbon::drawBorder(ImDrawList *draw, const ImVec2 &min,
-                           const ImVec2 &max) {
-  ImU32 light = ImGui::ColorConvertFloat4ToU32(LXTheme::White);
-  ImU32 dark = ImGui::ColorConvertFloat4ToU32(LXTheme::Black);
-  draw->AddLine({min.x, min.y}, {max.x, min.y}, light);
-  draw->AddLine({min.x, min.y}, {min.x, max.y}, light);
-  draw->AddLine({min.x, max.y - 1}, {max.x, max.y - 1}, dark);
-  draw->AddLine({max.x - 1, min.y}, {max.x - 1, max.y}, dark);
+void TopRibbon::drawBackground(ImDrawList *draw, ImVec2 rbMin,
+                               ImVec2 rbMax) const {
+  draw->AddRectFilled(rbMin, rbMax, UIStyle::colorSurface());
+  UIDrawHelpers::drawRaisedBorder(draw, rbMin, rbMax);
 }
 
 void TopRibbon::render() {
   ImGuiViewport *vp = ImGui::GetMainViewport();
 
-  const float fontHeight = ImGui::GetTextLineHeight();
-  const float btnPadY = 4.0f;
-  const float ribbonHeight = fontHeight + btnPadY * 2.5f;
+  const float fontH = ImGui::GetTextLineHeight();
+  const float ribbonH = fontH + UIStyle::RibbonPaddingY * 2.5f;
+  const float ribbonW = vp->Size.x;
 
-  ImVec2 origin = vp->Pos; // top-left of screen
-  ImVec2 rbMin = origin;
-  ImVec2 rbMax = {origin.x + vp->Size.x, origin.y + ribbonHeight};
+  ImVec2 rbMin = vp->Pos;
+  ImVec2 rbMax = {vp->Pos.x + ribbonW, vp->Pos.y + ribbonH};
 
   ImDrawList *draw = ImGui::GetForegroundDrawList();
-  draw->AddRectFilled(rbMin, rbMax,
-                      ImGui::ColorConvertFloat4ToU32(LXTheme::MainColor));
-  drawBorder(draw, rbMin, rbMax);
+  drawBackground(draw, rbMin, rbMax);
 
-  // Buttons — use InvisibleButton on a dummy window that exactly fits the
-  // ribbon so hit-testing works, but WE control all drawing via the foreground
-  // list
   ImGui::SetNextWindowPos(rbMin);
-  ImGui::SetNextWindowSize({vp->Size.x, ribbonHeight});
-  ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(2, 2));
-  ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-  ImGui::PushStyleColor(ImGuiCol_WindowBg,
-                        ImVec4(0, 0, 0, 0)); // fully transparent
+  ImGui::SetNextWindowSize({ribbonW, ribbonH});
+  ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+  ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.f);
+  ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 0));
 
   ImGui::Begin("##TopRibbonHitArea", nullptr,
                ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
@@ -58,17 +53,24 @@ void TopRibbon::render() {
                    ImGuiWindowFlags_NoBackground |
                    ImGuiWindowFlags_NoBringToFrontOnFocus);
 
-  const ImVec2 buttonSize = {ButtonWidth, ribbonHeight};
-  float x = 0.0f;
+  UI::HorizontalPanel panel({0.f, 0.f}, {ribbonW, ribbonH});
 
-  for (const auto &menu : Menus) {
-    ImGui::SetCursorPos({x, 0.0f});
-    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
-    // Pass the foreground draw list so LXButton draws on top of everything
-    if (LXButton::Draw(menu.label, buttonSize, draw)) { /* dispatch */
+  // ── File / menu group ─────────────────────────────────────
+  {
+    UI::ToolbarGroup group("Menus", panel, draw);
+
+    for (auto &entry : m_menus) {
+      const float btnW = UIStyle::RibbonButtonWidth;
+      UI::Button btn{entry.label, {btnW, ribbonH}};
+
+      group.item(btnW, [&](ImDrawList *dl) {
+        if (btn.draw(dl) && entry.onActivate) {
+          entry.onActivate();
+        }
+      });
     }
-    ImGui::PopStyleVar();
-    x += ButtonWidth;
+
+    // group.end(); // trailing separator
   }
 
   ImGui::End();

@@ -1,6 +1,8 @@
 #pragma once
+#include <functional>
 #include <imgui.h>
-#include <span>
+#include <string>
+#include <vector>
 
 enum class MenuType {
   File,
@@ -14,12 +16,17 @@ enum class MenuType {
 struct MenuEntry {
   const char *label;
   MenuType type;
+  std::function<void()> onActivate;
 };
 
 class TopRibbon {
 public:
+  TopRibbon();
   void render();
 
+  void bindMenu(MenuType type, std::function<void()> fn);
+
 private:
-  void drawBorder(ImDrawList *draw, const ImVec2 &min, const ImVec2 &max);
+  std::vector<MenuEntry> m_menus;
+  void drawBackground(ImDrawList *draw, ImVec2 rbMin, ImVec2 rbMax) const;
 };

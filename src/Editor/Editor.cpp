@@ -281,27 +281,24 @@ void Editor::handleEvent(const SDL_Event &e) {
 }
 
 void Editor::renderUI() {
+  // ── existing ─────────────────────────────────────────────
   m_topribbon.render();
-  ImGui::Begin("History");
 
+  // ── NEW: tool settings panel ─────────────────────────────
+  float ribbonH = ImGui::GetTextLineHeight() + UIStyle::RibbonPaddingY * 2.5f;
+  m_toolPanel.render({10.f, ribbonH + 4.f});
+
+  // ── existing ImGui panels ─────────────────────────────────
+  ImGui::Begin("History");
   if (ImGui::Button("Undo", ImVec2(100, 0))) {
     m_commands.undo(m_canvas);
   }
-
   ImGui::SameLine();
   if (ImGui::Button("Redo", ImVec2(100, 0))) {
     m_commands.redo(m_canvas);
   }
-
   ImGui::Separator();
   ImGui::TextDisabled("%s", m_commands.getDebugInfo().c_str());
-
-  ImGui::Separator();
-
-  ImGui::Text("Undo Count: %d", (int)m_commands.undoCount());
-  ImGui::Text("Redo Count: %d", (int)m_commands.redoCount());
-  ImGui::Text("Memory Usage: %.2f MB", m_commands.memoryUsageMB());
-
   ImGui::End();
 }
 
