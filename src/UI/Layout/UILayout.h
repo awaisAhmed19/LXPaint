@@ -5,154 +5,246 @@
 #include <imgui.h>
 
 namespace UI {
-struct PanelConext {
-  ImDrawList *draw = nullptr;
-  ImVec2 cursor = {};
-  float height = 0.f;
-  float width = 0.f;
+
+struct LayoutBox {
+  ImVec2 min;
+  ImVec2 max;
+
+  float marginX = 0.f;
+  float marginY = 0.f;
+  float paddingX = 0.f;
+  float paddingY = 0.f;
+
+  LayoutBox(ImVec2 origin, ImVec2 size, float px = 0.f, float py = 0.f,
+            float mx = 0.f, float my = 0.f)
+      : min(origin), max({origin.x + size.x, origin.y + size.y}), marginX(mx),
+        marginY(my), paddingX(px), paddingY(py) {}
+
+  ImVec2 size() const { return {max.x - min.x, max.y - min.y}; }
+  ImVec2 pos() const { return min; }
+
+  // Content area (inset by padding)
+  ImVec2 contentMin() const { return {min.x + paddingX, min.y + paddingY}; }
+  ImVec2 contentMax() const { return {max.x - paddingX, max.y - paddingY}; }
+  ImVec2 contentSize() const {
+    return {contentMax().x - contentMin().x, contentMax().y - contentMin().y};
+  }
+
+  // Position for next element (accounting for margin)
+  ImVec2 nextPos(bool vertical = false) const {
+    if (vertical)
+      return {min.x, max.y + marginY};
+    return {max.x + marginX, min.y};
+  }
+
+  // Create a box without margins applied
+  LayoutBox withoutMargins() const {
+    ImVec2 adjustedSize = {size().x - marginX * 2.f, size().y - marginY * 2.f};
+    return LayoutBox({min.x + marginX, min.y + marginY}, adjustedSize, paddingX,
+                     paddingY);
+  }
 };
 
-class HorizontalPanel {
+class LayoutCursor {
 private:
-  ImVec2 m_origin;
-  ImVec2 m_size;
   ImVec2 m_cursor;
-  float m_paddingX;
-  float m_paddingY;
+  ImVec2 m_containerStart;
+  float m_containerWidth;
+  bool m_vertical;
 
 public:
-  // origin = top-left of the panel in window - local coords
-  explicit HorizontalPanel(ImVec2 origin, ImVec2 size,
-                           float paddingX = UIStyle::PanelPaddingX,
-                           float paddingY = UIStyle::PanelPaddingY)
-      : m_origin(origin), m_size(size), m_paddingX(paddingX),
-        m_paddingY(paddingY) {
-    m_cursor = {origin.x, origin.y};
+  LayoutCursor(ImVec2 start, float containerWidth, bool vertical = false)
+      : m_cursor(start), m_containerStart(start),
+        m_containerWidth(containerWidth), m_vertical(vertical) {}
+
+  /**
+   * Reserve space for an item and advance cursor
+   * Returns: LayoutBox with position and size information
+   */
+  LayoutBox reserve(ImVec2 size, float paddingX = UIStyle::PanelPaddingX,
+                    float paddingY = UIStyle::PanelPaddingY,
+                    float marginX = UIStyle::ItemSpacing,
+                    float marginY = UIStyle::ItemSpacing) {
+    LayoutBox box(m_cursor, size, paddingX, paddingY, marginX, marginY);
+
+    // Advance cursor for next item
+    if (m_vertical) {
+      m_cursor.y += size.y + marginY;
+    } else {
+      m_cursor.x += size.x + marginX;
+    }
+
+    return box;
   }
 
-  void addSpacing(float amount = UIStyle::GroupSpacing) {
-    m_cursor.x += amount;
+  void newline(float lineHeight, float marginY = UIStyle::ItemSpacing) {
+    if (m_vertical)
+      return;
+
+    m_cursor.x = m_containerStart.x;
+    m_cursor.y += lineHeight + marginY;
   }
 
-  ImVec2 reserve(float itemWidth) {
-    ImVec2 pos = m_cursor;
-    ImGui::SetCursorPos({pos.x, pos.y + m_paddingY});
-    m_cursor.x += itemWidth + UIStyle::ItemSpacing;
-    return pos;
-  }
-  void addSeparator(ImDrawList *draw) {
-    float x = m_cursor.x + UIStyle::SeparatorMarginX;
-    float yT = m_origin.y;
-    float yB = m_origin.y + height();
-    UIDrawHelpers::drawVerticalSeparator(draw, x, yT, yB);
-    m_cursor.x += UIStyle::SeparatorMarginX * 2.f + 2.f + UIStyle::GroupSpacing;
+  void addSpacing(float amount) {
+    if (m_vertical) {
+      m_cursor.y += amount;
+    } else {
+      m_cursor.x += amount;
+    }
   }
 
-  float height() const {
-    return m_size.y > 0.f ? m_size.y
-                          : ImGui::GetTextLineHeight() + m_paddingY * 2.5f;
-  }
-
-  float currentX() const { return m_cursor.x; }
-  ImVec2 origin() const { return m_origin; }
+  ImVec2 position() const { return m_cursor; }
+  ImVec2 containerStart() const { return m_containerStart; }
 };
 
-class VerticalPanel {
-private:
-  ImVec2 m_origin;
-  ImVec2 m_size;
-  ImVec2 m_cursor;
-  float m_paddingX;
-  float m_paddingY;
-
+class PanelBuilder {
 public:
-  explicit VerticalPanel(ImVec2 origin, ImVec2 size,
-                         float paddingX = UIStyle::PanelPaddingX,
-                         float paddingY = UIStyle::PanelPaddingY)
-      : m_origin(origin), m_size(size), m_paddingX(paddingX),
-        m_paddingY(paddingY) {
-    m_cursor = {origin.x + paddingX, origin.y + paddingY};
-  }
-
-  ImVec2 reserve(float itemHeight) {
-    ImVec2 pos = m_cursor;
-    ImGui::SetCursorPos({pos.x + m_paddingX, pos.y});
-    m_cursor.y += itemHeight + UIStyle::ItemSpacing;
-    return pos;
-  }
-  void addSpacing(float amount = UIStyle::GroupSpacing) {
-    m_cursor.x += amount;
-  }
-  void addSeparator(ImDrawList *draw) {
-    float y = m_cursor.y + UIStyle::SeparatorMarginY;
-    float xL = m_origin.x;
-    float xR = m_origin.x + width();
-    draw->AddLine({xL, y}, {xR, y}, UIStyle::colorBorder());
-    draw->AddLine({xL, y + 1}, {xR, y + 1}, UIStyle::colorHighlight());
-
-    m_cursor.y += UIStyle::SeparatorMarginY * 2.f + 2.f + UIStyle::GroupSpacing;
-  }
-
-  float width() const { return m_size.x > 0.f ? m_size.x : 120.f; }
-
-  float currentY() const { return m_cursor.y; }
-  ImVec2 origin() const { return m_origin; }
-};
-class ToolbarGroup {
-private:
-  const char *m_name;
-  HorizontalPanel &m_panel;
-  ImDrawList *m_draw;
-
-public:
-  ToolbarGroup(const char *name, HorizontalPanel &panel, ImDrawList *draw)
-      : m_name(name), m_panel(panel), m_draw(draw) {
-    m_panel.addSpacing(UIStyle::GroupSpacing * .5f);
-  }
-
-  void item(float reverseWidth, std::function<void(ImDrawList *)> itemfnc) {
-    m_panel.reserve(reverseWidth);
-    itemfnc(m_draw);
-  }
-
-  void end() { m_panel.addSeparator(m_draw); }
-  const char *name() const { return m_name; }
-};
-
-class Panel {
-public:
-  struct Desc {
+  struct config {
     ImVec2 pos;
     ImVec2 size;
-    bool noTitleBar = true;
-    bool noResize = true;
-    bool noMove = true;
-    bool noScrollbar = false;
-    bool noBring = true;
+    float pX = UIStyle::PanelPaddingX;
+    float pY = UIStyle::PanelPaddingY;
+    ImU32 bgColor = UIStyle::colorSurface();
+    bool drawBorder = true;
+    bool vertical = false;
+    const char *id = "##panel";
   };
 
-  static void show(const char *id, const Desc &desc,
-                   std::function<void()> content) {
-    ImGui::SetNextWindowPos(desc.pos, ImGuiCond_Always);
-    if (desc.size.x > 0.f || desc.size.y > 0.f)
-      ImGui::SetNextWindowSize(desc.size, ImGuiCond_Always);
+  struct ItemConfig {
+    float paddingX = UIStyle::PanelPaddingX;
+    float paddingY = UIStyle::PanelPaddingY;
+    float marginX = UIStyle::ItemSpacing;
+    float marginY = UIStyle::ItemSpacing;
+  };
 
-    ImGuiWindowFlags flags = ImGuiWindowFlags_NoSavedSettings;
-    if (desc.noTitleBar)
-      flags |= ImGuiWindowFlags_NoTitleBar;
-    if (desc.noResize)
-      flags |= ImGuiWindowFlags_NoResize;
-    if (desc.noMove)
-      flags |= ImGuiWindowFlags_NoMove;
-    if (desc.noScrollbar)
-      flags |= ImGuiWindowFlags_NoScrollbar;
-    if (desc.noBring)
-      flags |= ImGuiWindowFlags_NoBringToFrontOnFocus;
+private:
+  config m_config;
+  ImDrawList *m_draw;
+  LayoutCursor m_cursor;
+  ImVec2 m_winPos;
 
-    if (ImGui::Begin(id, nullptr, flags)) {
-      content();
+public:
+  PanelBuilder(const config &cfg)
+      : m_config(cfg), m_draw(nullptr),
+        m_cursor({cfg.pos.x + cfg.pX, cfg.pos.y + cfg.pY}, cfg.size.x,
+                 cfg.vertical) {
+    m_draw = ImGui::GetWindowDrawList();
+    m_winPos = ImGui::GetWindowPos();
+  }
+
+  PanelBuilder &drawBackground() {
+    LayoutBox box(m_config.pos, m_config.size);
+    m_draw->AddRectFilled(box.min, box.max, m_config.bgColor);
+    if (m_config.drawBorder)
+      UIDrawHelpers::drawRaisedBorder(m_draw, box.min, box.max);
+    return *this;
+  }
+
+  PanelBuilder &Button(const char *label, const ItemConfig &cfg,
+                       std::function<void()> onClick) {
+    LayoutBox box = m_cursor.reserve({50.f, 20.f}, cfg.paddingX, cfg.paddingY,
+                                     cfg.marginX, cfg.marginY);
+
+    ImGui::SetCursorPos({box.min.x - m_winPos.x, box.min.y - m_winPos.y});
+
+    if (ImGui::InvisibleButton(label, box.size())) {
+      if (onClick) {
+        onClick();
+      }
     }
-    ImGui::End();
+
+    bool onHover = ImGui::IsItemHovered();
+    bool onActive = ImGui::IsItemActive();
+
+    m_draw->AddRectFilled(box.min, box.max, UIStyle::colorSurface());
+
+    if (onActive) {
+      UIDrawHelpers::drawSunkenBorder(m_draw, box.min, box.max);
+    } else if (onHover) {
+      UIDrawHelpers::drawRaisedBorder(m_draw, box.min, box.max);
+    }
+
+    ImVec2 textSize = ImGui::CalcTextSize(label);
+    ImVec2 textPos = {box.min.x + (box.size().x - textSize.x) * 0.5f,
+                      box.min.y + (box.size().y - textSize.y) * 0.5f};
+    m_draw->AddText(textPos, UIStyle::colorText(), label);
+
+    return *this;
+  }
+
+  PanelBuilder &label(const char *text, const ItemConfig &cfg,
+                      ImU32 color = 0) {
+    ImU32 col = (color != 0) ? color : UIStyle::colorText();
+    ImVec2 textSize = ImGui::CalcTextSize(text);
+    LayoutBox box = m_cursor.reserve(textSize, cfg.paddingX, cfg.paddingY,
+                                     cfg.marginX, cfg.marginY);
+
+    m_draw->AddText(box.contentMin(), col, text);
+    return *this;
+  }
+
+  PanelBuilder &separator(float height = 20.f) {
+    LayoutBox box = m_cursor.reserve({2.f, height});
+    float x = box.min.x + 1.f;
+    UIDrawHelpers::drawVerticalSeparator(m_draw, x, box.min.y, box.max.y);
+    return *this;
+  }
+
+  PanelBuilder &spacing(float amount) {
+    m_cursor.addSpacing(amount);
+    return *this;
+  }
+
+  PanelBuilder &group(const char *name,
+                      std::function<PanelBuilder &(PanelBuilder &)> content) {
+    label(name, {});
+    spacing(UIStyle::GroupSpacing * 0.5f);
+    content(*this);
+    separator();
+    return *this;
+  }
+
+  PanelBuilder &custom(ImVec2 size, const ItemConfig &cfg,
+                       std::function<void(LayoutBox)> drawer) {
+    LayoutBox box = m_cursor.reserve(size, cfg.paddingX, cfg.paddingY,
+                                     cfg.marginX, cfg.marginY);
+    drawer(box);
+    return *this;
+  }
+
+  ImVec2 position() const { return m_cursor.position(); }
+
+  LayoutBox currentBox() const {
+    return LayoutBox(m_config.pos, m_config.size, m_config.pX, m_config.pY);
   }
 };
-}; // namespace UI
+
+class LayoutFactory {
+public:
+  static PanelBuilder toolbar(ImVec2 position, ImVec2 size) {
+    PanelBuilder::config cfg;
+    cfg.pos = position;
+    cfg.size = size;
+    cfg.vertical = false;
+    return PanelBuilder(cfg);
+  }
+
+  static PanelBuilder verticalPanel(ImVec2 position, ImVec2 size) {
+    PanelBuilder::config cfg;
+    cfg.pos = position;
+    cfg.size = size;
+    cfg.vertical = true;
+    return PanelBuilder(cfg);
+  }
+
+  static PanelBuilder overlay(ImVec2 position, ImVec2 size) {
+    PanelBuilder::config cfg;
+    cfg.pos = position;
+    cfg.size = size;
+    cfg.drawBorder = false;
+    cfg.bgColor = IM_COL32(0, 0, 0, 0);
+    return PanelBuilder(cfg);
+  }
+};
+
+} // namespace UI

@@ -1,11 +1,9 @@
 #include "TopRibbon.h"
 #include "UI/Components/UIComponents.h"
-#include "UI/Layout/UILayout.h"
-#include "UI/Styling/UIDrawHelper.h"
-#include "UI/Styling/UIStyle.h"
-#include "imgui.h"
 
-TopRibbon::TopRibbon() {
+TopRibbon::TopRibbon() { initializeMenus(); }
+
+void TopRibbon::initializeMenus() {
   m_menus = {
       {"File", MenuType::File, [] {}},   {"Edit", MenuType::Edit, [] {}},
       {"View", MenuType::View, [] {}},   {"Image", MenuType::Image, [] {}},
@@ -17,63 +15,45 @@ void TopRibbon::bindMenu(MenuType type, std::function<void()> fn) {
   for (auto &entry : m_menus) {
     if (entry.type == type) {
       entry.onActivate = std::move(fn);
+      return; // Found and updated, exit early
     }
   }
-}
-
-void TopRibbon::drawBackground(ImDrawList *draw, ImVec2 rbMin,
-                               ImVec2 rbMax) const {
-  draw->AddRectFilled(rbMin, rbMax, UIStyle::colorSurface());
-  UIDrawHelpers::drawRaisedBorder(draw, rbMin, rbMax);
 }
 
 void TopRibbon::render() {
   ImGuiViewport *vp = ImGui::GetMainViewport();
 
-  const float fontH = ImGui::GetTextLineHeight();
-  const float ribbonH = fontH + UIStyle::RibbonPaddingY * 2.5f;
-  const float ribbonW = vp->Size.x;
+  // Calculate ribbon dimensions
+  const float fontHeight = ImGui::GetTextLineHeight();
+  const float ribbonHeight = fontHeight + UIStyle::RibbonPaddingY * 2.5f;
+  const float ribbonWidth = vp->Size.x;
 
-  ImVec2 rbMin = vp->Pos;
-  ImVec2 rbMax = {vp->Pos.x + ribbonW, vp->Pos.y + ribbonH};
+  // Configure panel builder
+  UI::PanelBuilder::config cfg;
+  cfg.pos = vp->Pos;
+  cfg.size = {ribbonWidth, ribbonHeight};
+  cfg.pX = 0.f; // No horizontal padding (align to edges)
+  cfg.pY = 0.f; // No vertical padding (align to edges)
+  cfg.vertical = false;
+  cfg.drawBorder = true;
+  cfg.id = "##TopRibbonPanel";
 
-  ImDrawList *draw = ImGui::GetForegroundDrawList();
-  drawBackground(draw, rbMin, rbMax);
+  // Build and render ribbon
+  UI::PanelBuilder builder(cfg);
+  builder.drawBackground();
 
-  ImGui::SetNextWindowPos(rbMin);
-  ImGui::SetNextWindowSize({ribbonW, ribbonH});
-  ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
-  ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.f);
-  ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 0));
+  // Add menu buttons
+  for (auto &entry : m_menus) {
+    UI::PanelBuilder::ItemConfig itemCfg;
+    itemCfg.paddingX = UIStyle::PaddingX;
+    itemCfg.paddingY = UIStyle::PaddingY;
+    itemCfg.marginX = UIStyle::ItemSpacingX;
+    itemCfg.marginY = 0.f;
 
-  ImGui::Begin("##TopRibbonHitArea", nullptr,
-               ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
-                   ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar |
-                   ImGuiWindowFlags_NoSavedSettings |
-                   ImGuiWindowFlags_NoBackground |
-                   ImGuiWindowFlags_NoBringToFrontOnFocus);
-
-  UI::HorizontalPanel panel({0.f, 0.f}, {ribbonW, ribbonH});
-
-  // ── File / menu group ─────────────────────────────────────
-  {
-    UI::ToolbarGroup group("Menus", panel, draw);
-
-    for (auto &entry : m_menus) {
-      const float btnW = UIStyle::RibbonButtonWidth;
-      UI::Button btn{entry.label, {btnW, ribbonH}};
-
-      group.item(btnW, [&](ImDrawList *dl) {
-        if (btn.draw(dl) && entry.onActivate) {
-          entry.onActivate();
-        }
-      });
-    }
-
-    // group.end(); // trailing separator
+    builder.Button(entry.label, itemCfg, [this, &entry]() {
+      if (entry.onActivate) {
+        entry.onActivate();
+      }
+    });
   }
-
-  ImGui::End();
-  ImGui::PopStyleColor();
-  ImGui::PopStyleVar(2);
 }

@@ -1,4 +1,8 @@
+
 #pragma once
+#include "UI/Layout/UILayout.h"
+#include "UI/Styling/UIDrawHelper.h"
+#include "UI/Styling/UIStyle.h"
 #include <functional>
 #include <imgui.h>
 #include <string>
@@ -29,4 +33,5 @@ public:
 private:
   std::vector<MenuEntry> m_menus;
   void drawBackground(ImDrawList *draw, ImVec2 rbMin, ImVec2 rbMax) const;
+  void initializeMenus();
 };
