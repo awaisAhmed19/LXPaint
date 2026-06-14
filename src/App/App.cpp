@@ -5,13 +5,11 @@
 
 #include "App.h"
 
-// #include "UI/Theme.h"
 #include "imgui_impl_sdlrenderer3.h"
 
 #include "Systems/Logger.h"
 
 namespace App {
-// const auto &AppBg = LXTheme::AppBackground;
 Application::Application(const char *title) : m_editor(nullptr) {
   unsigned int init_flags = SDL_INIT_VIDEO;
   Logger::init();
@@ -24,6 +22,11 @@ Application::Application(const char *title) : m_editor(nullptr) {
   this->m_editor = std::make_unique<Editor>(m_window->getNativeRenderer());
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
+
+  this->m_ribbon = std::make_unique<UI::Ribbon>(1300, 10);
+  this->m_toolbar = std::make_unique<UI::Toolbar>(0, 0);
+  this->m_toolbar->init(this->m_window->getNativeRenderer());
+  this->m_colorpallete = std::make_unique<UI::ColorPallete>(1300, 0);
   ImGui_ImplSDL3_InitForSDLRenderer(m_window->getNativeWindow(),
                                     m_window->getNativeRenderer());
   ImGui_ImplSDLRenderer3_Init(m_window->getNativeRenderer());
@@ -34,7 +37,6 @@ Application::Application(const char *title) : m_editor(nullptr) {
 void Application::handleEvents() {
   while (SDL_PollEvent(&this->m_event)) {
     ImGui_ImplSDL3_ProcessEvent(&this->m_event);
-    // 1. System Events
     if (this->m_event.type == SDL_EVENT_QUIT) {
       this->m_running = false;
       return;
@@ -54,9 +56,9 @@ void Application::render() {
   SDL_RenderClear(m_window->getNativeRenderer());
   m_editor->render();
   m_editor->renderUI();
-
-  // DrawLogConsole(m_editor->getCanvas(), m_screenW, m_screenH, frameTimes,
-  //                frameOffset);
+  m_ribbon->render();
+  m_toolbar->render();
+  m_colorpallete->render();
 
   ImGui::Render();
   ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(),

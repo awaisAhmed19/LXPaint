@@ -9,6 +9,7 @@ set(CMAKE_BUILD_TYPE Debug)
 set(CMAKE_CXX_FLAGS_DEBUG "-g -O0")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 find_package(SDL3 REQUIRED)
+find_package(SDL3_image REQUIRED)
 # Project Sources
 set(PROJECT_SOURCES
     src/App/main.cpp
@@ -16,7 +17,6 @@ set(PROJECT_SOURCES
     src/App/App.cpp
 
     #src/UI/Theme.cpp
-    src/UI/TopRibbon/TopRibbon.cpp
     src/Input/InputDispatcher.cpp
 
     src/Editor/Viewport/Viewport.cpp
@@ -36,7 +36,11 @@ set(PROJECT_SOURCES
     src/Editor/Tools/Eraser.cpp
     src/Editor/Tools/Rect.cpp
     src/Editor/Tools/Circle.cpp
-)
+
+    src/UI/Ribbon.cpp
+    src/UI/Toolbar.cpp
+    src/UI/ColorPallete.cpp
+  )
 
 # ImGui
 set(IMGUI_SRCS
@@ -62,7 +66,10 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     external/imgui/backends
 )
 
-target_link_libraries(${PROJECT_NAME} PRIVATE SDL3::SDL3)
+target_link_libraries(${PROJECT_NAME} PRIVATE
+  SDL3::SDL3
+  SDL3_image::SDL3_image
+)
 
 # C++ Standard
 set_target_properties(${PROJECT_NAME} PROPERTIES

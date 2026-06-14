@@ -20,8 +20,6 @@
 #include "Rendering/Renderer.h"
 #include "Rendering/Transform2D.h"
 
-// #include "UI/Components/ToolSettingsPanel.h"
-#include "UI/TopRibbon/TopRibbon.h"
 #include "Viewport/Viewport.h"
 
 class Editor {
@@ -39,8 +37,6 @@ private:
   InputDispatcher m_input;
   Viewport m_viewport;
   Transform2D m_docTransform;
-  TopRibbon m_topribbon;
-  // ToolSettingsPanel m_toolPanel;
   void setupTools();
   void setupInputBindings();
 

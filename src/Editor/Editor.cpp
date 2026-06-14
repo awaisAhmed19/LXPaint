@@ -281,14 +281,6 @@ void Editor::handleEvent(const SDL_Event &e) {
 }
 
 void Editor::renderUI() {
-  // ── existing ─────────────────────────────────────────────
-  m_topribbon.render();
-  /*
-    // ── NEW: tool settings panel ─────────────────────────────
-    float ribbonH = ImGui::GetTextLineHeight() + UIStyle::RibbonPaddingY * 2.5f;
-    m_toolPanel.render({10.f, ribbonH + 4.f});
-  */
-  // ── existing ImGui panels ─────────────────────────────────
   ImGui::Begin("History");
   if (ImGui::Button("Undo", ImVec2(100, 0))) {
     m_commands.undo(m_canvas);
