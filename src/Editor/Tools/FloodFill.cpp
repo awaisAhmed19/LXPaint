@@ -21,7 +21,7 @@ std::unique_ptr<Command> FloodFill::onMouseClick(vec2 pos, ToolContext &ctx) {
   auto before =
       SnapshotCommand::copyRegion(ctx.canvas->getSurface(), {0, 0, w, h});
 
-  Rasterizer::floodFill(ctx.canvas->getSurface(), pos, 0xff000000);
+  Rasterizer::floodFill(ctx.canvas->getSurface(), pos, ctx.fgColor);
   auto after =
       SnapshotCommand::copyRegion(ctx.canvas->getSurface(), {0, 0, w, h});
   initialRect = {0, 0, ctx.canvas->getWidth(), ctx.canvas->getHeight()};

@@ -3,6 +3,7 @@
 
 #include <memory>
 
+#include "App/Globals.h"
 #include "Window.h"
 #include "imgui_impl_sdl3.h"
 
@@ -33,10 +34,11 @@ private:
   std::unique_ptr<UI::Ribbon> m_ribbon = nullptr;
   std::unique_ptr<UI::Toolbar> m_toolbar = nullptr;
   std::unique_ptr<UI::ColorPallete> m_colorpallete = nullptr;
+  ToolType m_lastTool;
 
 private:
   void handleEvents();
-  void update(float deltatime);
+  void update();
   void render();
 };
 }; // namespace App

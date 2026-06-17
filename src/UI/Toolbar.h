@@ -1,7 +1,7 @@
 #pragma once
+#include "App/Globals.h"
 #include "imgui.h"
 #include <SDL3/SDL.h>
-
 namespace UI {
 
 class Toolbar {
@@ -11,8 +11,7 @@ private:
 
   static constexpr int TotalButtons = 16;
   SDL_Texture *m_textures[TotalButtons] = {nullptr};
-  int m_activeTool = 0; // pencil selected by default
-
+  ToolType m_activeTool = ToolType::Pencil;
   void raisedBorder(ImDrawList *drawlist, ImVec2 min, ImVec2 max);
   void sunkenBorder(ImDrawList *drawlist, ImVec2 min, ImVec2 max);
 
@@ -24,7 +23,7 @@ public:
   bool init(SDL_Renderer *renderer);
   void render();
 
-  int getActiveTool() const { return m_activeTool; }
+  ToolType getActiveTool() const { return m_activeTool; }
 };
 
 } // namespace UI

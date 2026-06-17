@@ -31,8 +31,8 @@ void Eraser::onMouseDown(vec2 pos, ToolContext &ctx) {
     return;
   }
 
-  Rasterizer::bresenham(pos, pos, ctx.canvas->getSurface(), m_color, brushSize,
-                        false);
+  Rasterizer::bresenham(pos, pos, ctx.canvas->getSurface(), ctx.bgColor,
+                        brushSize, false);
   SDL_Rect initialRect{(int)pos.x - brushSize, (int)pos.y - brushSize,
                        brushSize * 2 + 1, brushSize * 2 + 1};
 
@@ -53,7 +53,7 @@ void Eraser::onMouseMove(vec2 pos, ToolContext &ctx) {
                        std::abs((int)(pos.x - m_last.x)) + brushSize * 2 + 1,
                        std::abs((int)(pos.y - m_last.y)) + brushSize * 2 + 1};
 
-  Rasterizer::bresenham(m_last, pos, ctx.canvas->getSurface(), m_color,
+  Rasterizer::bresenham(m_last, pos, ctx.canvas->getSurface(), ctx.bgColor,
                         brushSize, false);
 
   ctx.canvas->invalidateRect(segmentRect);

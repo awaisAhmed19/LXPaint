@@ -52,7 +52,7 @@ void Circle::onMouseMove(vec2 pos, ToolContext &ctx) {
                                   ctx.canvas->getSurface()->h);
 
   Rasterizer::drawEllipse_theta(ctx.preview->getSurface(), (int)m_start.x,
-                                (int)m_start.y, rx, ry, color);
+                                (int)m_start.y, rx, ry, ctx.fgColor);
 
   ctx.preview->invalidateRect(affected);
 }
@@ -81,7 +81,7 @@ std::unique_ptr<Command> Circle::onMouseUp(vec2 pos, ToolContext &ctx) {
   m_command =
       std::make_unique<SnapshotCommand>(ctx.canvas->getSurface(), affected);
   Rasterizer::drawEllipse_theta(ctx.canvas->getSurface(), (int)m_start.x,
-                                (int)m_start.y, rx, ry, color);
+                                (int)m_start.y, rx, ry, ctx.fgColor);
   // TODO:add settings to tools so that we can distiguish the stoke, fill etc
   ctx.canvas->invalidateRect(affected);
   m_command->captureAfter(ctx.canvas->getSurface());

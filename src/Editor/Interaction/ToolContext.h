@@ -4,9 +4,13 @@ class Canvas;
 class PreviewLayer;
 
 struct ToolInteractionState;
+struct ToolSettings;
 struct ToolContext {
   Canvas *canvas;
   PreviewLayer *preview;
   ToolInteractionState *interaction;
-  uint32_t color = 0;
+  uint32_t fgColor;
+  uint32_t bgColor;
+  int brushSize = 1;
+  ToolSettings *settings;
 };

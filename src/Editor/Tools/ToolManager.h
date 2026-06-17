@@ -1,56 +1,70 @@
+#pragma once
+
 #include <map>
 #include <memory>
 #include <string>
 
 #include "BaseTool.h"
-
 #include "ClickTool.h"
 #include "Systems/Logger.h"
 
 class ToolManager {
-  std::map<std::string, std::unique_ptr<BaseTool>> registry;
-  std::map<std::string, std::unique_ptr<ClickTool>> clickRegistry;
-  BaseTool *activeTool = nullptr;
-  ClickTool *activeClickTool = nullptr;
+private:
+  std::map<std::string, std::unique_ptr<BaseTool>> m_registry;
+  std::map<std::string, std::unique_ptr<ClickTool>> m_clickRegistry;
+
+  BaseTool *m_activeTool = nullptr;
+  ClickTool *m_activeClickTool = nullptr;
+
+  ToolType m_activeType = ToolType::Pencil;
 
 public:
-  void registerTool(std::string name, std::unique_ptr<ClickTool> tool) {
-    clickRegistry[name] = std::move(tool); // "Move" ownership into the map
-    std::string message = "TOOL REGISTERED:" + name;
-    Logger::log(LogLevel::INFO, message);
+  void registerTool(const std::string &name, std::unique_ptr<BaseTool> tool) {
+    m_registry[name] = std::move(tool);
+    Logger::log(LogLevel::INFO, "TOOL REGISTERED: " + name);
   }
-  void registerTool(std::string name, std::unique_ptr<BaseTool> tool) {
-    registry[name] = std::move(tool); // "Move" ownership into the map
-    std::string message = "TOOL REGISTERED:" + name;
-    Logger::log(LogLevel::INFO, message);
+
+  void registerTool(const std::string &name, std::unique_ptr<ClickTool> tool) {
+    m_clickRegistry[name] = std::move(tool);
+    Logger::log(LogLevel::INFO, "TOOL REGISTERED: " + name);
   }
-  void setActiveTool(const std::string &name) {
-    if (activeTool) {
-      activeTool->deactivate();
-      activeTool = nullptr;
+
+  void setActiveTool(const std::string &name, ToolType type) {
+    if (m_activeTool) {
+      m_activeTool->deactivate();
+      m_activeTool = nullptr;
     }
 
-    if (activeClickTool) {
-      activeClickTool->deactivate();
-      activeClickTool = nullptr;
+    if (m_activeClickTool) {
+      m_activeClickTool->deactivate();
+      m_activeClickTool = nullptr;
     }
 
-    if (auto it = registry.find(name); it != registry.end()) {
-      activeTool = it->second.get();
-      Logger::log(LogLevel::INFO, "THE ACTIVE TOOL: " + name);
-    } else if (auto it = clickRegistry.find(name); it != clickRegistry.end()) {
-      activeClickTool = it->second.get();
-      Logger::log(LogLevel::INFO, "THE ACTIVE TOOL: " + name);
+    m_activeType = type;
+
+    if (auto it = m_registry.find(name); it != m_registry.end()) {
+      m_activeTool = it->second.get();
+    } else if (auto it = m_clickRegistry.find(name);
+               it != m_clickRegistry.end()) {
+      m_activeClickTool = it->second.get();
     }
+
+    Logger::log(LogLevel::INFO, "ACTIVE TOOL: " + name);
   }
+
   void reset() {
-    if (activeTool) {
-      activeTool->deactivate();
-      //     activeTool = nullptr;
-    }
+    if (m_activeTool)
+      m_activeTool->deactivate();
+
+    if (m_activeClickTool)
+      m_activeClickTool->deactivate();
 
     Logger::debug("ToolManager reset");
   }
-  BaseTool *getActiveTool() { return activeTool; }
-  ClickTool *getActiveClickTool() { return activeClickTool; }
+
+  BaseTool *getActiveTool() { return m_activeTool; }
+
+  ClickTool *getActiveClickTool() { return m_activeClickTool; }
+
+  ToolType getActiveToolType() const { return m_activeType; }
 };

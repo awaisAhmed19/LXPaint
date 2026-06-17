@@ -1,7 +1,6 @@
 #pragma once
 #include "Editor/Commands/SnapshotCommand.h"
 #include "StrokeTool.h"
-#include <chrono>
 #include <memory>
 
 class Pencil : public StrokeTool {
@@ -12,8 +11,6 @@ private:
 
 public:
   const int brushSize = 1;
-
-  uint32_t color = COLORS::BLACK;
 
   void onMouseDown(vec2 pos, ToolContext &ctx) override;
   void onMouseMove(vec2 pos, ToolContext &ctx) override;

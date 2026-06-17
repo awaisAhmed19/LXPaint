@@ -5,6 +5,7 @@
 
 #include "App.h"
 
+#include "App/Globals.h"
 #include "imgui_impl_sdlrenderer3.h"
 
 #include "Systems/Logger.h"
@@ -51,20 +52,38 @@ void Application::render() {
   ImGui_ImplSDL3_NewFrame();
 
   ImGui::NewFrame();
-  SDL_SetRenderDrawColor(m_window->getNativeRenderer(), 128, 128, 128,
-                         255); // background color of app
+
+  SDL_SetRenderDrawColor(m_window->getNativeRenderer(), 128, 128, 128, 255);
+
   SDL_RenderClear(m_window->getNativeRenderer());
+
   m_editor->render();
   m_editor->renderUI();
+
   m_ribbon->render();
   m_toolbar->render();
   m_colorpallete->render();
-
+  m_editor->setFgColor(UI::ColorPallete::toU32(m_colorpallete->getFgColor()));
+  m_editor->setBgColor(UI::ColorPallete::toU32(m_colorpallete->getBgColor()));
   ImGui::Render();
+
   ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(),
                                         m_window->getNativeRenderer());
+
   SDL_RenderPresent(m_window->getNativeRenderer());
 }
+
+void Application::update() {
+  ToolType currentTool = m_toolbar->getActiveTool();
+
+  if (currentTool != m_lastTool) {
+    m_editor->setActiveTool(currentTool);
+    m_lastTool = currentTool;
+  }
+
+  m_editor->update();
+}
+
 int Application::run() {
   uint64_t last = SDL_GetTicks();
   if (m_exist_status == 1) {
@@ -75,7 +94,7 @@ int Application::run() {
     float deltaTime = (now - last) / 1000.0f;
     last = now;
     handleEvents();
-    m_editor->update();
+    update();
     render();
   }
   return m_exist_status;

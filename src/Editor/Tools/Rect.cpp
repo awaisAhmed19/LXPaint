@@ -41,8 +41,8 @@ void Rect::onMouseMove(vec2 pos, ToolContext &ctx) {
 
   ctx.preview->clearRGBA(0, 0, 0, 0);
 
-  Rasterizer::drawRectStroke(ctx.preview->getSurface(), m_start, pos, color,
-                             brushSize);
+  Rasterizer::drawRectStroke(ctx.preview->getSurface(), m_start, pos,
+                             ctx.fgColor, brushSize);
 
   ctx.preview->invalidateRect(affected);
 }
@@ -65,8 +65,8 @@ std::unique_ptr<Command> Rect::onMouseUp(vec2 pos, ToolContext &ctx) {
   m_command =
       std::make_unique<SnapshotCommand>(ctx.canvas->getSurface(), affected);
 
-  Rasterizer::drawRectStroke(ctx.canvas->getSurface(), m_start, pos, color,
-                             brushSize);
+  Rasterizer::drawRectStroke(ctx.canvas->getSurface(), m_start, pos,
+                             ctx.fgColor, brushSize);
 
   ctx.canvas->invalidateRect(affected);
 

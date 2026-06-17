@@ -23,7 +23,10 @@ Toolbar::~Toolbar() {
     }
   }
 }
-
+struct ToolButton {
+  ToolType type;
+  const char *iconName;
+};
 void Toolbar::raisedBorder(ImDrawList *drawlist, ImVec2 min, ImVec2 max) {
   drawlist->AddLine(min, {max.x, min.y}, Theme::WHITE, 2.0f); // Top
   drawlist->AddLine(min, {min.x, max.y}, Theme::WHITE, 2.0f); // Left
@@ -37,7 +40,24 @@ void Toolbar::sunkenBorder(ImDrawList *drawlist, ImVec2 min, ImVec2 max) {
   drawlist->AddLine({min.x, max.y}, max, Theme::WHITE, 2.0f); // Bottom
   drawlist->AddLine({max.x, min.y}, max, Theme::WHITE, 2.0f); // Right
 }
-
+constexpr ToolButton kButtons[] = {
+    {ToolType::FreeSelect, "01_free_form_select"},
+    {ToolType::RectSelect, "02_select"},
+    {ToolType::Eraser, "03_eraser"},
+    {ToolType::FloodFill, "04_fill_bucket"},
+    {ToolType::Eyedropper, "05_pick_color"},
+    {ToolType::Magnifier, "06_magnifier"},
+    {ToolType::Pencil, "07_pencil"},
+    {ToolType::Brush, "08_brush"},
+    {ToolType::Airbrush, "09_airbrush"},
+    {ToolType::Text, "10_text"},
+    {ToolType::Line, "11_line"},
+    {ToolType::Curve, "12_curve"},
+    {ToolType::Rectangle, "13_rectangle"},
+    {ToolType::Polygon, "14_polygon"},
+    {ToolType::Ellipse, "15_ellipse"},
+    {ToolType::RoundedRectangle, "16_rounded_rectangle"},
+};
 bool Toolbar::init(SDL_Renderer *renderer) {
   const std::string tool_names[TotalButtons] = {"01_free_form_select",
                                                 "02_select",
@@ -58,7 +78,8 @@ bool Toolbar::init(SDL_Renderer *renderer) {
 
   bool all_loaded = true;
   for (int i = 0; i < TotalButtons; ++i) {
-    std::string filepath = "../tools_icons/" + tool_names[i] + ".png";
+    std::string filepath =
+        "../tools_icons/" + std::string(kButtons[i].iconName) + ".png";
     m_textures[i] = IMG_LoadTexture(renderer, filepath.c_str());
 
     if (m_textures[i] == nullptr) {
@@ -82,7 +103,7 @@ void Toolbar::render() {
       (columns * buttonSide) + ((columns - 1) * 2.0f) + 15.0f;
   const float toolbarHeight =
       (rows * buttonSide) + ((rows - 1) * 2.0f) + 2.0f + 400.0f;
-  ImGui::GetStyle().FramePadding = ButtonPadding;
+  // ImGui::GetStyle().FramePadding = ButtonPadding;
   ImGuiViewport *vp = ImGui::GetMainViewport();
 
   ImGui::SetNextWindowPos({vp->Pos.x, vp->Pos.y + 22.0f});
@@ -127,10 +148,10 @@ void Toolbar::render() {
     ImVec2 btnMin = ImGui::GetItemRectMin();
     ImVec2 btnMax = ImGui::GetItemRectMax();
 
-    bool isActive = (m_activeTool == i);
+    bool isActive = (m_activeTool == kButtons[i].type);
 
     if (ImGui::IsItemClicked()) {
-      m_activeTool = i;
+      m_activeTool = kButtons[i].type;
       isActive = true;
     }
 

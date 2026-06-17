@@ -1,13 +1,14 @@
 #pragma once
 #include "imgui.h"
-
+#include <stdint.h>
 namespace UI {
 
 class ColorPallete {
 private:
   int m_w = 0;
   int m_h = 0;
-
+  int m_fgIndex = 0;                           // Black
+  int m_bgIndex = 14;                          // White
   ImVec4 m_fgColor = {0.0f, 0.0f, 0.0f, 1.0f}; // Foreground (black)
   ImVec4 m_bgColor = {1.0f, 1.0f, 1.0f, 1.0f}; // Background (white)
 
@@ -18,7 +19,7 @@ private:
 public:
   ColorPallete(int w, int h);
   void render();
-
+  static uint32_t toU32(const ImVec4 &color);
   ImVec4 getFgColor() const { return m_fgColor; }
   ImVec4 getBgColor() const { return m_bgColor; }
 };

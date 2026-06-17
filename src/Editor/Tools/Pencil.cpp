@@ -18,7 +18,7 @@ void Pencil::onMouseDown(vec2 pos, ToolContext &ctx) {
   m_start = pos;
   m_last = pos;
 
-  beginStrokeBounds(pos, brushSize, ctx.canvas->getSurface()->w,
+  beginStrokeBounds(pos, ctx.brushSize, ctx.canvas->getSurface()->w,
                     ctx.canvas->getSurface()->h);
 
   freeBackupSurface();
@@ -34,12 +34,12 @@ void Pencil::onMouseDown(vec2 pos, ToolContext &ctx) {
     return;
   }
 
-  Rasterizer::bresenham(pos, pos, ctx.canvas->getSurface(), color, brushSize,
-                        false);
+  Rasterizer::bresenham(pos, pos, ctx.canvas->getSurface(), ctx.fgColor,
+                        ctx.brushSize, false);
 
-  SDL_Rect initialRect{(int)pos.x - brushSize, (int)pos.y - brushSize,
-                       brushSize * 2 + 1, brushSize * 2 + 1};
-
+  SDL_Rect initialRect{(int)pos.x - ctx.brushSize, (int)pos.y - ctx.brushSize,
+                       ctx.brushSize * 2 + 1, ctx.brushSize * 2 + 1};
+  SDL_Log("fgColor = %08X", ctx.fgColor);
   ctx.canvas->invalidateRect(initialRect);
 }
 
@@ -49,16 +49,17 @@ void Pencil::onMouseMove(vec2 pos, ToolContext &ctx) {
   if (!ctx.interaction->active)
     return;
 
-  expandStrokeBounds(pos, brushSize, ctx.canvas->getSurface()->w,
+  expandStrokeBounds(pos, ctx.brushSize, ctx.canvas->getSurface()->w,
                      ctx.canvas->getSurface()->h);
 
-  SDL_Rect segmentRect{std::min((int)m_last.x, (int)pos.x) - brushSize,
-                       std::min((int)m_last.y, (int)pos.y) - brushSize,
-                       std::abs((int)(pos.x - m_last.x)) + brushSize * 2 + 1,
-                       std::abs((int)(pos.y - m_last.y)) + brushSize * 2 + 1};
+  SDL_Rect segmentRect{
+      std::min((int)m_last.x, (int)pos.x) - ctx.brushSize,
+      std::min((int)m_last.y, (int)pos.y) - ctx.brushSize,
+      std::abs((int)(pos.x - m_last.x)) + ctx.brushSize * 2 + 1,
+      std::abs((int)(pos.y - m_last.y)) + ctx.brushSize * 2 + 1};
 
-  Rasterizer::bresenham(m_last, pos, ctx.canvas->getSurface(), color, brushSize,
-                        false);
+  Rasterizer::bresenham(m_last, pos, ctx.canvas->getSurface(), ctx.fgColor,
+                        ctx.brushSize, false);
 
   ctx.canvas->invalidateRect(segmentRect);
 
@@ -73,7 +74,7 @@ std::unique_ptr<Command> Pencil::onMouseUp(vec2 pos, ToolContext &ctx) {
   if (!ctx.interaction->active)
     return nullptr;
 
-  expandStrokeBounds(pos, brushSize, ctx.canvas->getSurface()->w,
+  expandStrokeBounds(pos, ctx.brushSize, ctx.canvas->getSurface()->w,
                      ctx.canvas->getSurface()->h);
 
   LX_ASSERT(m_hasStrokeBounds, "Invalid stroke bounds");

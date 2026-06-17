@@ -213,3 +213,25 @@ inline void unlockSurface(SDL_Surface *surface) {
     SDL_UnlockSurface(surface);
   }
 }
+
+enum class ToolType {
+  FreeSelect,
+  RectSelect,
+
+  Eraser,
+  FloodFill,
+  Eyedropper,
+  Magnifier,
+
+  Pencil,
+  Brush,
+  Airbrush,
+  Text,
+
+  Line,
+  Curve,
+  Rectangle,
+  Polygon,
+  Ellipse,
+  RoundedRectangle
+};

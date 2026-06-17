@@ -36,7 +36,7 @@ void Ribbon::render() {
   const float thickness = 1.0f;
   const float ribbonHeight = 22.0f;
 
-  ImGui::GetStyle().FramePadding = ButtonPadding;
+  // ImGui::GetStyle().FramePadding = ButtonPadding;
   ImGuiViewport *vp = ImGui::GetMainViewport();
 
   ImGui::SetNextWindowPos({vp->Pos.x, vp->Pos.y});

@@ -60,6 +60,15 @@ void ColorPallete::sunkenBorder(ImDrawList *drawlist, ImVec2 min, ImVec2 max) {
   drawlist->AddLine({max.x, min.y}, max, Theme::WHITE, 1.0f);
 }
 
+uint32_t ColorPallete::toU32(const ImVec4 &color) {
+  uint8_t r = static_cast<uint8_t>(color.x * 255.0f);
+  uint8_t g = static_cast<uint8_t>(color.y * 255.0f);
+  uint8_t b = static_cast<uint8_t>(color.z * 255.0f);
+  uint8_t a = static_cast<uint8_t>(color.w * 255.0f);
+
+  return (static_cast<uint32_t>(a) << 24) | (static_cast<uint32_t>(r) << 16) |
+         (static_cast<uint32_t>(g) << 8) | static_cast<uint32_t>(b);
+}
 void ColorPallete::drawFgBgSelector(ImDrawList *drawlist, ImVec2 origin) {
   const float bigSize = 22.0f;
   const float smallSize = 16.0f;
@@ -115,12 +124,10 @@ void ColorPallete::render() {
 
   ImDrawList *drawlist = ImGui::GetWindowDrawList();
 
-  // --- Fg/Bg selector ---
   ImVec2 selectorOrigin = {ImGui::GetWindowPos().x + 4.0f,
                            ImGui::GetWindowPos().y + 16.0f};
   drawFgBgSelector(drawlist, selectorOrigin);
 
-  // --- Color swatches, offset past the selector ---
   ImGui::SetCursorPos({selectorW + 1.f, 16.0f});
   float swatchStartX = ImGui::GetCursorPosX();
 
@@ -134,7 +141,6 @@ void ColorPallete::render() {
     ImVec2 swatchMin = ImGui::GetCursorScreenPos();
     ImVec2 swatchMax = {swatchMin.x + swatchSize, swatchMin.y + swatchSize};
 
-    // Filled rect is drawn manually; InvisibleButton handles input
     drawlist->AddRectFilled(swatchMin, swatchMax,
                             ImGui::ColorConvertFloat4ToU32(k_palette[i]));
     sunkenBorder(drawlist, swatchMin, swatchMax);
@@ -143,11 +149,16 @@ void ColorPallete::render() {
 
     if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
       m_fgColor = k_palette[i];
-    }
-    if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
-      m_bgColor = k_palette[i];
+      m_fgIndex = i;
     }
 
+    if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
+      m_bgColor = k_palette[i];
+      m_bgIndex = i;
+    }
+    if (i == m_fgIndex) {
+      drawlist->AddRect(swatchMin, swatchMax, IM_COL32_WHITE, 0.0f, 0, 2.0f);
+    }
     ImGui::PopID();
 
     if ((i + 1) % cols != 0) {

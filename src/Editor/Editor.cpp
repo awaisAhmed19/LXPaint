@@ -1,5 +1,6 @@
 #include "Editor.h"
 
+#include "App/Globals.h"
 #include "App/Utils.h"
 
 #include "Document/Canvas.h"
@@ -16,7 +17,8 @@
 #include "Editor/Tools/Rect.h"
 
 #include "Systems/Logger.h"
-
+#include "UI/Toolbar.h"
+#include <SDL3/SDL_render.h>
 namespace ToolID {
 constexpr auto Pencil = "pencil";
 constexpr auto Line = "line";
@@ -39,6 +41,36 @@ Editor::Editor(SDL_Renderer *renderer)
   centerCanvas();
 }
 
+void Editor::setActiveTool(ToolType tool) {
+  switch (tool) {
+  case ToolType::Pencil:
+    m_tools.setActiveTool(ToolID::Pencil, tool);
+    break;
+
+  case ToolType::Line:
+    m_tools.setActiveTool(ToolID::Line, tool);
+    break;
+
+  case ToolType::Rectangle:
+    m_tools.setActiveTool(ToolID::Rect, tool);
+    break;
+
+  case ToolType::Ellipse:
+    m_tools.setActiveTool(ToolID::Circle, tool);
+    break;
+
+  case ToolType::Eraser:
+    m_tools.setActiveTool(ToolID::Eraser, tool);
+    break;
+
+  case ToolType::FloodFill:
+    m_tools.setActiveTool(ToolID::FloodFill, tool);
+    break;
+
+  default:
+    break;
+  }
+}
 // move all the tool initalization to the Ui module after it done.... also move
 // the input dispatcher too
 // Interaction
@@ -65,7 +97,7 @@ void Editor::setupTools() {
   m_tools.registerTool(ToolID::Eraser, std::make_unique<Eraser>());
   m_tools.registerTool(ToolID::Circle, std::make_unique<Circle>());
   m_tools.registerTool(ToolID::FloodFill, std::make_unique<FloodFill>());
-  m_tools.setActiveTool(ToolID::Pencil);
+  m_tools.setActiveTool(ToolID::Pencil, ToolType::Pencil);
 }
 
 void Editor::setupInputBindings() {
@@ -87,24 +119,35 @@ void Editor::setupInputBindings() {
       Logger::log(LogLevel::DEBUG, "Nothing to redo");
     }
   });
-  m_input.bindActions(InputCommand::PENCIL,
-                      [this]() { m_tools.setActiveTool(ToolID::Pencil); });
-  m_input.bindActions(InputCommand::CIRCLE,
-                      [this]() { m_tools.setActiveTool(ToolID::Circle); });
-  m_input.bindActions(InputCommand::LINE,
-                      [this]() { m_tools.setActiveTool(ToolID::Line); });
-  m_input.bindActions(InputCommand::RECT,
-                      [this]() { m_tools.setActiveTool(ToolID::Rect); });
-  m_input.bindActions(InputCommand::ERASER,
-                      [this]() { m_tools.setActiveTool(ToolID::Eraser); });
-  m_input.bindActions(InputCommand::FILL,
-                      [this]() { m_tools.setActiveTool(ToolID::FloodFill); });
+  m_input.bindActions(InputCommand::PENCIL, [this]() {
+    m_tools.setActiveTool(ToolID::Pencil, ToolType::Pencil);
+  });
+  m_input.bindActions(InputCommand::CIRCLE, [this]() {
+    m_tools.setActiveTool(ToolID::Circle, ToolType::Ellipse);
+  });
+  m_input.bindActions(InputCommand::LINE, [this]() {
+    m_tools.setActiveTool(ToolID::Line, ToolType::Line);
+  });
+  m_input.bindActions(InputCommand::RECT, [this]() {
+    m_tools.setActiveTool(ToolID::Rect, ToolType::Rectangle);
+  });
+  m_input.bindActions(InputCommand::ERASER, [this]() {
+    m_tools.setActiveTool(ToolID::Eraser, ToolType::Eraser);
+  });
+  m_input.bindActions(InputCommand::FILL, [this]() {
+    m_tools.setActiveTool(ToolID::FloodFill, ToolType::FloodFill);
+  });
 }
+
+void Editor::setFgColor(uint32_t color) { m_fgColor = color; }
+void Editor::setBgColor(uint32_t color) { m_bgColor = color; }
 
 ToolContext Editor::makeToolContext() {
   return ToolContext{.canvas = &m_canvas,
                      .preview = &m_preview,
-                     .interaction = &m_interaction};
+                     .interaction = &m_interaction,
+                     .fgColor = m_fgColor,
+                     .bgColor = m_bgColor};
 }
 
 bool Editor::inCanvas(vec2 mousePos) {

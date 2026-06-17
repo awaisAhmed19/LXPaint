@@ -1,6 +1,7 @@
 
 #pragma once
 #include <SDL3/SDL.h>
+#include <cstdint>
 
 #include "imgui_impl_sdl3.h"
 
@@ -22,11 +23,23 @@
 
 #include "Viewport/Viewport.h"
 
+struct ToolSettings {
+  int brushSize = 1;
+  int brushShape = 0;
+
+  bool filledShape = false;
+
+  int lineWidth = 1;
+
+  bool useBackgroundColor = false;
+};
 class Editor {
 private:
   // bool m_panning = false;
   // vec2 m_lastPanMouse{0.0f, 0.0f};
   // bool m_spaceHeld = false;
+  uint32_t m_fgColor = COLORS::BLACK;
+  uint32_t m_bgColor = COLORS::WHITE;
 
   Canvas m_canvas;
   PreviewLayer m_preview;
@@ -39,7 +52,7 @@ private:
   Transform2D m_docTransform;
   void setupTools();
   void setupInputBindings();
-
+  ToolSettings m_toolSettings;
   ToolContext makeToolContext();
 
   void handleMouseDown(const SDL_Event &e);
@@ -49,13 +62,51 @@ private:
 
 public:
   explicit Editor(SDL_Renderer *renderer);
+
   void handleEvent(const SDL_Event &event);
   void update();
-  void centerCanvas();
-  void resizeCanvas(int w, int h, const ResizePolicy &policy);
   void render();
   void renderUI();
+
+  void centerCanvas();
+  void resizeCanvas(int w, int h, const ResizePolicy &policy);
+
+  Canvas &getCanvas() { return m_canvas; }
+
+  void setActiveTool(ToolType tool);
+  ToolType getActiveToolType() const { return m_tools.getActiveToolType(); }
+
+  void setFgColor(uint32_t color);
+  void setBgColor(uint32_t color);
+
+  uint32_t getFgColor() const { return m_fgColor; }
+
+  uint32_t getBgColor() const { return m_bgColor; }
+
+  void setBrushSize(int size) { m_toolSettings.brushSize = size; }
+
+  int getBrushSize() const { return m_toolSettings.brushSize; }
+
+  void setBrushShape(int shape) { m_toolSettings.brushShape = shape; }
+
+  int getBrushShape() const { return m_toolSettings.brushShape; }
+
+  void setFilledShape(bool filled) { m_toolSettings.filledShape = filled; }
+
+  bool getFilledShape() const { return m_toolSettings.filledShape; }
+
+  void setLineWidth(int width) { m_toolSettings.lineWidth = width; }
+
+  int getLineWidth() const { return m_toolSettings.lineWidth; }
+  ToolSettings &getToolSettings() { return m_toolSettings; }
+  void setUseBackgroundColor(bool value) {
+    m_toolSettings.useBackgroundColor = value;
+  }
+
+  bool getUseBackgroundColor() const {
+    return m_toolSettings.useBackgroundColor;
+  }
+
   vec2 clampToCanvas(vec2 p);
   bool inCanvas(vec2 mousePos);
-  Canvas &getCanvas() { return m_canvas; }
 };
