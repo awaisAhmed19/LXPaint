@@ -40,6 +40,7 @@ set(PROJECT_SOURCES
     src/UI/Ribbon.cpp
     src/UI/Toolbar.cpp
     src/UI/ColorPallete.cpp
+    src/UI/Footer.cpp
   )
 
 # ImGui

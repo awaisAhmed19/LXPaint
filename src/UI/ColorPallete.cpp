@@ -1,7 +1,7 @@
 #include "ColorPallete.h"
 #include "imgui.h"
-#include <iterator>
-
+#include <SDL3/SDL.h>
+#include <algorithm>
 namespace UI {
 
 namespace Theme {
@@ -46,14 +46,16 @@ static constexpr ImVec4 k_palette[28] = {
 
 ColorPallete::ColorPallete(int w, int h) : m_w(w), m_h(h) {}
 
-void ColorPallete::raisedBorder(ImDrawList *drawlist, ImVec2 min, ImVec2 max) {
+void ColorPallete::raisedBorder(ImDrawList *drawlist, ImVec2 min, ImVec2 max,
+                                float thickness) {
   drawlist->AddLine(min, {max.x, min.y}, Theme::WHITE, 1.0f);
   drawlist->AddLine(min, {min.x, max.y}, Theme::WHITE, 1.0f);
   drawlist->AddLine({min.x, max.y}, max, Theme::BLACK, 1.0f);
   drawlist->AddLine({max.x, min.y}, max, Theme::BLACK, 1.0f);
 }
 
-void ColorPallete::sunkenBorder(ImDrawList *drawlist, ImVec2 min, ImVec2 max) {
+void ColorPallete::sunkenBorder(ImDrawList *drawlist, ImVec2 min, ImVec2 max,
+                                float thickness) {
   drawlist->AddLine(min, {max.x, min.y}, Theme::BLACK, 1.0f);
   drawlist->AddLine(min, {min.x, max.y}, Theme::BLACK, 1.0f);
   drawlist->AddLine({min.x, max.y}, max, Theme::WHITE, 1.0f);
@@ -104,7 +106,8 @@ void ColorPallete::render() {
   const float paletteH = rows * swatchSize + (rows - 1) * swatchGap;
   const float panelH = paletteH + 35.0f;
   ImGuiViewport *vp = ImGui::GetMainViewport();
-
+  const ImVec2 palleteMin = {vp->Pos.x, vp->Pos.y + 635.0f};
+  const ImVec2 palleteMax = {vp->Size.x, vp->Pos.y + 635.f + panelH};
   ImGui::SetNextWindowPos({vp->Pos.x, vp->Pos.y + 635.0f});
   ImGui::SetNextWindowSize({vp->Size.x, panelH});
 
@@ -165,11 +168,15 @@ void ColorPallete::render() {
       ImGui::SameLine();
     }
   }
-
   ImGui::End();
 
   ImGui::PopStyleColor(4);
   ImGui::PopStyleVar(4);
+  raisedBorder(drawlist, palleteMin, palleteMax, 2.f);
+  // SDL_Log("palleteMin.x:%.2f ,palleteMin.y:%.2f", palleteMin.x,
+  // palleteMin.y);
+  // SDL_Log("palleteMax.x:%.2f ,palleteMax.y:%.2f", palleteMax.x,
+  // palleteMax.y);
 }
 
 } // namespace UI

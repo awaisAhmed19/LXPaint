@@ -324,6 +324,7 @@ void Editor::handleEvent(const SDL_Event &e) {
 }
 
 void Editor::renderUI() {
+  /*
   ImGui::Begin("History");
   if (ImGui::Button("Undo", ImVec2(100, 0))) {
     m_commands.undo(m_canvas);
@@ -335,6 +336,7 @@ void Editor::renderUI() {
   ImGui::Separator();
   ImGui::TextDisabled("%s", m_commands.getDebugInfo().c_str());
   ImGui::End();
+  */
 }
 
 void Editor::centerCanvas() {

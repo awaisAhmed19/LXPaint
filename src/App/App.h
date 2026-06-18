@@ -9,6 +9,7 @@
 
 #include "Editor/Editor.h"
 #include "UI/ColorPallete.h"
+#include "UI/Footer.h"
 #include "UI/Ribbon.h"
 #include "UI/Toolbar.h"
 
@@ -34,6 +35,7 @@ private:
   std::unique_ptr<UI::Ribbon> m_ribbon = nullptr;
   std::unique_ptr<UI::Toolbar> m_toolbar = nullptr;
   std::unique_ptr<UI::ColorPallete> m_colorpallete = nullptr;
+  std::unique_ptr<UI::Footer> m_footer = nullptr;
   ToolType m_lastTool;
 
 private:

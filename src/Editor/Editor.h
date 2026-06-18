@@ -74,7 +74,7 @@ public:
   Canvas &getCanvas() { return m_canvas; }
 
   void setActiveTool(ToolType tool);
-  ToolType getActiveToolType() const { return m_tools.getActiveToolType(); }
+  ToolType getActiveTool() const { return m_tools.getActiveToolType(); }
 
   void setFgColor(uint32_t color);
   void setBgColor(uint32_t color);

@@ -12,8 +12,10 @@ private:
   ImVec4 m_fgColor = {0.0f, 0.0f, 0.0f, 1.0f}; // Foreground (black)
   ImVec4 m_bgColor = {1.0f, 1.0f, 1.0f, 1.0f}; // Background (white)
 
-  void raisedBorder(ImDrawList *drawlist, ImVec2 min, ImVec2 max);
-  void sunkenBorder(ImDrawList *drawlist, ImVec2 min, ImVec2 max);
+  void raisedBorder(ImDrawList *drawlist, ImVec2 min, ImVec2 max,
+                    float thickness = 1.0f);
+  void sunkenBorder(ImDrawList *drawlist, ImVec2 min, ImVec2 max,
+                    float thickness = 1.0f);
   void drawFgBgSelector(ImDrawList *drawlist, ImVec2 origin);
 
 public:

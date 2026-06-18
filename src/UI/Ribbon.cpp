@@ -38,7 +38,8 @@ void Ribbon::render() {
 
   // ImGui::GetStyle().FramePadding = ButtonPadding;
   ImGuiViewport *vp = ImGui::GetMainViewport();
-
+  const ImVec2 ribbonmin = {vp->Pos.x, vp->Pos.y};
+  const ImVec2 ribbonmax = {vp->Size.x, ribbonHeight};
   ImGui::SetNextWindowPos({vp->Pos.x, vp->Pos.y});
   ImGui::SetNextWindowSize({vp->Size.x, ribbonHeight});
 
@@ -84,6 +85,7 @@ void Ribbon::render() {
 
   ImGui::PopStyleColor(5);
   ImGui::PopStyleVar(4);
+  raisedBorder(drawlist, ribbonmin, ribbonmax);
 }
 
 }; // namespace UI

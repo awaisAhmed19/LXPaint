@@ -28,11 +28,10 @@ Application::Application(const char *title) : m_editor(nullptr) {
   this->m_toolbar = std::make_unique<UI::Toolbar>(0, 0);
   this->m_toolbar->init(this->m_window->getNativeRenderer());
   this->m_colorpallete = std::make_unique<UI::ColorPallete>(1300, 0);
+  this->m_footer = std::make_unique<UI::Footer>(1300, 0);
   ImGui_ImplSDL3_InitForSDLRenderer(m_window->getNativeWindow(),
                                     m_window->getNativeRenderer());
   ImGui_ImplSDLRenderer3_Init(m_window->getNativeRenderer());
-
-  // LXTheme::applyMainTheme();
 }
 
 void Application::handleEvents() {
@@ -61,8 +60,9 @@ void Application::render() {
   m_editor->renderUI();
 
   m_ribbon->render();
-  m_toolbar->render();
+  m_toolbar->render(*m_editor);
   m_colorpallete->render();
+  m_footer->render();
   m_editor->setFgColor(UI::ColorPallete::toU32(m_colorpallete->getFgColor()));
   m_editor->setBgColor(UI::ColorPallete::toU32(m_colorpallete->getBgColor()));
   ImGui::Render();
