@@ -8,7 +8,8 @@ private:
   bool m_useXOR = false;
   vec2 m_start;
   vec2 m_last;
-  SDL_Rect m_prevBounds{};
+  SDL_Rect m_affected{};
+
   std::unique_ptr<SnapshotCommand> m_command;
   enum class CircleMode { STROKE, FILL, WHITEFILL };
 

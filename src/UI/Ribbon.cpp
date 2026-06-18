@@ -1,7 +1,8 @@
 #include "Ribbon.h"
+// #include "UILayout.h"
 #include "imgui.h"
+#include <array>
 #include <iterator>
-
 namespace UI {
 
 namespace Theme {
@@ -16,37 +17,72 @@ constexpr ImU32 TextColor = IM_COL32(0, 0, 0, 255);
 
 Ribbon::Ribbon(int w, int h) : m_w(w), m_h(h) {}
 
-void Ribbon::raisedBorder(ImDrawList *drawlist, ImVec2 min, ImVec2 max) {
-  // Classic 3D Bevel effect
-  drawlist->AddLine(min, {max.x, min.y}, Theme::WHITE, 2.0f); // Top
-  drawlist->AddLine(min, {min.x, max.y}, Theme::WHITE, 2.0f); // Left
-  drawlist->AddLine({min.x, max.y}, max, Theme::BLACK, 2.0f); // Bottom
-  drawlist->AddLine({max.x, min.y}, max, Theme::BLACK, 2.0f); // Right
+void Ribbon::raisedBorder(ImDrawList *drawlist, ImVec2 min, ImVec2 max,
+                          float thickness) {
+  drawlist->AddLine(min, {max.x, min.y}, Theme::WHITE, 1.0f);
+  drawlist->AddLine(min, {min.x, max.y}, Theme::WHITE, 1.0f);
+  drawlist->AddLine({min.x, max.y}, max, Theme::BLACK, 1.0f);
+  drawlist->AddLine({max.x, min.y}, max, Theme::BLACK, 1.0f);
 }
-void Ribbon::sunkenBorder(ImDrawList *drawlist, ImVec2 min, ImVec2 max) {
-  drawlist->AddLine(min, {max.x, min.y}, Theme::BLACK, 2.0f);
-  drawlist->AddLine(min, {min.x, max.y}, Theme::BLACK, 2.0f);
-  drawlist->AddLine({min.x, max.y}, max, Theme::WHITE, 2.0f);
-  drawlist->AddLine({max.x, min.y}, max, Theme::WHITE, 2.0f);
-}
-// static void RibbonButton(const char* btn_id, ImVec2 size,){}
 
+void Ribbon::sunkenBorder(ImDrawList *drawlist, ImVec2 min, ImVec2 max,
+                          float thickness) {
+  drawlist->AddLine(min, {max.x, min.y}, Theme::BLACK, 1.0f);
+  drawlist->AddLine(min, {min.x, max.y}, Theme::BLACK, 1.0f);
+  drawlist->AddLine({min.x, max.y}, max, Theme::WHITE, 1.0f);
+  drawlist->AddLine({max.x, min.y}, max, Theme::WHITE, 1.0f);
+}
+
+void Ribbon::layout(const ImGuiViewport *vp) {
+  constexpr float kRibbonHeight = 21.0f;
+
+  m_rect = {vp->Pos.x, vp->Pos.y, vp->Size.x, kRibbonHeight};
+}
+float Ribbon::preferredHeight() const {
+  ImGuiStyle &style = ImGui::GetStyle();
+
+  return ImGui::GetFontSize() + style.FramePadding.y * 2.0f +
+         style.WindowPadding.y * 2.0f;
+}
 void Ribbon::render() {
-  constexpr ImVec2 ButtonPadding = {10, 2};
-  const float thickness = 1.0f;
-  const float ribbonHeight = 22.0f;
+  //----------------------------------------------------------------------
+  // Layout constants
+  //----------------------------------------------------------------------
 
-  // ImGui::GetStyle().FramePadding = ButtonPadding;
+  constexpr float kBorderThickness = 1.0f;
+  constexpr float kRibbonButtonHeight = 21.0f;
+
+  constexpr ImVec2 kFramePadding{10.0f, 2.0f};
+  constexpr ImVec2 kWindowPadding{0.0f, 0.0f};
+  constexpr ImVec2 kItemSpacing{2.0f, 0.0f};
+
+  constexpr ImGuiWindowFlags kWindowFlags =
+      ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
+      ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar |
+      ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
+
+  static constexpr std::array<const char *, 6> kMenus = {
+      "File", "Edit", "View", "Color", "Image", "Help"};
+
+  //----------------------------------------------------------------------
+  // Layout
+  //----------------------------------------------------------------------
+
   ImGuiViewport *vp = ImGui::GetMainViewport();
-  const ImVec2 ribbonmin = {vp->Pos.x, vp->Pos.y};
-  const ImVec2 ribbonmax = {vp->Size.x, ribbonHeight};
-  ImGui::SetNextWindowPos({vp->Pos.x, vp->Pos.y});
-  ImGui::SetNextWindowSize({vp->Size.x, ribbonHeight});
 
-  ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, {0.0f, 0.0f});
-  ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0.0f, 0.0f});
-  ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {2.f, 0.0f});
-  ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ButtonPadding);
+  layout(vp);
+
+  ImGui::SetNextWindowPos({m_rect.x, m_rect.y}, ImGuiCond_Always);
+  ImGui::SetNextWindowSize({m_rect.w, m_rect.h}, ImGuiCond_Always);
+
+  //----------------------------------------------------------------------
+  // Style
+  //----------------------------------------------------------------------
+
+  ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, {0.f, 0.f});
+  ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, kWindowPadding);
+  ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, kItemSpacing);
+  ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, kFramePadding);
 
   ImGui::PushStyleColor(ImGuiCol_WindowBg, Theme::RibbonBg);
   ImGui::PushStyleColor(ImGuiCol_Text, Theme::TextColor);
@@ -54,38 +90,44 @@ void Ribbon::render() {
   ImGui::PushStyleColor(ImGuiCol_ButtonHovered, Theme::ButtonHover);
   ImGui::PushStyleColor(ImGuiCol_ButtonActive, Theme::ButtonActive);
 
-  ImGui::Begin("Ribbon", nullptr,
-               ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
-                   ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar);
+  //----------------------------------------------------------------------
+  // Window
+  //----------------------------------------------------------------------
 
-  static constexpr const char *Menus[] = {"File",  "Edit",  "View",
-                                          "Color", "Image", "Help"};
-  ImVec2 buttonSize = {0.0f, 21.0f};
+  ImGui::Begin("Ribbon", nullptr, kWindowFlags);
 
-  ImDrawList *drawlist = ImGui::GetWindowDrawList();
+  ImDrawList *dl = ImGui::GetWindowDrawList();
 
-  for (size_t i = 0; i < std::size(Menus); ++i) {
-    ImGui::Button(Menus[i], buttonSize);
+  constexpr ImVec2 buttonSize{0.0f, kRibbonButtonHeight};
 
-    ImVec2 btnMin = ImGui::GetItemRectMin();
-    ImVec2 btnMax = ImGui::GetItemRectMax();
-    if (ImGui::IsItemHovered()) {
-      raisedBorder(drawlist, btnMin, btnMax);
-    }
+  for (size_t i = 0; i < kMenus.size(); ++i) {
+    ImGui::Button(kMenus[i], buttonSize);
 
-    if (ImGui::IsItemActive()) {
-      sunkenBorder(drawlist, btnMin, btnMax);
-    }
+    const ImVec2 min = ImGui::GetItemRectMin();
+    const ImVec2 max = ImGui::GetItemRectMax();
 
-    if (i + 1 < std::size(Menus))
+    if (ImGui::IsItemActive())
+      sunkenBorder(dl, min, max, kBorderThickness);
+    else if (ImGui::IsItemHovered())
+      raisedBorder(dl, min, max, kBorderThickness);
+
+    if (i + 1 < kMenus.size())
       ImGui::SameLine();
   }
 
+  //----------------------------------------------------------------------
+  // Window border
+  //----------------------------------------------------------------------
+
+  const ImVec2 winMin = ImGui::GetWindowPos();
+  const ImVec2 winMax = {winMin.x + ImGui::GetWindowWidth(),
+                         winMin.y + ImGui::GetWindowHeight()};
+
   ImGui::End();
+
+  raisedBorder(dl, winMin, winMax, kBorderThickness);
 
   ImGui::PopStyleColor(5);
   ImGui::PopStyleVar(4);
-  raisedBorder(drawlist, ribbonmin, ribbonmax);
 }
-
 }; // namespace UI

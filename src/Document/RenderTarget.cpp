@@ -33,7 +33,13 @@ RenderTarget::~RenderTarget() {
     this->m_texture = nullptr;
   }
 }
+/*
+void RenderTarget::updateBounds(const SDL_Rect &rect) {
+  m_dirty = SDL_GetRectUnion(&m_dirty, &rect);
+}
 
+void RenderTarget::resetBounds() { m_dirty = {0, 0, 0, 0}; }
+*/
 void RenderTarget::invalidateRect(const SDL_Rect &rect) {
   if (!m_dirty) {
     m_dirtyRect = rect;

@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <string>
 
+// #include "UILayout.h"
 namespace UI {
 
 namespace Theme {
@@ -50,18 +51,20 @@ Toolbar::~Toolbar() {
   }
 }
 
-void Toolbar::raisedBorder(ImDrawList *dl, ImVec2 min, ImVec2 max) {
-  dl->AddLine(min, {max.x, min.y}, Theme::WHITE, 2.0f);
-  dl->AddLine(min, {min.x, max.y}, Theme::WHITE, 2.0f);
-  dl->AddLine({min.x, max.y}, max, Theme::BLACK, 2.0f);
-  dl->AddLine({max.x, min.y}, max, Theme::BLACK, 2.0f);
+void Toolbar::raisedBorder(ImDrawList *dl, ImVec2 min, ImVec2 max,
+                           float thickness) {
+  dl->AddLine(min, {max.x, min.y}, Theme::WHITE, 1.0f);
+  dl->AddLine(min, {min.x, max.y}, Theme::WHITE, 1.0f);
+  dl->AddLine({min.x, max.y}, max, Theme::BLACK, 1.0f);
+  dl->AddLine({max.x, min.y}, max, Theme::BLACK, 1.0f);
 }
 
-void Toolbar::sunkenBorder(ImDrawList *dl, ImVec2 min, ImVec2 max) {
-  dl->AddLine(min, {max.x, min.y}, Theme::BLACK, 2.0f);
-  dl->AddLine(min, {min.x, max.y}, Theme::BLACK, 2.0f);
-  dl->AddLine({min.x, max.y}, max, Theme::WHITE, 2.0f);
-  dl->AddLine({max.x, min.y}, max, Theme::WHITE, 2.0f);
+void Toolbar::sunkenBorder(ImDrawList *dl, ImVec2 min, ImVec2 max,
+                           float thickness) {
+  dl->AddLine(min, {max.x, min.y}, Theme::BLACK, 1.0f);
+  dl->AddLine(min, {min.x, max.y}, Theme::BLACK, 1.0f);
+  dl->AddLine({min.x, max.y}, max, Theme::WHITE, 1.0f);
+  dl->AddLine({max.x, min.y}, max, Theme::WHITE, 1.0f);
 }
 
 bool Toolbar::init(SDL_Renderer *renderer) {
@@ -206,7 +209,7 @@ void Toolbar::renderFillModes(Editor &editor, ImDrawList *dl, ImVec2 origin) {
       dl->AddRectFilled({px, py}, {px + pw, py + phh},
                         IM_COL32(180, 180, 180, 255));
     if (kModes[i].drawOutline)
-      dl->AddRect({px, py}, {px + pw, py + phh}, Theme::BLACK, 0.0f, 0, 1.5f);
+      dl->AddRect({px, py}, {px + pw, py + phh}, Theme::BLACK, 0.0f, 0, 1.f);
 
     ImGui::SetCursorScreenPos(btnMin);
     ImGui::PushID(i + 400);
@@ -276,24 +279,54 @@ void Toolbar::renderOptions(Editor &editor, ImDrawList *dl) {
     break;
   }
 }
+float Toolbar::preferredWidth() const {
+  constexpr int columns = 2;
+  constexpr float buttonSize = 24.0f;
+  constexpr float spacing = 1.0f;
 
-// ── main render ──────────────────────────────────────────────────────────────
+  ImGuiStyle &style = ImGui::GetStyle();
 
+  return style.WindowPadding.x * 2.0f + columns * buttonSize +
+         (columns - 1) * spacing;
+}
 void Toolbar::render(Editor &editor) {
-  constexpr ImVec2 ButtonPadding = {1.0f, 1.0f};
-  const float buttonSide = 24.0f;
-  const int columns = 2;
-  const int rows = 8;
-  const int total = columns * rows;
+  //-------------------------------------------------------------------------
+  // Layout constants
+  //-------------------------------------------------------------------------
+
+  constexpr int kColumns = 2;
+  constexpr int kRows = 8;
+
+  constexpr float kButtonSize = 24.0f;
+  constexpr float kButtonGap = 1.0f;
+
+  constexpr float kRibbonHeight = 22.0f; // TODO: use UILayout
+  constexpr float kLeftInset = 4.0f;
+
+  constexpr ImVec2 kWindowPadding{2.0f, 0.0f};
+  constexpr ImVec2 kItemSpacing{kButtonGap, kButtonGap};
+  constexpr ImVec2 kFramePadding{1.0f, 1.0f};
+
+  constexpr ImGuiWindowFlags kFlags =
+      ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
+      ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar |
+      ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
+
+  //-------------------------------------------------------------------------
+  // Window
+  //-------------------------------------------------------------------------
 
   ImGuiViewport *vp = ImGui::GetMainViewport();
-  ImGui::SetNextWindowPos({vp->Pos.x, vp->Pos.y + 22.0f});
-  ImGui::SetNextWindowSize({toolMax.x, toolMax.y});
 
-  ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, {0.0f, 0.0f});
-  ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {2.0f, 0.0f});
-  ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {1.0f, 1.0f});
-  ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ButtonPadding);
+  ImGui::SetNextWindowPos({vp->Pos.x, vp->Pos.y + kRibbonHeight},
+                          ImGuiCond_Always);
+
+  ImGui::SetNextWindowSize({toolMax.x, toolMax.y}, ImGuiCond_Always);
+
+  ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, {0.f, 0.f});
+  ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, kWindowPadding);
+  ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, kItemSpacing);
+  ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, kFramePadding);
 
   ImGui::PushStyleColor(ImGuiCol_WindowBg, Theme::ToolbarBg);
   ImGui::PushStyleColor(ImGuiCol_Text, Theme::TextColor);
@@ -301,53 +334,67 @@ void Toolbar::render(Editor &editor) {
   ImGui::PushStyleColor(ImGuiCol_ButtonHovered, Theme::ButtonHover);
   ImGui::PushStyleColor(ImGuiCol_ButtonActive, Theme::ButtonActive);
 
-  ImGui::Begin("ToolbarGrid", nullptr,
-               ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
-                   ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar);
+  ImGui::Begin("ToolbarGrid", nullptr, kFlags);
 
   ImDrawList *dl = ImGui::GetWindowDrawList();
 
-  ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 4.0f);
-  float startX = ImGui::GetCursorPosX();
+  //----------------------------------------------------------------------
+  // Tool buttons
+  //----------------------------------------------------------------------
 
-  ImVec2 buttonSize = {buttonSide, buttonSide};
+  ImGui::SetCursorPosX(ImGui::GetCursorPosX() + kLeftInset);
 
-  for (int i = 0; i < total; ++i) {
+  const float startX = ImGui::GetCursorPosX();
+
+  for (int i = 0; i < kColumns * kRows; ++i) {
     ImGui::PushID(i);
 
-    if ((i % columns) == 0 && i != 0)
+    if (i && (i % kColumns) == 0)
       ImGui::SetCursorPosX(startX);
 
-    ImTextureID tex = (ImTextureID)m_textures[i];
-    ImGui::ImageButton("##icon", tex, buttonSize, {0.0f, 0.0f}, {1.0f, 1.0f},
+    ImGui::ImageButton("##icon", (ImTextureID)m_textures[i],
+                       {kButtonSize, kButtonSize}, {0.f, 0.f}, {1.f, 1.f},
                        ImVec4(0, 0, 0, 0));
 
-    ImVec2 btnMin = ImGui::GetItemRectMin();
-    ImVec2 btnMax = ImGui::GetItemRectMax();
-    bool isActive = (m_activeTool == kButtons[i].type);
+    ImVec2 min = ImGui::GetItemRectMin();
+    ImVec2 max = ImGui::GetItemRectMax();
 
-    if (ImGui::IsItemClicked()) {
+    const bool active = (m_activeTool == kButtons[i].type);
+
+    if (ImGui::IsItemClicked())
       m_activeTool = kButtons[i].type;
-      isActive = true;
-    }
 
-    if (ImGui::IsItemActive() || isActive)
-      sunkenBorder(dl, btnMin, btnMax);
+    if (ImGui::IsItemActive() || active)
+      sunkenBorder(dl, min, max, 1.5f);
     else
-      raisedBorder(dl, btnMin, btnMax);
+      raisedBorder(dl, min, max, 1.5f);
 
     ImGui::PopID();
 
-    if ((i + 1) % columns != 0)
+    if ((i + 1) % kColumns != 0)
       ImGui::SameLine();
   }
 
+  //----------------------------------------------------------------------
+  // Tool options
+  //----------------------------------------------------------------------
+
   renderOptions(editor, dl);
 
+  //----------------------------------------------------------------------
+  // Window border
+  //----------------------------------------------------------------------
+
+  ImVec2 winMin = ImGui::GetWindowPos();
+  ImVec2 winMax = {winMin.x + ImGui::GetWindowWidth(),
+                   winMin.y + ImGui::GetWindowHeight()};
+
   ImGui::End();
+
+  raisedBorder(dl, winMin, winMax);
+
   ImGui::PopStyleColor(5);
   ImGui::PopStyleVar(4);
-  raisedBorder(dl, toolMin, toolMax);
 }
 
 } // namespace UI

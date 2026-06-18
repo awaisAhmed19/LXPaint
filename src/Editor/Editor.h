@@ -80,21 +80,14 @@ public:
   void setBgColor(uint32_t color);
 
   uint32_t getFgColor() const { return m_fgColor; }
-
   uint32_t getBgColor() const { return m_bgColor; }
 
   void setBrushSize(int size) { m_toolSettings.brushSize = size; }
-
   int getBrushSize() const { return m_toolSettings.brushSize; }
-
   void setBrushShape(int shape) { m_toolSettings.brushShape = shape; }
-
   int getBrushShape() const { return m_toolSettings.brushShape; }
-
   void setFilledShape(bool filled) { m_toolSettings.filledShape = filled; }
-
   bool getFilledShape() const { return m_toolSettings.filledShape; }
-
   void setLineWidth(int width) { m_toolSettings.lineWidth = width; }
 
   int getLineWidth() const { return m_toolSettings.lineWidth; }

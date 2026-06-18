@@ -15,8 +15,10 @@ private:
   SDL_Texture *m_textures[TotalButtons] = {nullptr};
   ToolType m_activeTool = ToolType::Pencil;
 
-  void raisedBorder(ImDrawList *dl, ImVec2 min, ImVec2 max);
-  void sunkenBorder(ImDrawList *dl, ImVec2 min, ImVec2 max);
+  void raisedBorder(ImDrawList *dl, ImVec2 min, ImVec2 max,
+                    float thickness = 1.f);
+  void sunkenBorder(ImDrawList *dl, ImVec2 min, ImVec2 max,
+                    float thickness = 1.f);
 
   // options panel renderers
   void renderOptions(Editor &editor, ImDrawList *dl);
@@ -28,10 +30,9 @@ private:
 public:
   Toolbar(int w, int h);
   ~Toolbar();
-
-  // toolMin / toolMax now drive the full window including options panel
-  ImVec2 toolMin = {0.0f, 23.0f};
-  ImVec2 toolMax = {66.0f, 635.0f};
+  float preferredWidth() const;
+  ImVec2 toolMin = {0, 23};
+  ImVec2 toolMax = {66, 615};
   bool init(SDL_Renderer *renderer);
   void render(Editor &editor); // now takes editor ref
 

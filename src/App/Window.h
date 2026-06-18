@@ -5,22 +5,35 @@
 #include <string>
 
 namespace App {
+
 class Window {
 public:
   struct Settings {
     std::string title;
-    const int width{1280};
-    const int height{720};
+    int width = 1280;
+    int height = 720;
+  };
+
+  struct Size {
+    int width;
+    int height;
   };
 
   explicit Window(const Settings &settings);
   ~Window();
 
-  [[nodiscard]] SDL_Window *getNativeWindow() const;
-  [[nodiscard]] SDL_Renderer *getNativeRenderer() const;
+  [[nodiscard]]
+  Size size() const;
+
+  [[nodiscard]]
+  SDL_Window *nativeWindow() const;
+
+  [[nodiscard]]
+  SDL_Renderer *nativeRenderer() const;
 
 private:
-  SDL_Window *m_window{nullptr};
-  SDL_Renderer *m_renderer{nullptr};
+  SDL_Window *m_window = nullptr;
+  SDL_Renderer *m_renderer = nullptr;
 };
+
 } // namespace App

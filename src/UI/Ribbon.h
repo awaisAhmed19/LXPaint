@@ -1,5 +1,5 @@
 #include "imgui.h"
-#include <vector>
+#include <SDL3/SDL_rect.h>
 namespace UI {
 
 struct MenuItems {
@@ -17,14 +17,19 @@ private:
   const int m_y = 0;
   int m_w = 0;
   int m_h = 0;
+  SDL_FRect m_rect{};
   ImU32 m_col = IM_COL32(192, 192, 192, 255);
 
-  void raisedBorder(ImDrawList *drawlist, ImVec2 min, ImVec2 max);
+  void raisedBorder(ImDrawList *drawlist, ImVec2 min, ImVec2 max,
+                    float thickness = 1.f);
 
-  void sunkenBorder(ImDrawList *drawlist, ImVec2 min, ImVec2 max);
+  void sunkenBorder(ImDrawList *drawlist, ImVec2 min, ImVec2 max,
+                    float thickness = 1.f);
+  void layout(const ImGuiViewport *vp);
 
 public:
   Ribbon(int w, int h);
   void render();
+  float preferredHeight() const;
 };
 }; // namespace UI

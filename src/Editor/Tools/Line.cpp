@@ -7,7 +7,6 @@
 
 #include <algorithm>
 
-static SDL_Rect affected{0};
 static SDL_Rect computeLineBounds(vec2 a, vec2 b, int brushSize, int maxW,
                                   int maxH) {
   int minX = std::max(0, std::min((int)a.x, (int)b.x) - brushSize);
@@ -25,21 +24,22 @@ void Line::onMouseDown(vec2 pos, ToolContext &ctx) {
   m_start = pos;
   m_last = pos;
 
-  affected = computeLineBounds(pos, pos, brushSize, ctx.canvas->getSurface()->w,
-                               ctx.canvas->getSurface()->h);
+  m_affected =
+      computeLineBounds(pos, pos, brushSize, ctx.canvas->getSurface()->w,
+                        ctx.canvas->getSurface()->h);
 }
 
 void Line::onMouseMove(vec2 pos, ToolContext &ctx) {
   if (!ctx.interaction->active)
     return;
   m_last = pos;
-  affected =
+  m_affected =
       computeLineBounds(m_start, pos, brushSize, ctx.canvas->getSurface()->w,
                         ctx.canvas->getSurface()->h);
   ctx.preview->clearRGBA(0, 0, 0, 0);
   Rasterizer::bresenham(m_start, pos, ctx.preview->getSurface(), ctx.fgColor,
                         brushSize, false);
-  ctx.preview->invalidateRect(affected);
+  ctx.preview->invalidateRect(m_affected);
 }
 
 std::unique_ptr<Command> Line::onMouseUp(vec2 pos, ToolContext &ctx) {
@@ -47,18 +47,18 @@ std::unique_ptr<Command> Line::onMouseUp(vec2 pos, ToolContext &ctx) {
   if (!ctx.interaction->active)
     return nullptr;
   ctx.preview->clearRGBA(0, 0, 0, 0);
-  ctx.preview->invalidateRect(affected);
+  ctx.preview->invalidateRect(m_affected);
   m_last = pos;
 
-  SDL_Rect affected =
+  SDL_Rect m_affected =
       computeLineBounds(m_start, pos, brushSize, ctx.canvas->getSurface()->w,
                         ctx.canvas->getSurface()->h);
   m_command =
-      std::make_unique<SnapshotCommand>(ctx.canvas->getSurface(), affected);
+      std::make_unique<SnapshotCommand>(ctx.canvas->getSurface(), m_affected);
 
   Rasterizer::bresenham(m_start, pos, ctx.canvas->getSurface(), ctx.fgColor,
                         brushSize, false);
-  ctx.canvas->invalidateRect(affected);
+  ctx.canvas->invalidateRect(m_affected);
   m_command->captureAfter(ctx.canvas->getSurface());
   return std::move(m_command);
 }

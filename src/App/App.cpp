@@ -20,18 +20,24 @@ Application::Application(const char *title) : m_editor(nullptr) {
   }
 
   this->m_window = std::make_unique<Window>(Window::Settings{"LXPAINT"});
-  this->m_editor = std::make_unique<Editor>(m_window->getNativeRenderer());
+  auto size = m_window->size();
+
+  m_layoutEngine->update(size.width, size.height, m_ribbon->preferredHeight(),
+                         m_toolbar->preferredWidth(),
+                         m_colorpalette->preferredHeight(),
+                         m_footer->preferredHeight());
+  this->m_editor = std::make_unique<Editor>(m_window->nativeRenderer());
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
 
   this->m_ribbon = std::make_unique<UI::Ribbon>(1300, 10);
   this->m_toolbar = std::make_unique<UI::Toolbar>(0, 0);
-  this->m_toolbar->init(this->m_window->getNativeRenderer());
-  this->m_colorpallete = std::make_unique<UI::ColorPallete>(1300, 0);
+  this->m_toolbar->init(this->m_window->nativeRenderer());
+  this->m_colorpalette = std::make_unique<UI::ColorPalette>(1300, 0);
   this->m_footer = std::make_unique<UI::Footer>(1300, 0);
-  ImGui_ImplSDL3_InitForSDLRenderer(m_window->getNativeWindow(),
-                                    m_window->getNativeRenderer());
-  ImGui_ImplSDLRenderer3_Init(m_window->getNativeRenderer());
+  ImGui_ImplSDL3_InitForSDLRenderer(m_window->nativeWindow(),
+                                    m_window->nativeRenderer());
+  ImGui_ImplSDLRenderer3_Init(m_window->nativeRenderer());
 }
 
 void Application::handleEvents() {
@@ -52,25 +58,25 @@ void Application::render() {
 
   ImGui::NewFrame();
 
-  SDL_SetRenderDrawColor(m_window->getNativeRenderer(), 128, 128, 128, 255);
+  SDL_SetRenderDrawColor(m_window->nativeRenderer(), 128, 128, 128, 255);
 
-  SDL_RenderClear(m_window->getNativeRenderer());
+  SDL_RenderClear(m_window->nativeRenderer());
 
   m_editor->render();
   m_editor->renderUI();
 
   m_ribbon->render();
   m_toolbar->render(*m_editor);
-  m_colorpallete->render();
+  m_colorpalette->render();
   m_footer->render();
-  m_editor->setFgColor(UI::ColorPallete::toU32(m_colorpallete->getFgColor()));
-  m_editor->setBgColor(UI::ColorPallete::toU32(m_colorpallete->getBgColor()));
+  m_editor->setFgColor(UI::ColorPalette::toU32(m_colorpalette->getFgColor()));
+  m_editor->setBgColor(UI::ColorPalette::toU32(m_colorpalette->getBgColor()));
   ImGui::Render();
 
   ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(),
-                                        m_window->getNativeRenderer());
+                                        m_window->nativeRenderer());
 
-  SDL_RenderPresent(m_window->getNativeRenderer());
+  SDL_RenderPresent(m_window->nativeRenderer());
 }
 
 void Application::update() {

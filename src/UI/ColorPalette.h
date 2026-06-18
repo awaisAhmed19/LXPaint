@@ -3,7 +3,7 @@
 #include <stdint.h>
 namespace UI {
 
-class ColorPallete {
+class ColorPalette {
 private:
   int m_w = 0;
   int m_h = 0;
@@ -19,8 +19,9 @@ private:
   void drawFgBgSelector(ImDrawList *drawlist, ImVec2 origin);
 
 public:
-  ColorPallete(int w, int h);
+  ColorPalette(int w, int h);
   void render();
+  float preferredHeight() const;
   static uint32_t toU32(const ImVec4 &color);
   ImVec4 getFgColor() const { return m_fgColor; }
   ImVec4 getBgColor() const { return m_bgColor; }

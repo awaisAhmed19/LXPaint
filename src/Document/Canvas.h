@@ -33,7 +33,6 @@ public:
                              const ResizePolicy &policy) const;
   SDL_Rect computeDestinationRect(int oldW, int oldH, int newW, int newH,
                                   const ResizePolicy &policy) const;
-  bool validateResize(const ResizeRequest &req);
   void resize(int w, int h, const ResizePolicy &policy);
   /* resize Transform pipeline
     {

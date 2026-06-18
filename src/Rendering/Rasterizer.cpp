@@ -280,8 +280,8 @@ void drawRectStroke(SDL_Surface *surface, vec2 a, vec2 b, uint32_t color,
 }
 
 void drawRectFill(SDL_Surface *surface, vec2 a, vec2 b, uint32_t color,
-                  bool isWhite) {
-  drawRectStroke(surface, a, b, color, 1);
+                  int brushSize, bool isWhite) {
+  drawRectStroke(surface, a, b, color, brushSize);
   if (isWhite) {
     rectFillWhite(surface, (int)a.x, (int)a.y, (int)b.x, (int)b.y);
   } else {
@@ -369,12 +369,9 @@ void bresenham(vec2 start, vec2 end, SDL_Surface *surface, uint32_t color,
   bool steep = abs(y2 - y1) > abs(x2 - x1);
 
   while (true) {
-    // FIXED: Correct span selection based on steepness
     if (steep) {
-      // Stepping primarily in Y: use horizontal span for brushSize in X
       drawHorizontalSpan(surface, x1, y1, brushSize, color, useXOR);
     } else {
-      // Stepping primarily in X: use vertical span for brushSize in Y
       drawVerticalSpan(surface, x1, y1, brushSize, color, useXOR);
     }
 

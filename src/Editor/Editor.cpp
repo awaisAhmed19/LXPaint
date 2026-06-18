@@ -143,11 +143,15 @@ void Editor::setFgColor(uint32_t color) { m_fgColor = color; }
 void Editor::setBgColor(uint32_t color) { m_bgColor = color; }
 
 ToolContext Editor::makeToolContext() {
-  return ToolContext{.canvas = &m_canvas,
-                     .preview = &m_preview,
-                     .interaction = &m_interaction,
-                     .fgColor = m_fgColor,
-                     .bgColor = m_bgColor};
+  return ToolContext{
+      .canvas = &m_canvas,
+      .preview = &m_preview,
+      .interaction = &m_interaction,
+      .fgColor = m_fgColor,
+      .bgColor = m_bgColor,
+      .brushSize = m_toolSettings.brushSize,
+      .settings = &m_toolSettings,
+  };
 }
 
 bool Editor::inCanvas(vec2 mousePos) {

@@ -15,6 +15,7 @@ private:
 
 public:
   Footer(int w, int h);
+  float preferredHeight() const;
   void render();
 };
 }; // namespace UI

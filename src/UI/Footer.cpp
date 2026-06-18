@@ -27,7 +27,13 @@ void Footer::sunkenBorder(ImDrawList *drawlist, ImVec2 min, ImVec2 max) {
   drawlist->AddLine({min.x, max.y}, max, Theme::WHITE, 1.0f);
   drawlist->AddLine({max.x, min.y}, max, Theme::WHITE, 1.0f);
 }
-// static void FooterButton(const char* btn_id, ImVec2 size,){}
+
+float Footer::preferredHeight() const {
+  ImGuiStyle &style = ImGui::GetStyle();
+
+  return ImGui::GetFontSize() + style.FramePadding.y * 2.0f +
+         style.WindowPadding.y * 2.0f;
+}
 
 void Footer::render() {
   constexpr ImVec2 ButtonPadding = {10, 2};
@@ -53,7 +59,9 @@ void Footer::render() {
 
   ImGui::Begin("Footer", nullptr,
                ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
-                   ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar);
+                   ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar |
+                   ImGuiWindowFlags_NoBringToFrontOnFocus |
+                   ImGuiWindowFlags_NoNavFocus);
 
   ImDrawList *drawlist = ImGui::GetWindowDrawList();
 

@@ -1,11 +1,13 @@
 #pragma once
 #include "Editor/Commands/SnapshotCommand.h"
 #include "GeometricTool.h"
+#include <SDL3/SDL_rect.h>
 class Line : public GeometricTool {
 private:
   vec2 m_start;
   vec2 m_last;
   std::unique_ptr<SnapshotCommand> m_command;
+  SDL_Rect m_affected{};
 
 public:
   int brushSize = 1;

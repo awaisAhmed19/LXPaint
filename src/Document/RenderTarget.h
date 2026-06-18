@@ -34,8 +34,6 @@ public:
   SDL_Rect getDirtyRect() const;
   void clearDirty();
   void swapTarget(RenderTarget &other);
-  SDL_Rect updateBounds(vec2 pos, int brushSize, int maxW, int maxH);
-  void resetBounds(vec2 pos, int brushSize);
   void invalidateRect(const SDL_Rect &rect);
   void blitFrom(const RenderTarget &src, const SDL_Rect *srcRect,
                 const SDL_Rect *dstRect);

@@ -22,12 +22,22 @@ Window::Window(const Settings &settings) {
     return;
   }
 }
+struct WindowSize {
+  int width;
+  int height;
+};
+
+Window::Size Window::size() const {
+  Size size{};
+  SDL_GetWindowSize(m_window, &size.width, &size.height);
+  return size;
+}
 
 Window::~Window() {
   SDL_DestroyRenderer(this->m_renderer);
   SDL_DestroyWindow(this->m_window);
 }
 
-SDL_Window *Window::getNativeWindow() const { return this->m_window; }
-SDL_Renderer *Window::getNativeRenderer() const { return this->m_renderer; }
+SDL_Window *Window::nativeWindow() const { return this->m_window; }
+SDL_Renderer *Window::nativeRenderer() const { return this->m_renderer; }
 }; // namespace App
