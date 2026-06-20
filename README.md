@@ -1,288 +1,193 @@
-# LXPaint
+<div align="center">
 
-A lightweight paint application built with **SDL3** and **ImGui**, created to explore how modern graphics editors work internally.
+# 🎨 LXPaint
 
-LXPaint is not intended to compete with professional art software. Its primary goal is educational: understanding rendering pipelines, rasterization algorithms, viewport systems, undo/redo architectures, and graphics editor design through a real-world implementation.
+**A native C++ paint app that's secretly a computational geometry research project wearing a trench coat.**
+
+Built with SDL3 + Dear ImGui. Inspired by the MS Paint of your childhood. Engineered like nobody's watching.
+
+[![C++](https://img.shields.io/badge/C%2B%2B-20-blue.svg?style=flat-square)](https://en.cppreference.com/w/cpp/20)
+[![SDL3](https://img.shields.io/badge/SDL-3.0-orange.svg?style=flat-square)](https://www.libsdl.org/)
+[![Dear ImGui](https://img.shields.io/badge/UI-Dear%20ImGui-9cf.svg?style=flat-square)](https://github.com/ocornut/imgui)
+[![Status](https://img.shields.io/badge/status-actively%20hacked%20on-brightgreen.svg?style=flat-square)]()
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-ff69b4.svg?style=flat-square)]()
+
+<!-- ![LXPaint screenshot](docs/screenshot.png) -->
+
+</div>
 
 ---
 
-## Goals
+## What is this?
 
-LXPaint exists to explore:
+LXPaint is a from-scratch raster painting application, built without a game engine, without a canvas library, without shortcuts. Just SDL3, Dear ImGui, and a lot of opinions about how a graphics editor *should* be architected.
 
-* Raster graphics algorithms
-* Dirty rectangle rendering optimization
-* GPU texture synchronization
-* Undo/redo architectures
-* Tool interaction systems
-* Viewport and coordinate transforms
-* Clean graphics editor architecture
-* Modern C++ design patterns
+It started as a way to answer a deceptively simple question: **what actually happens, pixel by pixel, when you drag a paintbrush across a screen?** Flood fill, Bresenham lines, ellipse rasterization, dirty-rectangle GPU sync, undo/redo as a command stack, viewport math that doesn't fall apart when you resize the window — all of it lives here, readable and pulled apart on purpose.
 
-The project prioritizes clarity, maintainability, and architectural experimentation over feature completeness.
+It also moonlights as the implementation half of a postgraduate research project on computational geometry algorithms. So if the code occasionally reads like it's being profiled, timed, and cross-examined — that's why.
+
+---
+
+## Why it exists
+
+Most paint apps are black boxes. LXPaint is the opposite: every algorithm is hand-rolled and exposed, every subsystem has one job, and the whole thing is built to be *read*, not just used.
+
+This project exists to dig into:
+
+- Raster graphics algorithms (line, ellipse, flood fill — the classics, done properly)
+- Dirty-rectangle rendering and partial GPU texture uploads
+- Command-pattern undo/redo with bounded memory
+- Viewport math: pan, zoom, and screen ↔ canvas coordinate transforms
+- Tool interaction as a clean, swappable contract
+- What a graphics editor's architecture looks like when responsibility boundaries are taken seriously
+
+Feature completeness is not the goal. Clarity is.
 
 ---
 
 ## Features
 
-### Drawing Tools
+### Drawing tools (fully wired up)
 
-* Pencil
-* Line
-* Rectangle
-* Circle
-* Eraser
+| Tool | What it does |
+|---|---|
+| ✏️ Pencil | 1px, no mercy |
+| 📏 Line | Bresenham under the hood |
+| ▭ Rectangle | Stroke, live preview |
+| ⬭ Ellipse | Theta-step polygon approximation |
+| 🧽 Eraser | Square brush, restores background |
+| 🪣 Flood Fill | Iterative stack-based fill (no stack overflows here) |
+| 💨 Airbrush | Randomized spray with configurable radius & density |
 
-### Rendering Features
+### On the toolbar, options ready, tool logic incoming
 
-* Dirty rectangle tracking
-* Partial texture uploads
-* Interactive preview rendering
-* Zoom and pan support
-* Viewport-aware input handling
+Free-form Select, Rectangle Select, Eyedropper, Magnifier, Brush, Text, Curve, Polygon, Rounded Rectangle — these already have their classic-Paint-style option panels wired up in the UI (shape pickers, line widths, zoom presets, opaque/transparent toggles, the works). The underlying tool *behavior* hasn't landed yet. The toolbox is ahead of the tools — that gap is basically an open invitation.
 
-### Undo / Redo
+### Everything around the drawing
 
-* Command pattern architecture
-* Snapshot-based undo/redo
-* Region-based restoration
-* Bounded command history
-
-### Developer Tooling
-
-* Integrated profiling utilities
-* Debug logging
-* FPS monitoring
-* Performance instrumentation
+- Dirty-rectangle tracking with partial texture uploads — only repainted pixels touch the GPU
+- Pan, zoom-to-cursor, and a viewport that survives window resizing without flinching
+- Command-pattern undo/redo with bounded depth *and* bounded memory
+- A genuinely faithful classic-Paint UI: ribbon, tool grid, 28-color palette, status bar — all hand-drawn with `ImDrawList`, not default ImGui chrome
+- Built-in profiling utilities for comparing algorithm implementations head-to-head
 
 ---
 
-## Architecture Overview
+## Architecture, in one breath
 
-LXPaint is organized around a strict separation of responsibilities.
-
-```text
+```
 Input Layer
     ↓
-Viewport Transform System
+Viewport Transform (screen → world → canvas)
     ↓
-Tool Layer
+Tool Layer (expresses intent, owns nothing)
     ↓
-Canvas (Document State)
+Canvas (the one true bitmap)
     ↓
-Command System
+Command System (undo/redo)
     ↓
-Renderer
+Renderer (CPU rasterize → dirty rect → GPU texture sync)
     ↓
 SDL3
 ```
 
-### Core Principles
+Every layer has exactly one job. Tools don't know about rendering. The renderer doesn't know what a "stroke" is. The canvas doesn't care who's drawing on it. If you've ever wanted to see that kind of separation actually held to under real feature pressure, the source is right there — start with `Editor.cpp` and follow the data.
 
-#### Tools Express Intent
-
-Tools do not own rendering logic or undo history.
-
-A tool simply expresses what the user wants to do.
-
-Examples:
-
-* Draw a line
-* Draw a rectangle
-* Erase pixels
-* Paint a stroke
-
-#### Canvas Owns Document State
-
-The canvas is the authoritative bitmap.
-
-Responsibilities:
-
-* Pixel storage
-* Canvas dimensions
-* Dirty region tracking
-
-The canvas does not manage user interaction or viewport behavior.
-
-#### Commands Make Operations Reversible
-
-Every committed drawing action becomes a command.
-
-This enables:
-
-* Undo
-* Redo
-* History management
-
-#### Renderer Synchronizes GPU State
-
-The renderer is responsible for:
-
-* Texture synchronization
-* Viewport-aware rendering
-* GPU presentation
+Full breakdown — ownership maps, coordinate spaces, object lifetimes, the whole audit trail — lives in [`Documentation/`](Documentation/).
 
 ---
 
-## Rendering Pipeline
+## Getting started
 
-LXPaint uses a CPU-first rendering model.
+### You'll need
 
-```text
-Tool
-    ↓
-Rasterizer
-    ↓
-Canvas Surface
-    ↓
-Dirty Region Tracking
-    ↓
-Texture Synchronization
-    ↓
-GPU Rendering
-```
+- A C++20 compiler
+- CMake 3.10+
+- SDL3 and SDL3_image (via your package manager or built from source)
 
-Only modified regions are uploaded to the GPU whenever possible.
-
-This significantly reduces texture upload bandwidth during interactive drawing.
-
----
-
-## Viewport System
-
-The viewport provides coordinate transformation between screen space and canvas space.
-
-```text
-Screen Space
-    ↓
-Viewport Transform
-    ↓
-Canvas Space
-```
-
-Features:
-
-* Zoom
-* Pan
-* Coordinate conversion
-* Visible region calculations
-
-Tools operate exclusively in canvas coordinates and remain independent from viewport implementation details.
-
----
-
-## Undo / Redo System
-
-LXPaint uses a command-based architecture.
-
-```text
-Mouse Input
-    ↓
-Tool Interaction
-    ↓
-Command Creation
-    ↓
-Command Execution
-    ↓
-Undo Stack
-```
-
-Commands store only the affected region of the canvas rather than full-canvas snapshots whenever possible.
-
-This keeps history operations efficient and predictable.
-
----
-
-## Project Structure
-
-```text
-src/
-├── App/
-├── Document/
-├── Editor/
-│   ├── Commands/
-│   ├── Input/
-│   ├── Interaction/
-│   ├── Tools/
-│   └── Viewport/
-├── Rendering/
-├── Systems/
-└── UI/
-```
-
-### Major Subsystems
-
-| Directory | Responsibility                        |
-| --------- | ------------------------------------- |
-| App       | Application startup and main loop     |
-| Document  | Canvas and bitmap state               |
-| Editor    | User interaction orchestration        |
-| Commands  | Undo/redo infrastructure              |
-| Tools     | Drawing behavior                      |
-| Rendering | Rasterization and GPU synchronization |
-| Systems   | Logging, profiling, utilities         |
-| UI        | ImGui-based interface                 |
-
----
-
-## Controls
-
-| Action    | Shortcut         |
-| --------- | ---------------- |
-| Pencil    | P                |
-| Line      | L                |
-| Rectangle | R                |
-| Circle    | C                |
-| Eraser    | E                |
-| Undo      | Ctrl + Z         |
-| Redo      | Ctrl + Y         |
-| Zoom In   | Mouse Wheel Up   |
-| Zoom Out  | Mouse Wheel Down |
-| Pan       | Space + Drag     |
-
----
-
-## Building
-
-### Requirements
-
-* C++20
-* SDL3
-* ImGui
-* CMake 3.10+
-
-### Build
+### Fastest path
 
 ```bash
 git clone <repository>
 cd LXPaint
 
-mkdir build
-cd build
+./bootstrap.sh   # pulls SDL and Dear ImGui into external/
+./build.sh       # configures, builds, and launches LXPaint
+```
 
+### The manual way
+
+```bash
+mkdir build && cd build
 cmake ..
-cmake --build .
-
+cmake --build . --parallel
 ./lxpaint
 ```
 
 ---
 
-## Documentation
+## Controls
 
-Additional documentation can be found in the `docs/` directory.
+| Action | Shortcut |
+|---|---|
+| Switch tool | Click the toolbar |
+| Undo | `Ctrl + Z` |
+| Redo | `Ctrl + Y` |
+| Zoom In / Out | Mouse Wheel |
+| Pan | `Space` + Drag |
+| Grow Canvas | `Ctrl` + `=` |
+| Shrink Canvas | `Ctrl` + `-` |
 
-Suggested structure:
+---
 
-```text
-docs/
-├── ARCHITECTURE.md
-├── COMMAND_SYSTEM.md
-├── RENDERING.md
-├── VIEWPORT.md
-├── ROADMAP.md
-└── AUDIT.md
+## Project layout
+
 ```
+src/
+├── App/          window, bootstrap, global types
+├── Document/     Canvas, RenderTarget, PreviewLayer — the bitmap layer
+├── Editor/
+│   ├── Commands/     undo/redo command stack
+│   ├── Interaction/  tool context & interaction state
+│   ├── Tools/        every tool, one file each
+│   └── Viewport/     pan/zoom/coordinate transforms
+├── Input/        SDL events → typed engine state
+├── Rendering/    Rasterizer (CPU pixels) + Renderer (GPU sync)
+├── Systems/      logging, assertions, profiling
+└── UI/           ImGui-based classic-Paint interface
+
+Documentation/    architecture, audit, and roadmap docs — the project's own paper trail
+```
+
+---
+
+## Roadmap
+
+The honest, unranked list of what's next:
+
+- Wire up the tools that already have a toolbar UI waiting for them (Selection, Text, Brush, Curve, Polygon, Magnifier)
+- A real layer system (the placeholder is already sitting in `Canvas`, just waiting)
+- Source-clipped rendering so zoomed-out canvases stop uploading pixels nobody can see
+- A `.LXP` save format that doesn't try to serialize an `SDL_Texture*` (we know better now)
+- Headless testing, once the SDL dependency is abstracted out of the rasterizer
+
+Check [`Documentation/Roadmap.md`](Documentation/Roadmap.md) for the fully itemized, audit-backed version.
+
+---
+
+## Contributing
+
+Before touching core systems, it's worth skimming:
+
+1. Dirty-rectangle propagation
+2. The command lifecycle (`SnapshotCommand`, `CommandManager`)
+3. Viewport coordinate transforms (screen → world → canvas)
+4. The tool interaction contract (`BaseTool` vs `ClickTool`)
+5. Renderer sync timing
+
+Adding a new tool is the easiest way in — subclass `StrokeTool` or `GeometricTool`, implement three mouse callbacks, register it, done. See [`Documentation/Architecture.md`](Documentation/Architecture.md#adding-a-new-tool) for the exact steps.
+
+Found a bug? `Documentation/Audit.md` already tracks a few known ones with severity and evidence — feel free to add to the list or, better, cross one off.
 
 ---
 
@@ -290,19 +195,12 @@ docs/
 
 > Tools express intent. Engine enforces rules. Renderer pushes pixels. UI connects everything.
 
-Each subsystem should have a single responsibility and clear ownership boundaries.
-
-The project favors explicit architecture over convenience abstractions and serves as a playground for understanding how graphics software is built from first principles.
+LXPaint favors explicit architecture over convenience abstractions. It's not trying to be Photoshop. It's trying to be a paint app you could fully explain, end to end, on a whiteboard.
 
 ---
 
-## Contributing
+## Acknowledgments
 
-Before modifying core systems, familiarize yourself with:
+Built on [SDL3](https://www.libsdl.org/) and [Dear ImGui](https://github.com/ocornut/imgui) — without which this would just be a very ambitious `malloc` call.
 
-1. Dirty rectangle propagation
-2. Command lifecycle
-3. Viewport coordinate transforms
-4. Tool interaction contracts
-5. Rendering synchronization
-
+If LXPaint taught you something about how graphics editors work, a ⭐ goes a long way.
