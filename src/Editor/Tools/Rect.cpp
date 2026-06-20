@@ -8,7 +8,6 @@
 #include "Rect.h"
 #include "Rendering/Rasterizer.h"
 #include "Systems/Logger.h"
-static SDL_Rect m_affected{0};
 static SDL_Rect computeRectBounds(vec2 a, vec2 b, int brushSize, int maxW,
                                   int maxH) {
   int minX = std::max(0, std::min((int)a.x, (int)b.x) - brushSize - 4);

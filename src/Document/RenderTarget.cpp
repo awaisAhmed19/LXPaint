@@ -54,8 +54,8 @@ void RenderTarget::invalidateRect(const SDL_Rect &rect) {
   m_dirtyRect = result;
 }
 
-SDL_Surface *RenderTarget::getSurface() { return this->m_surface; }
-SDL_Texture *RenderTarget::getTexture() { return this->m_texture; }
+SDL_Surface *RenderTarget::getSurface() const { return this->m_surface; }
+SDL_Texture *RenderTarget::getTexture() const { return this->m_texture; }
 
 int RenderTarget::getWidth() const { return this->m_width; }
 int RenderTarget::getHeight() const { return this->m_height; }

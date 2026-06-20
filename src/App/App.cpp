@@ -4,9 +4,10 @@
 #include <memory>
 
 #include "App.h"
-
 #include "App/Globals.h"
+#include "UI/LayoutEngine/LayoutMetrics.h"
 #include "imgui_impl_sdlrenderer3.h"
+#include <iostream>
 
 #include "Systems/Logger.h"
 
@@ -20,21 +21,27 @@ Application::Application(const char *title) : m_editor(nullptr) {
   }
 
   this->m_window = std::make_unique<Window>(Window::Settings{"LXPAINT"});
+
+  IMGUI_CHECKVERSION();
+  ImGui::CreateContext();
   auto size = m_window->size();
 
+  m_layoutEngine = std::make_unique<LayoutEngine>();
+  this->m_ribbon = std::make_unique<UI::Ribbon>(size.width, 10);
+  this->m_toolbar = std::make_unique<UI::Toolbar>(0, 0);
+  this->m_toolbar->init(this->m_window->nativeRenderer());
+  this->m_colorpalette = std::make_unique<UI::ColorPalette>(size.width, 0);
+  this->m_footer = std::make_unique<UI::Footer>(size.width, 0);
   m_layoutEngine->update(size.width, size.height, m_ribbon->preferredHeight(),
                          m_toolbar->preferredWidth(),
                          m_colorpalette->preferredHeight(),
                          m_footer->preferredHeight());
-  this->m_editor = std::make_unique<Editor>(m_window->nativeRenderer());
-  IMGUI_CHECKVERSION();
-  ImGui::CreateContext();
+  auto vp = m_layoutEngine->layout().viewport;
 
-  this->m_ribbon = std::make_unique<UI::Ribbon>(1300, 10);
-  this->m_toolbar = std::make_unique<UI::Toolbar>(0, 0);
-  this->m_toolbar->init(this->m_window->nativeRenderer());
-  this->m_colorpalette = std::make_unique<UI::ColorPalette>(1300, 0);
-  this->m_footer = std::make_unique<UI::Footer>(1300, 0);
+  std::cout << vp.x << " " << vp.y << " " << vp.width << " " << vp.height
+            << '\n';
+  this->m_editor = std::make_unique<Editor>(m_window->nativeRenderer(),
+                                            m_layoutEngine->layout());
   ImGui_ImplSDL3_InitForSDLRenderer(m_window->nativeWindow(),
                                     m_window->nativeRenderer());
   ImGui_ImplSDLRenderer3_Init(m_window->nativeRenderer());

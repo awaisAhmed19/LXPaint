@@ -1,7 +1,41 @@
 #include "Renderer.h"
 #include "Systems/Assert.h"
 #include <SDL3/SDL_render.h>
+namespace {
 
+void logRenderTarget(const Viewport &viewport, const RenderTarget &target,
+                     const Transform2D &transform, const SDL_FRect &dst) {
+
+  SDL_FRect vp = viewport.getScreenRect();
+
+  std::cout << "\n================ RENDER TARGET ================\n";
+
+  std::cout << "Viewport Rect\n";
+  std::cout << "  X      : " << vp.x << '\n';
+  std::cout << "  Y      : " << vp.y << '\n';
+  std::cout << "  Width  : " << vp.w << '\n';
+  std::cout << "  Height : " << vp.h << "\n\n";
+
+  std::cout << "Canvas\n";
+  std::cout << "  Width  : " << target.getWidth() << '\n';
+  std::cout << "  Height : " << target.getHeight() << "\n\n";
+
+  std::cout << "World Transform\n";
+  std::cout << "  Position X : " << transform.position.x << '\n';
+  std::cout << "  Position Y : " << transform.position.y << "\n\n";
+
+  std::cout << "Destination Rect\n";
+  std::cout << "  X      : " << dst.x << '\n';
+  std::cout << "  Y      : " << dst.y << '\n';
+  std::cout << "  Width  : " << dst.w << '\n';
+  std::cout << "  Height : " << dst.h << "\n\n";
+
+  std::cout << "Texture Pointer : " << target.getTexture() << '\n';
+
+  std::cout << "===============================================\n";
+}
+
+} // namespace
 Renderer::Renderer(SDL_Renderer *renderer) { this->m_renderer = renderer; }
 
 SDL_Renderer *Renderer::getSDLRenderer() const { return m_renderer; }
@@ -56,28 +90,62 @@ void Renderer::sync(RenderTarget &target) {
   }
   target.clearDirty();
 }
+/*void Renderer::beginViewport(const Viewport &viewport) {
+  SDL_FRect vp = viewport.getScreenRect();
 
+  SDL_Rect clip = {static_cast<int>(vp.x), static_cast<int>(vp.y),
+                   static_cast<int>(vp.w), static_cast<int>(vp.h)};
+
+  std::cout << "\n========== BEGIN VIEWPORT ==========\n";
+  std::cout << "Clip Rect\n";
+  std::cout << "  X      : " << clip.x << '\n';
+  std::cout << "  Y      : " << clip.y << '\n';
+  std::cout << "  Width  : " << clip.w << '\n';
+  std::cout << "  Height : " << clip.h << '\n';
+  std::cout << "====================================\n";
+
+  SDL_SetRenderClipRect(m_renderer, &clip);
+}*/
+void Renderer::beginViewport(const Viewport &) {}
+void Renderer::endViewport() {}
+// void Renderer::endViewport() { SDL_SetRenderClipRect(m_renderer, nullptr); }
+/*Even better
+
+    Eventually,
+    we wouldn't clip per target.
+
+    we would clip once for the whole viewport.
+
+    renderer.beginViewport(viewport);
+
+renderer.drawCheckerboard(...);
+renderer.renderTarget(canvas, viewport, transform);
+renderer.renderTarget(preview, viewport, transform);
+renderer.drawSelection(...);
+renderer.drawGrid(...);
+
+renderer.endViewport();
+*/
 void Renderer::renderTarget(RenderTarget &target, const Viewport &viewport,
                             const Transform2D &transform) {
   LX_ASSERT(target.getSurface() != nullptr, "RenderTarget surface null");
+
   if (target.isDirty()) {
     sync(target);
   }
 
   if (!target.getTexture()) {
-    SDL_Log("Texture missing!");
     Logger::err("RenderTarget texture missing after sync");
     return;
   }
-  SDL_FRect mainRect = {transform.position.x, transform.position.y,
-                        (float)target.getWidth(), (float)target.getHeight()};
 
-  SDL_FRect dst = viewport.worldRectToScreen(mainRect);
+  SDL_FRect worldRect = {transform.position.x, transform.position.y,
+                         static_cast<float>(target.getWidth()),
+                         static_cast<float>(target.getHeight())};
 
-  bool rendered =
-      SDL_RenderTexture(this->m_renderer, target.getTexture(), nullptr, &dst);
+  SDL_FRect dst = viewport.worldRectToScreen(worldRect);
 
-  if (!rendered) {
-    SDL_Log("RenderTexture failed: %s", SDL_GetError());
+  if (!SDL_RenderTexture(m_renderer, target.getTexture(), nullptr, &dst)) {
+    Logger::err(std::format("SDL_RenderTexture failed: {}", SDL_GetError()));
   }
 }

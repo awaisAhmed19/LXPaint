@@ -24,8 +24,8 @@ public:
   virtual ~RenderTarget();
   void clear(uint32_t color);
 
-  SDL_Surface *getSurface();
-  SDL_Texture *getTexture();
+  SDL_Surface *getSurface() const;
+  SDL_Texture *getTexture() const;
 
   void resize(int w, int h);
 

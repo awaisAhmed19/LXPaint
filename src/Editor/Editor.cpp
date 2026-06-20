@@ -17,6 +17,7 @@
 #include "Editor/Tools/Rect.h"
 
 #include "Systems/Logger.h"
+#include "UI/LayoutEngine/LayoutMetrics.h"
 #include "UI/Toolbar.h"
 #include <SDL3/SDL_render.h>
 namespace ToolID {
@@ -28,15 +29,16 @@ constexpr auto Circle = "circle";
 constexpr auto FloodFill = "floodfill";
 } // namespace ToolID
 
-Editor::Editor(SDL_Renderer *renderer)
-    : m_canvas(800, 550), m_preview(800, 550), m_renderer(renderer),
+Editor::Editor(SDL_Renderer *renderer, const UI::LayoutMetrics &layout)
+    : m_canvas(500, 450), m_preview(500, 450), m_renderer(renderer),
       m_commands(50, 256), m_docTransform({0.0f, 0.0f}) {
   setupTools();
   setupInputBindings();
 
   m_viewport.setZoom(1.0f);
   m_viewport.setPan({0.0f, 0.0f});
-  m_viewport.setScreenRect({0, 0, 1280, 720});
+  m_viewport.setScreenRect({layout.viewport.x, layout.viewport.y,
+                            layout.viewport.width, layout.viewport.height});
 
   centerCanvas();
 }
@@ -344,15 +346,14 @@ void Editor::renderUI() {
 }
 
 void Editor::centerCanvas() {
-  int w = 0;
-  int h = 0;
-
-  SDL_GetRenderOutputSize(m_renderer.getSDLRenderer(), &w, &h);
   float zoom = m_viewport.getZoom();
   float canvasW = m_canvas.getWidth() * zoom;
   float canvasH = m_canvas.getHeight() * zoom;
-  float x = (w - canvasW) * 0.5f;
-  float y = (h - canvasH) * 0.5f;
+
+  SDL_FRect vp = m_viewport.getScreenRect();
+
+  float x = vp.x + (vp.w - canvasW) * 0.5f;
+  float y = vp.y + (vp.h - canvasH) * 0.5f;
 
   m_viewport.setPan({x, y});
 }

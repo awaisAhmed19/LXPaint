@@ -16,6 +16,8 @@ public:
   SDL_Renderer *getSDLRenderer() const;
 
 private:
+  void beginViewport(const Viewport &viewport);
+  void endViewport();
   void sync(RenderTarget &target);
   void ensureTexture(RenderTarget &target);
 };

@@ -41,6 +41,7 @@ set(PROJECT_SOURCES
     src/UI/Toolbar.cpp
     src/UI/ColorPalette.cpp
     src/UI/Footer.cpp
+    src/UI/LayoutEngine/LayoutEngine.cpp
   )
 
 # ImGui

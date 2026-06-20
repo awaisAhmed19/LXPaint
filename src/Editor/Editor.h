@@ -3,6 +3,7 @@
 #include <SDL3/SDL.h>
 #include <cstdint>
 
+#include "UI/LayoutEngine/LayoutMetrics.h"
 #include "imgui_impl_sdl3.h"
 
 #include "Document/Canvas.h"
@@ -61,7 +62,7 @@ private:
   // vec2 screenToCanvas(vec2 screenPos) const;
 
 public:
-  explicit Editor(SDL_Renderer *renderer);
+  explicit Editor(SDL_Renderer *renderer, const UI::LayoutMetrics &layout);
 
   void handleEvent(const SDL_Event &event);
   void update();
