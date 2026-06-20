@@ -90,25 +90,37 @@ void Renderer::sync(RenderTarget &target) {
   }
   target.clearDirty();
 }
-/*void Renderer::beginViewport(const Viewport &viewport) {
+void Renderer::beginViewport(const Viewport &viewport) {
   SDL_FRect vp = viewport.getScreenRect();
 
   SDL_Rect clip = {static_cast<int>(vp.x), static_cast<int>(vp.y),
                    static_cast<int>(vp.w), static_cast<int>(vp.h)};
+  /*
+    std::cout << "\n========== BEGIN VIEWPORT ==========\n";
+    std::cout << "Clip Rect\n";
+    std::cout << "  X      : " << clip.x << '\n';
+    std::cout << "  Y      : " << clip.y << '\n';
+    std::cout << "  Width  : " << clip.w << '\n';
+    std::cout << "  Height : " << clip.h << '\n';
+    std::cout << "====================================\n";
 
-  std::cout << "\n========== BEGIN VIEWPORT ==========\n";
-  std::cout << "Clip Rect\n";
-  std::cout << "  X      : " << clip.x << '\n';
-  std::cout << "  Y      : " << clip.y << '\n';
-  std::cout << "  Width  : " << clip.w << '\n';
-  std::cout << "  Height : " << clip.h << '\n';
-  std::cout << "====================================\n";
+    SDL_Rect actual;
 
+    if (SDL_GetRenderClipRect(m_renderer, &actual)) {
+      std::cout << "\nREQUESTED CLIP\n"
+                << clip.x << " " << clip.y << " " << clip.w << " " << clip.h
+                << '\n';
+
+      std::cout << "ACTIVE CLIP\n"
+                << actual.x << " " << actual.y << " " << actual.w << " "
+                << actual.h << '\n';
+    }
+  */
   SDL_SetRenderClipRect(m_renderer, &clip);
-}*/
-void Renderer::beginViewport(const Viewport &) {}
-void Renderer::endViewport() {}
-// void Renderer::endViewport() { SDL_SetRenderClipRect(m_renderer, nullptr); }
+}
+// void Renderer::beginViewport(const Viewport &) {}
+// void Renderer::endViewport() {}
+void Renderer::endViewport() { SDL_SetRenderClipRect(m_renderer, nullptr); }
 /*Even better
 
     Eventually,
@@ -138,14 +150,16 @@ void Renderer::renderTarget(RenderTarget &target, const Viewport &viewport,
     Logger::err("RenderTarget texture missing after sync");
     return;
   }
-
+  beginViewport(viewport);
   SDL_FRect worldRect = {transform.position.x, transform.position.y,
                          static_cast<float>(target.getWidth()),
                          static_cast<float>(target.getHeight())};
 
   SDL_FRect dst = viewport.worldRectToScreen(worldRect);
-
+  // SDL_SetRenderDrawColor(m_renderer, 255, 0, 0, 255);
+  // SDL_RenderFillRect(m_renderer, &dst);
   if (!SDL_RenderTexture(m_renderer, target.getTexture(), nullptr, &dst)) {
     Logger::err(std::format("SDL_RenderTexture failed: {}", SDL_GetError()));
   }
+  endViewport();
 }

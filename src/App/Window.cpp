@@ -30,6 +30,20 @@ struct WindowSize {
 Window::Size Window::size() const {
   Size size{};
   SDL_GetWindowSize(m_window, &size.width, &size.height);
+  int ww, wh;
+  SDL_GetWindowSize(m_window, &ww, &wh);
+
+  int pw, ph;
+  SDL_GetWindowSizeInPixels(m_window, &pw, &ph);
+
+  float sx, sy;
+  SDL_GetRenderScale(m_renderer, &sx, &sy);
+
+  std::cout << "Window      : " << ww << " x " << wh << '\n';
+
+  std::cout << "Framebuffer : " << pw << " x " << ph << '\n';
+
+  std::cout << "RenderScale : " << sx << ", " << sy << '\n';
   return size;
 }
 

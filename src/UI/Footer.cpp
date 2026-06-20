@@ -1,6 +1,6 @@
 #include "Footer.h"
+#include "LayoutEngine/UILayoutConstant.h"
 #include "imgui.h"
-
 namespace UI {
 
 namespace Theme {
@@ -27,28 +27,31 @@ void Footer::sunkenBorder(ImDrawList *drawlist, ImVec2 min, ImVec2 max) {
   drawlist->AddLine({min.x, max.y}, max, Theme::WHITE, 1.0f);
   drawlist->AddLine({max.x, min.y}, max, Theme::WHITE, 1.0f);
 }
-
+/*
 float Footer::preferredHeight() const {
   ImGuiStyle &style = ImGui::GetStyle();
 
   return ImGui::GetFontSize() + style.FramePadding.y * 2.0f +
          style.WindowPadding.y * 2.0f;
 }
-
+*/
+float Footer::preferredHeight() const { return UI::Layout::FooterHeight; }
 void Footer::render() {
   constexpr ImVec2 ButtonPadding = {10, 2};
-  const float thickness = 1.0f;
-  const float footerHeight = 22.0f;
+  constexpr float pad = 1.0f;
+  constexpr float gap = 2.0f;
 
-  // ImGui::GetStyle().FramePadding = ButtonPadding;
+  const float footerHeight = preferredHeight();
+
   ImGuiViewport *vp = ImGui::GetMainViewport();
-  const ImVec2 footermax = {vp->Size.x, vp->Size.y};
-  ImGui::SetNextWindowPos({footermin.x, footermin.y});
+  const float footerY = vp->Pos.y + vp->Size.y - footerHeight;
+
+  ImGui::SetNextWindowPos({vp->Pos.x, footerY});
   ImGui::SetNextWindowSize({vp->Size.x, footerHeight});
 
-  ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, {0.0f, 0.0f});
-  ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0.0f, 0.0f});
-  ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {2.f, 0.0f});
+  ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, {0.f, 0.f});
+  ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0.f, 0.f});
+  ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {2.f, 0.f});
   ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ButtonPadding);
 
   ImGui::PushStyleColor(ImGuiCol_WindowBg, Theme::FooterBg);
@@ -67,16 +70,12 @@ void Footer::render() {
 
   const ImVec2 origin = ImGui::GetCursorScreenPos();
 
-  const float pad = 1.0f;
-  const float gap = 2.0f;
-
-  const float h = footerHeight - 2.0f * pad;
-
-  const float totalWidth = vp->Size.x - 2.0f * pad;
+  const float h = footerHeight - pad * 2.0f;
+  const float totalWidth = vp->Size.x - pad * 2.0f;
 
   const float textWidth = totalWidth * 0.80f;
   const float coordWidth = totalWidth * 0.10f;
-  const float sizeWidth = totalWidth - textWidth - coordWidth - 2.0f * gap;
+  const float sizeWidth = totalWidth - textWidth - coordWidth - gap * 2.0f;
 
   ImVec2 textMin = {origin.x + pad, origin.y + pad};
   ImVec2 textMax = {textMin.x + textWidth, textMin.y + h};
@@ -85,22 +84,52 @@ void Footer::render() {
   ImVec2 coordMax = {coordMin.x + coordWidth, coordMin.y + h};
 
   ImVec2 sizeMin = {coordMax.x + gap, origin.y + pad};
-  ImVec2 sizeMax = {sizeMin.x + sizeWidth, sizeMin.y + h};
-  drawlist->AddText({textMin.x + 3, textMin.y + 2}, Theme::BLACK,
-                    "Click on Help to know more.");
+  ImVec2 sizeMax = {sizeMin.x + sizeWidth, coordMin.y + h};
 
-  drawlist->AddText({coordMin.x + 3, coordMin.y + 2}, Theme::BLACK,
-                    "X:100  Y:100");
+  //----------------------------------------------------
+  // Window border
+  //----------------------------------------------------
 
-  drawlist->AddText({sizeMin.x + 3, sizeMin.y + 2}, Theme::BLACK, "100 x 100");
+  ImVec2 footerMin = {vp->Pos.x, footerY};
+  ImVec2 footerMax = {vp->Pos.x + vp->Size.x, footerY + footerHeight};
+
+  raisedBorder(drawlist, footerMin, footerMax);
+
+  //----------------------------------------------------
+  // Cell borders
+  //----------------------------------------------------
+
+  sunkenBorder(drawlist, textMin, textMax);
+  sunkenBorder(drawlist, coordMin, coordMax);
+  sunkenBorder(drawlist, sizeMin, sizeMax);
+
+  //----------------------------------------------------
+  // Clipped text
+  //----------------------------------------------------
+
+  constexpr float textPad = 3.0f;
+  constexpr float textYOffset = 2.0f;
+
+  // Help text
+  drawlist->PushClipRect(textMin, textMax, true);
+  drawlist->AddText({textMin.x + textPad, textMin.y + textYOffset},
+                    Theme::BLACK, "Click on Help to know more.");
+  drawlist->PopClipRect();
+
+  // Coordinates
+  drawlist->PushClipRect(coordMin, coordMax, true);
+  drawlist->AddText({coordMin.x + textPad, coordMin.y + textYOffset},
+                    Theme::BLACK, "X:100  Y:100");
+  drawlist->PopClipRect();
+
+  // Canvas size
+  drawlist->PushClipRect(sizeMin, sizeMax, true);
+  drawlist->AddText({sizeMin.x + textPad, sizeMin.y + textYOffset},
+                    Theme::BLACK, "100 x 100");
+  drawlist->PopClipRect();
   ImGui::End();
 
   ImGui::PopStyleColor(5);
   ImGui::PopStyleVar(4);
-  raisedBorder(drawlist, footermin, footermax);
-  sunkenBorder(drawlist, textMin, textMax);
-  sunkenBorder(drawlist, coordMin, coordMax);
-  sunkenBorder(drawlist, sizeMin, sizeMax);
 }
-
 }; // namespace UI

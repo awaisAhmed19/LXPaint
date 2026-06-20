@@ -40,28 +40,29 @@ vec2 Viewport::worldToScreen(vec2 world) const {
 SDL_FRect Viewport::worldRectToScreen(SDL_FRect rect) const {
 
   LX_ASSERT(m_zoom > 0.0f, "Viewport zoom invalid");
-  std::cout << "\n========== VIEWPORT ==========\n";
+  // std::cout << "\n========== VIEWPORT ==========\n";
+  /*
+    std::cout << "Viewport Rect      : "
+              << "X=" << m_screenRect.x << " Y=" << m_screenRect.y
+              << " W=" << m_screenRect.w << " H=" << m_screenRect.h << '\n';
 
-  std::cout << "Viewport Rect      : "
-            << "X=" << m_screenRect.x << " Y=" << m_screenRect.y
-            << " W=" << m_screenRect.w << " H=" << m_screenRect.h << '\n';
+    std::cout << "Pan Offset         : "
+              << "X=" << m_pan.x << " Y=" << m_pan.y << '\n';
 
-  std::cout << "Pan Offset         : "
-            << "X=" << m_pan.x << " Y=" << m_pan.y << '\n';
+    std::cout << "Zoom Level         : " << m_zoom << '\n';
 
-  std::cout << "Zoom Level         : " << m_zoom << '\n';
-
-  std::cout << "World Rect         : "
-            << "X=" << rect.x << " Y=" << rect.y << " W=" << rect.w
-            << " H=" << rect.h << '\n';
+    std::cout << "World Rect         : "
+              << "X=" << rect.x << " Y=" << rect.y << " W=" << rect.w
+              << " H=" << rect.h << '\n';
+    */
   SDL_FRect screenRect = {rect.x * m_zoom + m_pan.x, rect.y * m_zoom + m_pan.y,
                           rect.w * m_zoom, rect.h * m_zoom};
 
-  std::cout << "Screen Rect        : "
+  /*std::cout << "Screen Rect        : "
             << "X=" << screenRect.x << " Y=" << screenRect.y
             << " W=" << screenRect.w << " H=" << screenRect.h
             << "\n==============================\n";
-
+*/
   return screenRect;
 }
 
@@ -108,9 +109,17 @@ bool Viewport::isPointInCanvas(vec2 screenPos,
   return canvasPos.x >= 0.0f && canvasPos.x < m_canvasWidth &&
          canvasPos.y >= 0.0f && canvasPos.y < m_canvasHeight;
 }
-void Viewport::setScreenRect(SDL_FRect rect) { this->m_screenRect = rect; }
+void Viewport::setScreenRect(SDL_FRect rect) {
+  std::cout << "\nSET VIEWPORT\n"
+            << "X=" << rect.x << " Y=" << rect.y << " W=" << rect.w
+            << " H=" << rect.h << '\n';
+  this->m_screenRect = rect;
+}
 SDL_FRect Viewport::getScreenRect() const { return m_screenRect; }
-
+bool Viewport::isCanvasLargerThanViewport() const {
+  return m_canvasWidth * m_zoom > m_screenRect.w ||
+         m_canvasHeight * m_zoom > m_screenRect.h;
+}
 bool Viewport::isVisible(SDL_FRect rect) const {
   SDL_FRect screen = worldRectToScreen(rect);
   return SDL_HasRectIntersectionFloat(&screen, &m_screenRect);
@@ -152,35 +161,35 @@ void Viewport::onCanvasResized(int cW, int cH) {
   Logger::debug(std::format("ViewPort Notified: canvas now {}x{}", cW, cH));
 }
 void Viewport::clampPan() {
-  if (m_canvasWidth <= 0 || m_canvasHeight <= 0) {
+  if (m_canvasWidth <= 0 || m_canvasHeight <= 0)
     return;
-  }
 
-  float screenW = m_screenRect.w;
-  float screenH = m_screenRect.h;
-  float canvasScreenW = m_canvasWidth * m_zoom;
-  float canvasScreenH = m_canvasHeight * m_zoom;
+  constexpr float kMinVisible = 64.0f;
 
-  float left = m_screenRect.x;
-  float top = m_screenRect.y;
-  float right = m_screenRect.x + m_screenRect.w;
-  float bottom = m_screenRect.y + m_screenRect.h;
+  const float canvasScreenW = m_canvasWidth * m_zoom;
+  const float canvasScreenH = m_canvasHeight * m_zoom;
 
-  float maxPanX = left;
-  float minPanX = right - canvasScreenW;
+  const float left = m_screenRect.x;
+  const float top = m_screenRect.y;
+  const float right = left + m_screenRect.w;
+  const float bottom = top + m_screenRect.h;
 
-  float maxPanY = top;
-  float minPanY = bottom - canvasScreenH;
   if (canvasScreenW <= m_screenRect.w) {
     m_pan.x = left + (m_screenRect.w - canvasScreenW) * 0.5f;
   } else {
-    m_pan.x = std::clamp(m_pan.x, right - canvasScreenW, left);
+    const float minPanX = left + kMinVisible - canvasScreenW;
+    const float maxPanX = right - kMinVisible;
+
+    m_pan.x = std::clamp(m_pan.x, minPanX, maxPanX);
   }
 
   if (canvasScreenH <= m_screenRect.h) {
     m_pan.y = top + (m_screenRect.h - canvasScreenH) * 0.5f;
   } else {
-    m_pan.y = std::clamp(m_pan.y, bottom - canvasScreenH, top);
+    const float minPanY = top + kMinVisible - canvasScreenH;
+    const float maxPanY = bottom - kMinVisible;
+
+    m_pan.y = std::clamp(m_pan.y, minPanY, maxPanY);
   }
 }
 

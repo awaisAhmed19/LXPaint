@@ -21,7 +21,7 @@ public:
   vec2 screenToCanvas(vec2 screen, const Transform2D &docTransform) const;
   vec2 worldToScreen(vec2 world) const;
   SDL_FRect worldRectToScreen(SDL_FRect rect) const;
-
+  bool isCanvasLargerThanViewport() const;
   SDL_FRect getCanvasBoundsScreen() const;
   vec2 getCanvasTopLeftScreen(const Transform2D &docTransform) const;
   vec2 getCanvasTopRightScreen(const Transform2D &docTransform) const;

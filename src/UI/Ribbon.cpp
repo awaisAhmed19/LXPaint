@@ -1,5 +1,6 @@
 #include "Ribbon.h"
 // #include "UILayout.h"
+#include "UI/LayoutEngine/UILayoutConstant.h"
 #include "imgui.h"
 #include <array>
 #include <iterator>
@@ -38,12 +39,9 @@ void Ribbon::layout(const ImGuiViewport *vp) {
 
   m_rect = {vp->Pos.x, vp->Pos.y, vp->Size.x, kRibbonHeight};
 }
-float Ribbon::preferredHeight() const {
-  ImGuiStyle &style = ImGui::GetStyle();
 
-  return ImGui::GetFontSize() + style.FramePadding.y * 2.0f +
-         style.WindowPadding.y * 2.0f;
-}
+float Ribbon::preferredHeight() const { return UI::Layout::RibbonHeight; }
+
 void Ribbon::render() {
   //----------------------------------------------------------------------
   // Layout constants

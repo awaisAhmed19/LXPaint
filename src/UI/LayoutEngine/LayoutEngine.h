@@ -4,8 +4,7 @@
 
 class LayoutEngine {
 public:
-  void update(int windowWidth, int windowHeight, float ribbonHeight,
-              float toolbarWidth, float paletteHeight, float footerHeight);
+  void update(int windowWidth, int windowHeight);
 
   const UI::LayoutMetrics &layout() const { return m_layout; }
 

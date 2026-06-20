@@ -10,12 +10,6 @@
 enum class InputCommand {
   UNDO,
   REDO,
-  PENCIL,
-  ERASER,
-  RECT,
-  CIRCLE,
-  LINE,
-  FILL,
 };
 
 class InputDispatcher {

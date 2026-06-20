@@ -1,9 +1,14 @@
 #include "Toolbar.h"
+#include "App/Globals.h"
+#include "Editor/Editor.h"
+#include "UI/LayoutEngine/UILayoutConstant.h"
+#include "imgui.h"
 #include <SDL3_image/SDL_image.h>
 #include <algorithm>
+#include <cmath>
+#include <cstdio>
 #include <string>
 
-// #include "UILayout.h"
 namespace UI {
 
 namespace Theme {
@@ -14,11 +19,20 @@ constexpr ImU32 ButtonBg = IM_COL32(192, 192, 192, 255);
 constexpr ImU32 ButtonHover = IM_COL32(210, 210, 210, 255);
 constexpr ImU32 ButtonActive = IM_COL32(150, 150, 150, 255);
 constexpr ImU32 TextColor = IM_COL32(0, 0, 0, 255);
+constexpr ImU32 OptionHovered = IM_COL32(0, 0, 50, 255);
+constexpr ImU32 Selected = IM_COL32(0, 0, 128, 255);
 } // namespace Theme
+
+struct ToolOption {
+  int buttonNumber = 0;
+  ImVec2 pos = {0, 0};
+  ImVec2 size = {0, 0};
+};
 
 struct ToolButton {
   ToolType type;
   const char *iconName;
+  ToolOption tooloption;
 };
 
 static constexpr ToolButton kButtons[] = {
@@ -81,58 +95,59 @@ bool Toolbar::init(SDL_Renderer *renderer) {
   return ok;
 }
 
-// Draws 4 dot-size options in a 2×2 grid, each a small square button
-// with a filled circle whose radius reflects the size value.
-void Toolbar::renderSizeDots(Editor &editor, ImDrawList *dl, ImVec2 origin,
-                             const int *sizes, int count) {
-  const float cell = 26.0f; // button cell size
-  const float pad = 0.0f;
+//--------------------------------------------------------------------------
+// Eraser — 1x4 grid of square swatches (eraser is square, unlike brush dots)
+//--------------------------------------------------------------------------
+void Toolbar::renderSizeSquares(Editor &editor, ImDrawList *dl, ImVec2 origin,
+                                float optionWidth, float optionHeight,
+                                const int *sizes, int count) {
+  constexpr float gap = 1.0f;
 
-  int &current = editor.getToolSettings().brushSize;
-  // For Line tool we want lineWidth instead
-  ToolType t = editor.getActiveTool();
-  int *target = (t == ToolType::Line) ? &editor.getToolSettings().lineWidth
-                                      : &editor.getToolSettings().brushSize;
+  float &target = editor.getToolSettings().eraserSize;
 
-  for (int i = 0; i < count; ++i) {
-    int col = i % 2;
-    int row = i / 2;
+  const float cellW = optionWidth;
+  const float cellH = (optionHeight - gap * 3.0f) / 4.0f;
 
-    ImVec2 btnMin = {origin.x + col * (cell + pad),
-                     origin.y + row * (cell + pad)};
-    ImVec2 btnMax = {btnMin.x + cell, btnMin.y + cell};
+  for (int i = 0; i < count && i < 4; ++i) {
+    ImVec2 btnMin = {origin.x + 1.f, (origin.y + 1) + i * (cellH + gap)};
+
+    ImVec2 btnMax = {btnMin.x + cellW - 1.f, btnMin.y + cellH - 1.f};
+
     ImVec2 center = {(btnMin.x + btnMax.x) * 0.5f,
                      (btnMin.y + btnMax.y) * 0.5f};
 
-    bool selected = (*target == sizes[i]);
+    bool selected = (target == static_cast<float>(sizes[i]));
 
-    // Button background — sunken if selected
     dl->AddRectFilled(btnMin, btnMax, Theme::ButtonBg);
+
     if (selected)
-      sunkenBorder(dl, btnMin, btnMax);
-    else
-      raisedBorder(dl, btnMin, btnMax);
+      dl->AddRectFilled(btnMin, btnMax, Theme::OptionHovered);
 
-    // Dot — radius scales with size, capped for display
-    float radius = std::clamp(sizes[i] * 1.8f, 2.0f, 10.0f);
-    dl->AddCircleFilled(center, radius, Theme::BLACK);
+    float half = std::min(cellH, cellW) * 0.04f * sizes[i];
+    half = std::clamp(half, 2.0f, 10.0f);
 
-    // Invisible hit area
+    dl->AddRectFilled({center.x - half, center.y - half},
+                      {center.x + half, center.y + half},
+                      selected ? Theme::WHITE : Theme::BLACK);
+
     ImGui::SetCursorScreenPos(btnMin);
-    ImGui::PushID(i + 200);
-    if (ImGui::InvisibleButton("##dot", {cell, cell}))
-      *target = sizes[i];
+    ImGui::PushID(i + 900);
+
+    if (ImGui::InvisibleButton("##erasersize", {cellW, cellH}))
+      target = static_cast<float>(sizes[i]);
+
     ImGui::PopID();
   }
 }
 
-// 2×2 grid of brush-shape stamps (square / diagonal / round / spray)
+//--------------------------------------------------------------------------
+// Brush — 2x2 grid of shape stamps (round / square / fwd-slash / backslash)
+//--------------------------------------------------------------------------
 void Toolbar::renderBrushShapes(Editor &editor, ImDrawList *dl, ImVec2 origin) {
   const float cell = 26.0f;
   const float pad = 2.0f;
-  int &shape = editor.getToolSettings().brushShape;
+  auto &shape = editor.getToolSettings().brushShape;
 
-  // 4 shapes: round, square, forward-slash, backslash
   for (int i = 0; i < 4; ++i) {
     int col = i % 2;
     int row = i / 2;
@@ -140,27 +155,25 @@ void Toolbar::renderBrushShapes(Editor &editor, ImDrawList *dl, ImVec2 origin) {
                      origin.y + row * (cell + pad)};
     ImVec2 btnMax = {btnMin.x + cell, btnMin.y + cell};
 
-    bool selected = (shape == i);
+    bool selected = ((int)shape == i);
     dl->AddRectFilled(btnMin, btnMax, Theme::ButtonBg);
     if (selected)
-      sunkenBorder(dl, btnMin, btnMax);
-    else
-      raisedBorder(dl, btnMin, btnMax);
+      dl->AddRectFilled(btnMin, btnMax, Theme::OptionHovered);
 
     ImVec2 c = {(btnMin.x + btnMax.x) * 0.5f, (btnMin.y + btnMax.y) * 0.5f};
     float r = 5.0f;
 
     switch (i) {
-    case 0: // circle
+    case 0:
       dl->AddCircleFilled(c, r, Theme::BLACK);
       break;
-    case 1: // square
+    case 1:
       dl->AddRectFilled({c.x - r, c.y - r}, {c.x + r, c.y + r}, Theme::BLACK);
       break;
-    case 2: // forward-slash stroke
+    case 2:
       dl->AddLine({c.x - r, c.y + r}, {c.x + r, c.y - r}, Theme::BLACK, 2.5f);
       break;
-    case 3: // backslash stroke
+    case 3:
       dl->AddLine({c.x - r, c.y - r}, {c.x + r, c.y + r}, Theme::BLACK, 2.5f);
       break;
     }
@@ -168,99 +181,275 @@ void Toolbar::renderBrushShapes(Editor &editor, ImDrawList *dl, ImVec2 origin) {
     ImGui::SetCursorScreenPos(btnMin);
     ImGui::PushID(i + 300);
     if (ImGui::InvisibleButton("##shape", {cell, cell}))
-      shape = i;
+      shape = (ToolSettings::BrushShape)i;
     ImGui::PopID();
   }
 }
 
-// 3 fill-mode options stacked vertically — outline / fill / both
-void Toolbar::renderFillModes(Editor &editor, ImDrawList *dl, ImVec2 origin) {
-  const float w = 54.0f;
-  const float h = 18.0f;
-  const float gap = 2.0f;
-  int &mode = editor.getToolSettings().brushShape; // reuse as fill mode
+//--------------------------------------------------------------------------
+// Rectangle / Ellipse / Polygon / RoundedRectangle — outline/fill/both
+//--------------------------------------------------------------------------
+void Toolbar::renderFillModes(Editor &editor, ImDrawList *dl, ImVec2 origin,
+                              float optionWidth, float optionHeight) {
+  constexpr float gap = 1.0f;
+
+  auto &mode =
+      editor.getToolSettings().brushShape; // TODO: replace with fillMode
 
   struct FillPreview {
     const char *id;
-    bool drawOutline;
-    bool drawFill;
-  };
-  static constexpr FillPreview kModes[3] = {
-      {"##fm0", true, false}, // outline only
-      {"##fm1", false, true}, // fill only
-      {"##fm2", true, true},  // outline + fill
+    bool outline;
+    bool filled;
   };
 
+  static constexpr FillPreview kModes[3] = {
+      {"##fm0", true, false}, // Outline
+      {"##fm1", false, true}, // Filled
+      {"##fm2", true, true},  // Outline + Filled
+  };
+
+  const float cellW = optionWidth;
+  const float cellH = (optionHeight - gap * 2.0f) / 3.0f;
+
   for (int i = 0; i < 3; ++i) {
+    ImVec2 btnMin = {origin.x + 1.0f, origin.y + 1.0f + i * (cellH + gap)};
+
+    ImVec2 btnMax = {btnMin.x + cellW - 1.0f, btnMin.y + cellH - 1.0f};
+
+    bool selected = (mode == static_cast<ToolSettings::BrushShape>(i));
+
+    dl->AddRectFilled(btnMin, btnMax, Theme::ButtonBg);
+
+    if (selected)
+      dl->AddRectFilled(btnMin, btnMax, Theme::OptionHovered);
+
+    constexpr float padX = 8.0f;
+    constexpr float padY = 4.0f;
+
+    ImVec2 rectMin = {btnMin.x + padX, btnMin.y + padY};
+    ImVec2 rectMax = {btnMax.x - padX, btnMax.y - padY};
+
+    if (kModes[i].filled)
+      dl->AddRectFilled(rectMin, rectMax, IM_COL32(128, 128, 128, 255));
+
+    if (kModes[i].outline)
+      dl->AddRect(rectMin, rectMax, IM_COL32(128, 128, 128, 255));
+
+    ImGui::SetCursorScreenPos(btnMin);
+    ImGui::PushID(i + 400);
+
+    if (ImGui::InvisibleButton(kModes[i].id, {cellW, cellH}))
+      mode = static_cast<ToolSettings::BrushShape>(i);
+
+    ImGui::PopID();
+  }
+}
+
+//--------------------------------------------------------------------------
+// Line / Curve — 4 stacked thickness bars
+//--------------------------------------------------------------------------
+void Toolbar::renderLineWidths(Editor &editor, ImDrawList *dl, ImVec2 origin,
+                               float optionWidth, float optionHeight) {
+  static constexpr float kWidths[4] = {1.0f, 2.0f, 3.0f, 5.0f};
+  constexpr float gap = 1.0f;
+
+  float &target = editor.getToolSettings().lineWidth;
+
+  const float cellW = optionWidth;
+  const float cellH = (optionHeight - gap * 3.0f) / 4.0f;
+
+  for (int i = 0; i < 4; ++i) {
+    ImVec2 btnMin = {origin.x + 1.0f, origin.y + 1.0f + i * (cellH + gap)};
+
+    ImVec2 btnMax = {btnMin.x + cellW - 1.0f, btnMin.y + cellH - 1.0f};
+
+    ImVec2 center = {(btnMin.x + btnMax.x) * 0.5f,
+                     (btnMin.y + btnMax.y) * 0.5f};
+
+    bool selected = (target == kWidths[i]);
+
+    dl->AddRectFilled(btnMin, btnMax, Theme::ButtonBg);
+
+    if (selected)
+      dl->AddRectFilled(btnMin, btnMax, Theme::OptionHovered);
+
+    dl->AddLine({btnMin.x + 6.0f, center.y}, {btnMax.x - 6.0f, center.y},
+                selected ? Theme::WHITE : Theme::BLACK, kWidths[i]);
+
+    ImGui::SetCursorScreenPos(btnMin);
+    ImGui::PushID(i + 500);
+
+    if (ImGui::InvisibleButton("##linewidth", {cellW, cellH}))
+      target = kWidths[i];
+
+    ImGui::PopID();
+  }
+}
+
+//--------------------------------------------------------------------------
+// Airbrush — 3 stacked spray-density icons (small / medium / large)
+//--------------------------------------------------------------------------
+void Toolbar::renderAirbrushSizes(Editor &editor, ImDrawList *dl, ImVec2 origin,
+                                  float optionWidth, float optionHeight) {
+  static constexpr float kSizes[3] = {5.0f, 8.0f, 12.0f};
+  static constexpr int kDotCounts[3] = {10, 18, 28};
+  const float gap = 2.0f;
+  const float cellW = optionWidth;
+  const float cellH = (optionHeight - gap * 3.0f) / 3.0f;
+
+  float &target = editor.getToolSettings().airbrushRadius;
+
+  for (int i = 0; i < 3; ++i) {
+    ImVec2 btnMin = {origin.x + 1.0f, origin.y + 1.0f + i * (cellH + gap)};
+
+    ImVec2 btnMax = {btnMin.x + cellW - 1.0f, btnMin.y + cellH - 1.0f};
+
+    bool selected = (target == kSizes[i]);
+
+    ImVec2 c = {(btnMin.x + btnMax.x) * 0.5f, (btnMin.y + btnMax.y) * 0.5f};
+    dl->AddRectFilled(btnMin, btnMax, Theme::ButtonBg);
+
+    if (selected)
+      dl->AddRectFilled(btnMin, btnMax, Theme::OptionHovered);
+
+    float radius = kSizes[i] * 0.6f;
+
+    // Deterministic pseudo-random spray dots (no <random> dependency)
+    unsigned seed = 1234u + (unsigned)i * 97u;
+    auto rnd = [&seed]() {
+      seed = seed * 1103515245u + 12345u;
+      return (float)((seed >> 16) & 0x7FFF) / 32767.0f;
+    };
+    for (int d = 0; d < kDotCounts[i]; ++d) {
+      float ang = rnd() * 6.2831853f;
+      float r = rnd() * radius;
+      ImVec2 p = {c.x + std::cos(ang) * r, c.y + std::sin(ang) * r};
+      dl->AddCircleFilled(p, 1.0f, selected ? Theme::WHITE : Theme::BLACK);
+    }
+
+    ImGui::SetCursorScreenPos(btnMin);
+    ImGui::PushID(i + 600);
+    if (ImGui::InvisibleButton("##spray", {cellW, cellH}))
+      target = kSizes[i];
+    ImGui::PopID();
+  }
+}
+
+//--------------------------------------------------------------------------
+// Magnifier — vertical list of zoom presets: 1x, 2x, 6x, 8x
+//--------------------------------------------------------------------------
+void Toolbar::renderZoomLevels(Editor &editor, ImDrawList *dl, ImVec2 origin) {
+  static constexpr int kLevels[4] = {1, 2, 6, 8};
+  const float w = 50.0f;
+  const float h = 16.0f;
+
+  int &target = editor.getToolSettings().zoomLevel;
+
+  for (int i = 0; i < 4; ++i) {
+    ImVec2 rowMin = {origin.x, origin.y + i * h};
+    ImVec2 rowMax = {rowMin.x + w, rowMin.y + h};
+
+    bool selected = (target == kLevels[i]);
+
+    dl->AddRectFilled(rowMin, rowMax,
+                      selected ? Theme::Selected : Theme::ButtonBg);
+
+    char label[8];
+    std::snprintf(label, sizeof(label), "%dx", kLevels[i]);
+    ImVec2 textSize = ImGui::CalcTextSize(label);
+    ImVec2 textPos = {rowMin.x + 4.0f, rowMin.y + (h - textSize.y) * 0.5f};
+    dl->AddText(textPos, selected ? Theme::WHITE : Theme::BLACK, label);
+
+    ImGui::SetCursorScreenPos(rowMin);
+    ImGui::PushID(i + 800);
+    if (ImGui::InvisibleButton("##zoom", {w, h}))
+      target = kLevels[i];
+    ImGui::PopID();
+  }
+}
+
+//--------------------------------------------------------------------------
+// Selection (FreeSelect/RectSelect) + Text — opaque/transparent background
+// Note: simplified procedural preview swatches, not the original bitmap
+// icons (white square vs checkerboard), since I don't have those assets.
+//--------------------------------------------------------------------------
+void Toolbar::renderBackgroundModeIcons(Editor &editor, ImDrawList *dl,
+                                        ImVec2 origin,
+                                        ToolSettings::BackgroundMode &target) {
+  const float w = 50.0f;
+  const float h = 26.0f;
+  const float gap = 2.0f;
+
+  for (int i = 0; i < 2; ++i) {
+    auto mode = (i == 0) ? ToolSettings::BackgroundMode::Opaque
+                         : ToolSettings::BackgroundMode::Transparent;
+
     ImVec2 btnMin = {origin.x, origin.y + i * (h + gap)};
     ImVec2 btnMax = {btnMin.x + w, btnMin.y + h};
 
-    bool selected = (mode == i);
+    bool selected = (target == mode);
+
     dl->AddRectFilled(btnMin, btnMax, Theme::ButtonBg);
     if (selected)
       sunkenBorder(dl, btnMin, btnMax);
     else
       raisedBorder(dl, btnMin, btnMax);
 
-    // Mini shape preview inside the button
-    float px = btnMin.x + 6.0f, py = btnMin.y + 3.0f;
-    float pw = w - 16.0f, phh = h - 6.0f;
-    if (kModes[i].drawFill)
-      dl->AddRectFilled({px, py}, {px + pw, py + phh},
-                        IM_COL32(180, 180, 180, 255));
-    if (kModes[i].drawOutline)
-      dl->AddRect({px, py}, {px + pw, py + phh}, Theme::BLACK, 0.0f, 0, 1.f);
+    ImVec2 pMin = {btnMin.x + 6.0f, btnMin.y + 4.0f};
+    ImVec2 pMax = {btnMax.x - 6.0f, btnMax.y - 4.0f};
+
+    if (mode == ToolSettings::BackgroundMode::Opaque) {
+      dl->AddRectFilled(pMin, pMax, Theme::WHITE);
+    } else {
+      float cw = (pMax.x - pMin.x) * 0.5f;
+      float ch = (pMax.y - pMin.y) * 0.5f;
+      ImU32 light = Theme::WHITE;
+      ImU32 dark = IM_COL32(160, 160, 160, 255);
+      dl->AddRectFilled({pMin.x, pMin.y}, {pMin.x + cw, pMin.y + ch}, light);
+      dl->AddRectFilled({pMin.x + cw, pMin.y}, {pMax.x, pMin.y + ch}, dark);
+      dl->AddRectFilled({pMin.x, pMin.y + ch}, {pMin.x + cw, pMax.y}, dark);
+      dl->AddRectFilled({pMin.x + cw, pMin.y + ch}, {pMax.x, pMax.y}, light);
+    }
+    dl->AddRect(pMin, pMax, Theme::BLACK, 0.0f, 0, 1.0f);
 
     ImGui::SetCursorScreenPos(btnMin);
-    ImGui::PushID(i + 400);
-    if (ImGui::InvisibleButton(kModes[i].id, {w, h}))
-      mode = i;
+    ImGui::PushID(i + 700);
+    if (ImGui::InvisibleButton("##bgmode", {w, h}))
+      target = mode;
     ImGui::PopID();
   }
 }
 
+//--------------------------------------------------------------------------
 void Toolbar::renderOptions(Editor &editor, ImDrawList *dl) {
-  // Options box starts below the 8-row button grid.
-  // Button grid: 8 rows × 24px + gaps ≈ y offset ~220px from window top.
-  // We draw the sunken container rect first, then dispatch per-tool content.
-
   ImVec2 winPos = ImGui::GetWindowPos();
   float boxX = winPos.x + 4.0f;
-  float boxY = winPos.y + 222.0f; // just below the 16 buttons
+  float boxY = winPos.y + 222.0f;
   float boxW = 58.0f;
   float boxH = 80.0f;
 
-  // Sunken container — classic Paint look
   ImVec2 boxMin = {boxX, boxY};
   ImVec2 boxMax = {boxX + boxW, boxY + boxH};
   dl->AddRectFilled(boxMin, boxMax, IM_COL32(192, 192, 192, 255));
   sunkenBorder(dl, boxMin, boxMax);
 
-  // Inner content origin with a small inset
-  ImVec2 inner = {boxX + 4.0f, boxY + 6.0f};
+  ImVec2 inner = {boxX, boxY};
 
-  static constexpr int kPencilSizes[] = {1, 2, 4, 6};
   static constexpr int kEraserSizes[] = {4, 6, 8, 10};
-  static constexpr int kLineSizes[] = {1, 2, 3, 5};
-  static constexpr int kAirSizes[] = {5, 8, 12, 18};
 
   switch (editor.getActiveTool()) {
 
-  case ToolType::Pencil:
-    renderSizeDots(editor, dl, inner, kPencilSizes, 4);
-    break;
-
   case ToolType::Eraser:
-    renderSizeDots(editor, dl, inner, kEraserSizes, 4);
+    renderSizeSquares(editor, dl, inner, boxW, boxH, kEraserSizes, 4);
     break;
 
   case ToolType::Line:
   case ToolType::Curve:
-    renderSizeDots(editor, dl, inner, kLineSizes, 4);
+    renderLineWidths(editor, dl, inner, boxW, boxH);
     break;
 
   case ToolType::Airbrush:
-    renderSizeDots(editor, dl, inner, kAirSizes, 4);
+    renderAirbrushSizes(editor, dl, inner, boxW, boxH);
     break;
 
   case ToolType::Brush:
@@ -271,36 +460,34 @@ void Toolbar::renderOptions(Editor &editor, ImDrawList *dl) {
   case ToolType::Ellipse:
   case ToolType::RoundedRectangle:
   case ToolType::Polygon:
-    renderFillModes(editor, dl, inner);
+    renderFillModes(editor, dl, inner, boxW, boxH);
+    break;
+
+  case ToolType::FreeSelect:
+  case ToolType::RectSelect:
+  case ToolType::Text:
+    renderBackgroundModeIcons(editor, dl, inner,
+                              editor.getToolSettings().backgroundMode);
+    break;
+
+  case ToolType::Magnifier:
+    renderZoomLevels(editor, dl, inner);
     break;
 
   default:
-    // No options for select, eyedropper, magnifier, text, floodfill
+    // Pencil, FloodFill, Eyedropper: no options, matches reference images
     break;
   }
 }
-float Toolbar::preferredWidth() const {
-  constexpr int columns = 2;
-  constexpr float buttonSize = 24.0f;
-  constexpr float spacing = 1.0f;
 
-  ImGuiStyle &style = ImGui::GetStyle();
+float Toolbar::preferredWidth() const { return UI::Layout::ToolbarWidth; }
 
-  return style.WindowPadding.x * 2.0f + columns * buttonSize +
-         (columns - 1) * spacing;
-}
 void Toolbar::render(Editor &editor) {
-  //-------------------------------------------------------------------------
-  // Layout constants
-  //-------------------------------------------------------------------------
-
   constexpr int kColumns = 2;
   constexpr int kRows = 8;
-
   constexpr float kButtonSize = 24.0f;
   constexpr float kButtonGap = 1.0f;
-
-  constexpr float kRibbonHeight = 22.0f; // TODO: use UILayout
+  constexpr float kRibbonHeight = 22.0f;
   constexpr float kLeftInset = 4.0f;
 
   constexpr ImVec2 kWindowPadding{2.0f, 0.0f};
@@ -312,15 +499,10 @@ void Toolbar::render(Editor &editor) {
       ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar |
       ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
 
-  //-------------------------------------------------------------------------
-  // Window
-  //-------------------------------------------------------------------------
-
   ImGuiViewport *vp = ImGui::GetMainViewport();
 
   ImGui::SetNextWindowPos({vp->Pos.x, vp->Pos.y + kRibbonHeight},
                           ImGuiCond_Always);
-
   ImGui::SetNextWindowSize({toolMax.x, toolMax.y}, ImGuiCond_Always);
 
   ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, {0.f, 0.f});
@@ -338,12 +520,7 @@ void Toolbar::render(Editor &editor) {
 
   ImDrawList *dl = ImGui::GetWindowDrawList();
 
-  //----------------------------------------------------------------------
-  // Tool buttons
-  //----------------------------------------------------------------------
-
   ImGui::SetCursorPosX(ImGui::GetCursorPosX() + kLeftInset);
-
   const float startX = ImGui::GetCursorPosX();
 
   for (int i = 0; i < kColumns * kRows; ++i) {
@@ -375,15 +552,7 @@ void Toolbar::render(Editor &editor) {
       ImGui::SameLine();
   }
 
-  //----------------------------------------------------------------------
-  // Tool options
-  //----------------------------------------------------------------------
-
   renderOptions(editor, dl);
-
-  //----------------------------------------------------------------------
-  // Window border
-  //----------------------------------------------------------------------
 
   ImVec2 winMin = ImGui::GetWindowPos();
   ImVec2 winMax = {winMin.x + ImGui::GetWindowWidth(),

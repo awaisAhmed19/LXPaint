@@ -32,14 +32,11 @@ Application::Application(const char *title) : m_editor(nullptr) {
   this->m_toolbar->init(this->m_window->nativeRenderer());
   this->m_colorpalette = std::make_unique<UI::ColorPalette>(size.width, 0);
   this->m_footer = std::make_unique<UI::Footer>(size.width, 0);
-  m_layoutEngine->update(size.width, size.height, m_ribbon->preferredHeight(),
-                         m_toolbar->preferredWidth(),
-                         m_colorpalette->preferredHeight(),
-                         m_footer->preferredHeight());
+  m_layoutEngine->update(size.width, size.height);
   auto vp = m_layoutEngine->layout().viewport;
 
-  std::cout << vp.x << " " << vp.y << " " << vp.width << " " << vp.height
-            << '\n';
+  std::cout << "VP INFO FROM APP" << vp.x << " " << vp.y << " " << vp.width
+            << " " << vp.height << '\n';
   this->m_editor = std::make_unique<Editor>(m_window->nativeRenderer(),
                                             m_layoutEngine->layout());
   ImGui_ImplSDL3_InitForSDLRenderer(m_window->nativeWindow(),
@@ -48,15 +45,53 @@ Application::Application(const char *title) : m_editor(nullptr) {
 }
 
 void Application::handleEvents() {
-  while (SDL_PollEvent(&this->m_event)) {
-    ImGui_ImplSDL3_ProcessEvent(&this->m_event);
-    if (this->m_event.type == SDL_EVENT_QUIT) {
-      this->m_running = false;
+  while (SDL_PollEvent(&m_event)) {
+
+    // Give ImGui first chance to process the event
+    ImGui_ImplSDL3_ProcessEvent(&m_event);
+
+    switch (m_event.type) {
+
+    case SDL_EVENT_QUIT:
+      m_running = false;
       return;
+
+    case SDL_EVENT_WINDOW_RESIZED:
+    case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED: {
+      auto size = m_window->size();
+
+      m_layoutEngine->update(size.width, size.height);
+
+      const auto &layout = m_layoutEngine->layout();
+
+      m_editor->setViewportRect({
+          layout.viewport.x,
+          layout.viewport.y,
+          layout.viewport.width,
+          layout.viewport.height,
+      });
+      std::cout << "\n=== WINDOW RESIZED ===\n";
+      std::cout << "Window: " << size.width << " x " << size.height << '\n';
+
+      std::cout << "Viewport: " << layout.viewport.x << ", "
+                << layout.viewport.y << ", " << layout.viewport.width << ", "
+                << layout.viewport.height << '\n';
+      // Uncomment if you want automatic fit-to-window on resize.
+      // m_editor->fitCanvasToScreen();
+
+      break;
     }
-    if (ImGui::GetIO().WantCaptureMouse)
+
+    default:
+      break;
+    }
+
+    // Don't forward mouse/keyboard events to the editor if ImGui wants them.
+    if (ImGui::GetIO().WantCaptureMouse || ImGui::GetIO().WantCaptureKeyboard) {
       continue;
-    this->m_editor->handleEvent(this->m_event);
+    }
+
+    m_editor->handleEvent(m_event);
   }
 }
 void Application::render() {

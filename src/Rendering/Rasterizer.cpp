@@ -3,9 +3,15 @@
 #include <SDL3/SDL_surface.h>
 #include <cmath>
 #include <cstdint>
+#include <random>
 #define TAU 6.2831853
 namespace Rasterizer {
 
+inline float randomFloat(float min, float max) {
+  static thread_local std::mt19937 rng{std::random_device{}()};
+  std::uniform_real_distribution<float> dist(min, max);
+  return dist(rng);
+}
 void drawPixel(SDL_Surface *surface, int x, int y, uint32_t color) {
   LX_ASSERT(surface != nullptr, "drawPixel received null surface");
   if (x < 0 || x >= surface->w || y < 0 || y >= surface->h)
@@ -84,6 +90,39 @@ void drawEllipse(SDL_Surface *surface, int xc, int yc, int rx, int ry,
 
       d2 += dx - dy + (rx * rx);
     }
+  }
+}
+void spray(SDL_Surface *surface, vec2 center, uint32_t color, float radius,
+           int density) {
+  for (int i = 0; i < density; ++i) {
+    float angle = randomFloat(0.f, 2.f * std::numbers::pi_v<float>);
+    float dist = std::sqrt(randomFloat(0.f, 1.f)) * radius;
+
+    int x = static_cast<int>(center.x + std::cos(angle) * dist);
+    int y = static_cast<int>(center.y + std::sin(angle) * dist);
+
+    drawPixel(surface, x, y, color);
+  }
+}
+
+void sprayStroke(SDL_Surface *surface, vec2 start, vec2 end, uint32_t color,
+                 float radius, int density) {
+  float dx = end.x - start.x;
+  float dy = end.y - start.y;
+
+  float dist = std::hypot(dx, dy);
+
+  int steps = std::max(1, static_cast<int>(dist));
+
+  for (int i = 0; i <= steps; ++i) {
+    float t = static_cast<float>(i) / steps;
+
+    vec2 p{
+        std::lerp(start.x, end.x, t),
+        std::lerp(start.y, end.y, t),
+    };
+
+    spray(surface, p, color, radius, density);
   }
 }
 

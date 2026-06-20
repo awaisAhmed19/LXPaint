@@ -20,6 +20,11 @@ inline int getPitch(SDL_Surface *surface) {
 void bresenham(vec2 start, vec2 end, SDL_Surface *surface, uint32_t color,
                int brushSize, bool useXOR);
 
+void spray(SDL_Surface *surface, vec2 center, uint32_t color, float radius,
+           int density);
+
+void sprayStroke(SDL_Surface *surface, vec2 start, vec2 end, uint32_t color,
+                 float radius, int density);
 void dda(vec2 start, vec2 end, SDL_Surface *surface, uint32_t color,
          int brushSize, bool useXOR);
 void floodFill(SDL_Surface *surface, vec2 pos, uint32_t newcolor);

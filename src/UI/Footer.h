@@ -11,7 +11,6 @@ private:
   void raisedBorder(ImDrawList *drawlist, ImVec2 min, ImVec2 max);
 
   void sunkenBorder(ImDrawList *drawlist, ImVec2 min, ImVec2 max);
-  const ImVec2 footermin = {0.f, 704.f};
 
 public:
   Footer(int w, int h);

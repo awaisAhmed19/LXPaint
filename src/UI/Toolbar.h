@@ -20,12 +20,20 @@ private:
   void sunkenBorder(ImDrawList *dl, ImVec2 min, ImVec2 max,
                     float thickness = 1.f);
 
-  // options panel renderers
   void renderOptions(Editor &editor, ImDrawList *dl);
-  void renderSizeDots(Editor &editor, ImDrawList *dl, ImVec2 origin,
-                      const int *sizes, int count);
+  void renderSizeSquares(Editor &editor, ImDrawList *dl, ImVec2 origin,
+                         float optionWidth, float optionHeight,
+                         const int *sizes, int count);
   void renderBrushShapes(Editor &editor, ImDrawList *dl, ImVec2 origin);
-  void renderFillModes(Editor &editor, ImDrawList *dl, ImVec2 origin);
+  void renderFillModes(Editor &editor, ImDrawList *dl, ImVec2 origin,
+                       float optionWidth, float optionHeight);
+  void renderLineWidths(Editor &editor, ImDrawList *dl, ImVec2 origin,
+                        float optionWidth, float optionHeight);
+  void renderAirbrushSizes(Editor &editor, ImDrawList *dl, ImVec2 origin,
+                           float optionWidth, float optionHeight);
+  void renderZoomLevels(Editor &editor, ImDrawList *dl, ImVec2 origin);
+  void renderBackgroundModeIcons(Editor &editor, ImDrawList *dl, ImVec2 origin,
+                                 ToolSettings::BackgroundMode &target);
 
 public:
   Toolbar(int w, int h);
@@ -34,7 +42,7 @@ public:
   ImVec2 toolMin = {0, 23};
   ImVec2 toolMax = {66, 615};
   bool init(SDL_Renderer *renderer);
-  void render(Editor &editor); // now takes editor ref
+  void render(Editor &editor);
 
   ToolType getActiveTool() const { return m_activeTool; }
 };

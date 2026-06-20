@@ -1,7 +1,9 @@
 #include "ColorPalette.h"
+#include "LayoutEngine/UILayoutConstant.h"
 #include "imgui.h"
 #include <SDL3/SDL.h>
 #include <algorithm>
+
 namespace UI {
 
 namespace Theme {
@@ -97,6 +99,7 @@ void ColorPalette::drawFgBgSelector(ImDrawList *drawlist, ImVec2 origin) {
     std::swap(m_fgColor, m_bgColor);
   }
 }
+/*
 float ColorPalette::preferredHeight() const {
   constexpr int rows = 2;
 
@@ -113,6 +116,11 @@ float ColorPalette::preferredHeight() const {
 
   return contentHeight + style.WindowPadding.y * 2.0f;
 }
+*/
+float ColorPalette::preferredHeight() const {
+  return UI::Layout::PaletteHeight;
+}
+
 void ColorPalette::render() {
   //--------------------------------------------------------------------------
   // Layout constants
@@ -141,7 +149,9 @@ void ColorPalette::render() {
 
   ImGuiViewport *vp = ImGui::GetMainViewport();
 
-  const float footerHeight = 22.0f; // TODO: replace with layout.footerHeight
+  const float footerHeight =
+      UI::Layout::FooterHeight; // DONE :  TODO: replace with
+                                // layout.footerHeight
 
   ImGui::SetNextWindowPos(
       {vp->Pos.x, vp->Pos.y + vp->Size.y - footerHeight - panelHeight},

@@ -7,6 +7,7 @@
 
 #include "Editor/Interaction/ToolContext.h"
 
+#include "Editor/Tools/AirBrush.h"
 #include "Editor/Tools/BaseTool.h"
 #include "Editor/Tools/Circle.h"
 #include "Editor/Tools/ClickTool.h"
@@ -27,11 +28,15 @@ constexpr auto Rect = "rect";
 constexpr auto Eraser = "eraser";
 constexpr auto Circle = "circle";
 constexpr auto FloodFill = "floodfill";
+constexpr auto AirBrush = "airbrush";
 } // namespace ToolID
 
+int cwidth = 800;
+int cheight = 500;
+
 Editor::Editor(SDL_Renderer *renderer, const UI::LayoutMetrics &layout)
-    : m_canvas(500, 450), m_preview(500, 450), m_renderer(renderer),
-      m_commands(50, 256), m_docTransform({0.0f, 0.0f}) {
+    : m_canvas(cwidth, cheight), m_preview(cwidth, cheight),
+      m_renderer(renderer), m_commands(50, 256), m_docTransform({0.0f, 0.0f}) {
   setupTools();
   setupInputBindings();
 
@@ -69,6 +74,9 @@ void Editor::setActiveTool(ToolType tool) {
     m_tools.setActiveTool(ToolID::FloodFill, tool);
     break;
 
+  case ToolType::Airbrush:
+    m_tools.setActiveTool(ToolID::AirBrush, tool);
+    break;
   default:
     break;
   }
@@ -99,18 +107,12 @@ void Editor::setupTools() {
   m_tools.registerTool(ToolID::Eraser, std::make_unique<Eraser>());
   m_tools.registerTool(ToolID::Circle, std::make_unique<Circle>());
   m_tools.registerTool(ToolID::FloodFill, std::make_unique<FloodFill>());
+  m_tools.registerTool(ToolID::AirBrush, std::make_unique<AirBrush>());
   m_tools.setActiveTool(ToolID::Pencil, ToolType::Pencil);
 }
-
 void Editor::setupInputBindings() {
   m_input.keyBinds(SDL_SCANCODE_Z, InputCommand::UNDO);
   m_input.keyBinds(SDL_SCANCODE_Y, InputCommand::REDO);
-  m_input.keyBinds(SDL_SCANCODE_P, InputCommand::PENCIL);
-  m_input.keyBinds(SDL_SCANCODE_L, InputCommand::LINE);
-  m_input.keyBinds(SDL_SCANCODE_R, InputCommand::RECT);
-  m_input.keyBinds(SDL_SCANCODE_E, InputCommand::ERASER);
-  m_input.keyBinds(SDL_SCANCODE_C, InputCommand::CIRCLE);
-  m_input.keyBinds(SDL_SCANCODE_F, InputCommand::FILL);
   m_input.bindActions(InputCommand::UNDO, [this]() {
     if (!m_commands.undo(m_canvas)) {
       Logger::log(LogLevel::DEBUG, "Nothing to undo");
@@ -121,26 +123,7 @@ void Editor::setupInputBindings() {
       Logger::log(LogLevel::DEBUG, "Nothing to redo");
     }
   });
-  m_input.bindActions(InputCommand::PENCIL, [this]() {
-    m_tools.setActiveTool(ToolID::Pencil, ToolType::Pencil);
-  });
-  m_input.bindActions(InputCommand::CIRCLE, [this]() {
-    m_tools.setActiveTool(ToolID::Circle, ToolType::Ellipse);
-  });
-  m_input.bindActions(InputCommand::LINE, [this]() {
-    m_tools.setActiveTool(ToolID::Line, ToolType::Line);
-  });
-  m_input.bindActions(InputCommand::RECT, [this]() {
-    m_tools.setActiveTool(ToolID::Rect, ToolType::Rectangle);
-  });
-  m_input.bindActions(InputCommand::ERASER, [this]() {
-    m_tools.setActiveTool(ToolID::Eraser, ToolType::Eraser);
-  });
-  m_input.bindActions(InputCommand::FILL, [this]() {
-    m_tools.setActiveTool(ToolID::FloodFill, ToolType::FloodFill);
-  });
 }
-
 void Editor::setFgColor(uint32_t color) { m_fgColor = color; }
 void Editor::setBgColor(uint32_t color) { m_bgColor = color; }
 
@@ -151,7 +134,6 @@ ToolContext Editor::makeToolContext() {
       .interaction = &m_interaction,
       .fgColor = m_fgColor,
       .bgColor = m_bgColor,
-      .brushSize = m_toolSettings.brushSize,
       .settings = &m_toolSettings,
   };
 }
@@ -185,6 +167,8 @@ void Editor::resizeCanvas(int w, int h, const ResizePolicy &policy) {
 
   m_canvas.resize(w, h, policy);
   m_viewport.onCanvasResized(w, h);
+  m_viewport.fitCanvasToScreen(); // TODO need to call this if a new document is
+                                  // made too
   centerCanvas();
 
   m_interaction.reset();
@@ -192,6 +176,15 @@ void Editor::resizeCanvas(int w, int h, const ResizePolicy &policy) {
 
   m_commands.clear();
   Logger::debug(std::format("Canvas resize to {}x{}", w, h));
+}
+
+void Editor::setViewportRect(SDL_FRect rect) {
+  m_viewport.setScreenRect(rect);
+
+  if (m_viewport.isCanvasLargerThanViewport())
+    m_viewport.fitCanvasToScreen();
+  else
+    m_viewport.clampPan();
 }
 
 void Editor::handleEvent(const SDL_Event &e) {
@@ -218,10 +211,6 @@ void Editor::handleEvent(const SDL_Event &e) {
                    std::max(64, m_canvas.getHeight() - 64), policy);
     }
   }
-  // DEBUG BLOCK ENDs
-  /*
-    UI owns input
-  */
 
   if (io.WantCaptureMouse || io.WantCaptureKeyboard) {
     return;

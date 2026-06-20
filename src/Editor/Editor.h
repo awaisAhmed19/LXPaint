@@ -3,6 +3,8 @@
 #include <SDL3/SDL.h>
 #include <cstdint>
 
+#include "App/Globals.h"
+#include "Editor/Tools/ClickTool.h"
 #include "UI/LayoutEngine/LayoutMetrics.h"
 #include "imgui_impl_sdl3.h"
 
@@ -25,14 +27,28 @@
 #include "Viewport/Viewport.h"
 
 struct ToolSettings {
-  int brushSize = 1;
-  int brushShape = 0;
+  enum class BrushShape { Round, Square, ForwardSlash, BackSlash };
+  enum class BackgroundMode { Opaque, Transparent };
 
-  bool filledShape = false;
+  float strokeWidth = 1.0f;
+  float lineWidth = 1.0f;
 
-  int lineWidth = 1;
+  BrushShape brushShape = BrushShape::Round;
+  // Reused as the fill-mode selector for Rectangle/Ellipse/Polygon/
+  // RoundedRectangle (Round=Outline, Square=Fill, ForwardSlash=OutlineFill)
+  // — same field, different meaning depending on active tool, same pattern
+  // your renderFillModes() already uses.
 
   bool useBackgroundColor = false;
+
+  // --- new ---
+  float eraserSize = 4.0f;
+  float airbrushRadius = 12.0f;
+  int airbrushDensity = 25;
+  int zoomLevel = 1; // 1,2,6,8
+  BackgroundMode backgroundMode =
+      BackgroundMode::Opaque; // shared by
+                              // Selection tools + Text
 };
 class Editor {
 private:
@@ -76,31 +92,36 @@ public:
 
   void setActiveTool(ToolType tool);
   ToolType getActiveTool() const { return m_tools.getActiveToolType(); }
-
+  void setViewportRect(SDL_FRect rect);
   void setFgColor(uint32_t color);
   void setBgColor(uint32_t color);
 
   uint32_t getFgColor() const { return m_fgColor; }
   uint32_t getBgColor() const { return m_bgColor; }
 
-  void setBrushSize(int size) { m_toolSettings.brushSize = size; }
-  int getBrushSize() const { return m_toolSettings.brushSize; }
-  void setBrushShape(int shape) { m_toolSettings.brushShape = shape; }
-  int getBrushShape() const { return m_toolSettings.brushShape; }
-  void setFilledShape(bool filled) { m_toolSettings.filledShape = filled; }
-  bool getFilledShape() const { return m_toolSettings.filledShape; }
+  void setBrushSize(int size) { m_toolSettings.strokeWidth = size; }
+  int getBrushSize() const { return m_toolSettings.strokeWidth; }
+  void setBrushShape(ToolSettings::BrushShape shape) {
+    m_toolSettings.brushShape = shape;
+  }
+  ToolSettings::BrushShape getBrushShape() const {
+    return m_toolSettings.brushShape;
+  }
+  // void setFilledShape(bool filled) { m_toolSettings.fillShapes = filled; }
+  // bool getFilledShape() const { return m_toolSettings.fillShapes; }
   void setLineWidth(int width) { m_toolSettings.lineWidth = width; }
 
   int getLineWidth() const { return m_toolSettings.lineWidth; }
   ToolSettings &getToolSettings() { return m_toolSettings; }
-  void setUseBackgroundColor(bool value) {
-    m_toolSettings.useBackgroundColor = value;
-  }
+  /*
+   void setUseBackgroundColor(bool value) {
+     m_toolSettings.useBackgroundColor = value;
+   }
 
-  bool getUseBackgroundColor() const {
-    return m_toolSettings.useBackgroundColor;
-  }
-
+   bool getUseBackgroundColor() const {
+     return m_toolSettings.useBackgroundColor;
+   }
+ */
   vec2 clampToCanvas(vec2 p);
   bool inCanvas(vec2 mousePos);
 };
