@@ -30,6 +30,7 @@ set(PROJECT_SOURCES
     src/Document/PreviewLayer.cpp
 
     # Tools
+    src/Editor/Tools/SelectionTool.cpp
     src/Editor/Tools/Pencil.cpp
     src/Editor/Tools/FloodFill.cpp
     src/Editor/Tools/Line.cpp
@@ -37,6 +38,8 @@ set(PROJECT_SOURCES
     src/Editor/Tools/Rect.cpp
     src/Editor/Tools/Circle.cpp
     src/Editor/Tools/AirBrush.cpp
+    src/Editor/Tools/Lasso.cpp
+    src/Editor/Tools/RectSelection.cpp
 
     src/UI/Ribbon.cpp
     src/UI/Toolbar.cpp

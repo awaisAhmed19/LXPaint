@@ -38,7 +38,7 @@ void Line::onMouseMove(vec2 pos, ToolContext &ctx) {
                         ctx.canvas->getSurface()->h);
   ctx.preview->clearRGBA(0, 0, 0, 0);
   Rasterizer::bresenham(m_start, pos, ctx.preview->getSurface(), ctx.fgColor,
-                        brushSize, false);
+                        ctx.brushSize, false);
   ctx.preview->invalidateRect(m_affected);
 }
 
@@ -57,7 +57,7 @@ std::unique_ptr<Command> Line::onMouseUp(vec2 pos, ToolContext &ctx) {
       std::make_unique<SnapshotCommand>(ctx.canvas->getSurface(), m_affected);
 
   Rasterizer::bresenham(m_start, pos, ctx.canvas->getSurface(), ctx.fgColor,
-                        brushSize, false);
+                        ctx.brushSize, false);
   ctx.canvas->invalidateRect(m_affected);
   m_command->captureAfter(ctx.canvas->getSurface());
   return std::move(m_command);

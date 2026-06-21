@@ -13,9 +13,11 @@
 #include "Editor/Tools/ClickTool.h"
 #include "Editor/Tools/Eraser.h"
 #include "Editor/Tools/FloodFill.h"
+#include "Editor/Tools/Lasso.h"
 #include "Editor/Tools/Line.h"
 #include "Editor/Tools/Pencil.h"
 #include "Editor/Tools/Rect.h"
+#include "Editor/Tools/RectSelection.h"
 
 #include "Systems/Logger.h"
 #include "UI/LayoutEngine/LayoutMetrics.h"
@@ -29,6 +31,8 @@ constexpr auto Eraser = "eraser";
 constexpr auto Circle = "circle";
 constexpr auto FloodFill = "floodfill";
 constexpr auto AirBrush = "airbrush";
+constexpr auto Lasso = "lasso";
+constexpr auto RectLasso = "rectlasso";
 } // namespace ToolID
 
 int cwidth = 800;
@@ -77,6 +81,15 @@ void Editor::setActiveTool(ToolType tool) {
   case ToolType::Airbrush:
     m_tools.setActiveTool(ToolID::AirBrush, tool);
     break;
+
+  case ToolType::FreeSelect:
+    m_tools.setActiveTool(ToolID::Lasso, tool);
+    break;
+
+  case ToolType::RectSelect:
+    m_tools.setActiveTool(ToolID::RectLasso, tool);
+    break;
+
   default:
     break;
   }
@@ -108,6 +121,8 @@ void Editor::setupTools() {
   m_tools.registerTool(ToolID::Circle, std::make_unique<Circle>());
   m_tools.registerTool(ToolID::FloodFill, std::make_unique<FloodFill>());
   m_tools.registerTool(ToolID::AirBrush, std::make_unique<AirBrush>());
+  m_tools.registerTool(ToolID::Lasso, std::make_unique<Lasso>());
+  m_tools.registerTool(ToolID::RectLasso, std::make_unique<RectSelection>());
   m_tools.setActiveTool(ToolID::Pencil, ToolType::Pencil);
 }
 void Editor::setupInputBindings() {
@@ -132,6 +147,7 @@ ToolContext Editor::makeToolContext() {
       .canvas = &m_canvas,
       .preview = &m_preview,
       .interaction = &m_interaction,
+      .commandManager = &m_commands,
       .fgColor = m_fgColor,
       .bgColor = m_bgColor,
       .settings = &m_toolSettings,
