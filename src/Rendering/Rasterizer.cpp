@@ -7,6 +7,19 @@
 #define TAU 6.2831853
 namespace Rasterizer {
 
+static constexpr int BEZIER_STEPS = 100; // line segments to approximate curve
+static constexpr int MARKER_HALF = 3; // half-size of square handle markers (px)
+static constexpr int BOUNDS_PAD = 4;  // extra safety margin on affected rect
+static constexpr int DASH_ON = 5;     // guide-line dash length (px)
+static constexpr int DASH_OFF = 4;    // guide-line gap length (px)
+
+// Colours for handle markers (ARGB)
+static constexpr uint32_t COLOR_GUIDE = 0xFF808080;  // grey dashed guide lines
+static constexpr uint32_t COLOR_ANCHOR = 0xFFFFFFFF; // white  endpoint handles
+static constexpr uint32_t COLOR_CP1 = 0xFF0000FF;    // blue   CP1 handle
+static constexpr uint32_t COLOR_CP2 = 0xFFFF0000;    // red    CP2 handle
+static constexpr uint32_t COLOR_BORDER = 0xFF000000; // black  handle border
+
 inline float randomFloat(float min, float max) {
   static thread_local std::mt19937 rng{std::random_device{}()};
   std::uniform_real_distribution<float> dist(min, max);
@@ -33,6 +46,31 @@ inline void drawPolygon(SDL_Surface *surface, const std::vector<vec2> points,
   bresenham(points.back(), points.front(), surface, color, 1, false);
 }
 
+static vec2 evalCubicBezier(vec2 p0, vec2 p1, vec2 p2, vec2 p3, float t) {
+  const float u = 1.0f - t;
+  const float uu = u * u;
+  const float uuu = uu * u;
+  const float tt = t * t;
+  const float ttt = tt * t;
+  return {uuu * p0.x + 3.0f * uu * t * p1.x + 3.0f * u * tt * p2.x + ttt * p3.x,
+          uuu * p0.y + 3.0f * uu * t * p1.y + 3.0f * u * tt * p2.y +
+              ttt * p3.y};
+}
+
+static void drawBezier(SDL_Surface *surf, vec2 p0, vec2 p1, vec2 p2, vec2 p3,
+                       uint32_t color, int lw) {
+  vec2 prev = p0;
+
+  for (int i = 1; i <= BEZIER_STEPS; ++i) {
+    float t = float(i) / BEZIER_STEPS;
+
+    vec2 pt = evalCubicBezier(p0, p1, p2, p3, t);
+
+    Rasterizer::bresenham(prev, pt, surf, color, lw, false);
+
+    prev = pt;
+  }
+}
 void drawEllipse(SDL_Surface *surface, int xc, int yc, int rx, int ry,
                  uint32_t color) {
   rx = std::abs(rx);
@@ -92,6 +130,60 @@ void drawEllipse(SDL_Surface *surface, int xc, int yc, int rx, int ry,
     }
   }
 }
+
+void drawRoundedRect(SDL_Surface *surf, vec2 start, vec2 end, uint32_t color,
+                     int lw) {
+  const float left = std::min(start.x, end.x);
+  const float right = std::max(start.x, end.x);
+  const float top = std::min(start.y, end.y);
+  const float bottom = std::max(start.y, end.y);
+
+  const float width = right - left;
+  const float height = bottom - top;
+
+  constexpr float cornerRadius = 12.0f;
+
+  const float r = std::min({cornerRadius, width * 0.5f, height * 0.5f});
+
+  // Cubic Bezier approximation constant for a quarter circle
+  constexpr float K = 0.552284749831f;
+  const float o = r * K;
+
+  // ───────────── Straight edges ─────────────
+
+  Rasterizer::bresenham({left + r, top}, {right - r, top}, surf, color, lw,
+                        false);
+
+  Rasterizer::bresenham({right, top + r}, {right, bottom - r}, surf, color, lw,
+                        false);
+
+  Rasterizer::bresenham({right - r, bottom}, {left + r, bottom}, surf, color,
+                        lw, false);
+
+  Rasterizer::bresenham({left, bottom - r}, {left, top + r}, surf, color, lw,
+                        false);
+
+  // ───────────── Top Left ─────────────
+
+  drawBezier(surf, {left + r, top}, {left + r - o, top}, {left, top + r - o},
+             {left, top + r}, color, lw);
+
+  // ───────────── Top Right ─────────────
+
+  drawBezier(surf, {right - r, top}, {right - r + o, top}, {right, top + r - o},
+             {right, top + r}, color, lw);
+
+  // ───────────── Bottom Right ─────────────
+
+  drawBezier(surf, {right, bottom - r}, {right, bottom - r + o},
+             {right - r + o, bottom}, {right - r, bottom}, color, lw);
+
+  // ───────────── Bottom Left ─────────────
+
+  drawBezier(surf, {left + r, bottom}, {left + r - o, bottom},
+             {left, bottom - r + o}, {left, bottom - r}, color, lw);
+}
+
 void spray(SDL_Surface *surface, vec2 center, uint32_t color, float radius,
            int density) {
   for (int i = 0; i < density; ++i) {

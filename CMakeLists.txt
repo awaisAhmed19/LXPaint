@@ -40,6 +40,8 @@ set(PROJECT_SOURCES
     src/Editor/Tools/AirBrush.cpp
     src/Editor/Tools/Lasso.cpp
     src/Editor/Tools/RectSelection.cpp
+    src/Editor/Tools/CurveLine.cpp
+    src/Editor/Tools/RoundedRect.cpp
 
     src/UI/Ribbon.cpp
     src/UI/Toolbar.cpp

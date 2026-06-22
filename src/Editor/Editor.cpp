@@ -11,6 +11,7 @@
 #include "Editor/Tools/BaseTool.h"
 #include "Editor/Tools/Circle.h"
 #include "Editor/Tools/ClickTool.h"
+#include "Editor/Tools/CurveLine.h"
 #include "Editor/Tools/Eraser.h"
 #include "Editor/Tools/FloodFill.h"
 #include "Editor/Tools/Lasso.h"
@@ -18,7 +19,7 @@
 #include "Editor/Tools/Pencil.h"
 #include "Editor/Tools/Rect.h"
 #include "Editor/Tools/RectSelection.h"
-
+#include "Editor/Tools/RoundedRect.h"
 #include "Systems/Logger.h"
 #include "UI/LayoutEngine/LayoutMetrics.h"
 #include "UI/Toolbar.h"
@@ -33,6 +34,8 @@ constexpr auto FloodFill = "floodfill";
 constexpr auto AirBrush = "airbrush";
 constexpr auto Lasso = "lasso";
 constexpr auto RectLasso = "rectlasso";
+constexpr auto CurveLine = "curveline";
+constexpr auto RoundedRect = "roundedrect";
 } // namespace ToolID
 
 int cwidth = 800;
@@ -90,6 +93,14 @@ void Editor::setActiveTool(ToolType tool) {
     m_tools.setActiveTool(ToolID::RectLasso, tool);
     break;
 
+  case ToolType::RoundedRectangle:
+    m_tools.setActiveTool(ToolID::RoundedRect, tool);
+    break;
+
+  case ToolType::Curve:
+    m_tools.setActiveTool(ToolID::CurveLine, tool);
+    break;
+
   default:
     break;
   }
@@ -123,6 +134,8 @@ void Editor::setupTools() {
   m_tools.registerTool(ToolID::AirBrush, std::make_unique<AirBrush>());
   m_tools.registerTool(ToolID::Lasso, std::make_unique<Lasso>());
   m_tools.registerTool(ToolID::RectLasso, std::make_unique<RectSelection>());
+  m_tools.registerTool(ToolID::CurveLine, std::make_unique<CurveLine>());
+  m_tools.registerTool(ToolID::RoundedRect, std::make_unique<RoundedRect>());
   m_tools.setActiveTool(ToolID::Pencil, ToolType::Pencil);
 }
 void Editor::setupInputBindings() {

@@ -5,7 +5,6 @@
 #include <SDL3/SDL_surface.h>
 #include <algorithm>
 namespace Rasterizer {
-
 inline uint32_t *getPixels(SDL_Surface *surface) {
   LX_ASSERT(surface != nullptr, "Surface null in getPixels");
   LX_ASSERT(surface->pixels != nullptr, "Surface pixels null");
@@ -113,4 +112,8 @@ void drawRectFill(SDL_Surface *surface, vec2 a, vec2 b, uint32_t color,
 
 void floodFill(SDL_Surface *surface, vec2 pos, uint32_t newcolor);
 
+void drawCubicBezier(SDL_Surface *, vec2 p0, vec2 p1, vec2 p2, vec2 p3,
+                     uint32_t color, int lineWidth);
+void drawRoundedRect(SDL_Surface *surf, vec2 start, vec2 end, uint32_t color,
+                     int lw);
 }; // namespace Rasterizer
