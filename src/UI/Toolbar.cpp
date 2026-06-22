@@ -3,6 +3,7 @@
 #include "Editor/Editor.h"
 #include "UI/LayoutEngine/UILayoutConstant.h"
 #include "imgui.h"
+#include <SDL3/SDL_render.h>
 #include <SDL3_image/SDL_image.h>
 #include <algorithm>
 #include <cmath>
@@ -54,7 +55,8 @@ static constexpr ToolButton kButtons[] = {
     {ToolType::RoundedRectangle, "16_rounded_rectangle"},
 };
 
-Toolbar::Toolbar(int w, int h) : m_w(w), m_h(h) {}
+Toolbar::Toolbar(int w, int h, SDL_Renderer *renderer)
+    : m_w(w), m_h(h), m_renderer(renderer) {}
 
 Toolbar::~Toolbar() {
   for (int i = 0; i < TotalButtons; ++i) {
@@ -62,6 +64,22 @@ Toolbar::~Toolbar() {
       SDL_DestroyTexture(m_textures[i]);
       m_textures[i] = nullptr;
     }
+  }
+  if (m_backgroundTransparentIcon) {
+
+    SDL_DestroyTexture(m_backgroundTransparentIcon);
+    m_backgroundTransparentIcon = nullptr;
+  }
+  if (m_backgroundOpaqueIcon) {
+
+    SDL_DestroyTexture(m_backgroundOpaqueIcon);
+    m_backgroundOpaqueIcon = nullptr;
+  }
+  // doubtful if destroying renderer is wise perhaps the class m_renderer must
+  // be nulled;
+  if (m_renderer) {
+    SDL_DestroyRenderer(m_renderer);
+    m_renderer = nullptr;
   }
 }
 
@@ -81,16 +99,33 @@ void Toolbar::sunkenBorder(ImDrawList *dl, ImVec2 min, ImVec2 max,
   dl->AddLine({max.x, min.y}, max, Theme::WHITE, 1.0f);
 }
 
-bool Toolbar::init(SDL_Renderer *renderer) {
+bool Toolbar::init() {
   bool ok = true;
   for (int i = 0; i < TotalButtons; ++i) {
     std::string path =
         "../tools_icons/" + std::string(kButtons[i].iconName) + ".png";
-    m_textures[i] = IMG_LoadTexture(renderer, path.c_str());
+
+    m_textures[i] = IMG_LoadTexture(m_renderer, path.c_str());
+
     if (!m_textures[i]) {
       SDL_Log("Toolbar: failed to load '%s': %s", path.c_str(), SDL_GetError());
       ok = false;
     }
+  }
+
+  m_backgroundOpaqueIcon = IMG_LoadTexture(
+      m_renderer, "../tools_icons/options-transparency-top.png");
+
+  m_backgroundTransparentIcon = IMG_LoadTexture(
+      m_renderer, "../tools_icons/options-transparency-bottom.png");
+  if (!m_backgroundOpaqueIcon) {
+    ok = false;
+    SDL_Log("%s", SDL_GetError());
+  }
+
+  if (!m_backgroundTransparentIcon) {
+    ok = false;
+    SDL_Log("%s", SDL_GetError());
   }
   return ok;
 }
@@ -141,47 +176,95 @@ void Toolbar::renderSizeSquares(Editor &editor, ImDrawList *dl, ImVec2 origin,
 }
 
 //--------------------------------------------------------------------------
-// Brush — 2x2 grid of shape stamps (round / square / fwd-slash / backslash)
+// Brush — 4x3 grid of shape stamps (round / square / fwd-slash / backslash)
 //--------------------------------------------------------------------------
-void Toolbar::renderBrushShapes(Editor &editor, ImDrawList *dl, ImVec2 origin) {
-  const float cell = 26.0f;
-  const float pad = 2.0f;
-  auto &shape = editor.getToolSettings().brushShape;
+void Toolbar::renderBrushShapes(Editor &editor, ImDrawList *dl, ImVec2 origin,
+                                float optionWidth, float optionHeight) {
+  constexpr float gap = 2.0f;
+  constexpr float padding = 2.f;
+  auto &brushShape = editor.getToolSettings().brushShape;
+  auto &strokeWidth = editor.getToolSettings().strokeWidth;
 
-  for (int i = 0; i < 4; ++i) {
-    int col = i % 2;
-    int row = i / 2;
-    ImVec2 btnMin = {origin.x + col * (cell + pad),
-                     origin.y + row * (cell + pad)};
-    ImVec2 btnMax = {btnMin.x + cell, btnMin.y + cell};
+  const float cellW = ((optionWidth - padding) - gap * 2.0f) / 3.0f;
+  const float cellH = ((optionHeight - padding) - gap * 3.0f) / 4.0f;
 
-    bool selected = ((int)shape == i);
+  for (int i = 0; i < 12; ++i) {
+    const int row = i / 3; // Brush shape
+    const int col = i % 3; // Brush size
+
+    ImVec2 btnMin = {origin.x + padding + col * (cellW),
+                     origin.y + padding + row * (cellH)};
+
+    ImVec2 btnMax = {btnMin.x + cellW, btnMin.y + cellH};
+
+    float radius;
+    float thickness;
+    float widthValue;
+
+    switch (col) {
+    case 0:
+      radius = 2.0f;
+      thickness = 1.f;
+      widthValue = 1.0f;
+      break;
+
+    case 1:
+      radius = 4.0f;
+      thickness = 2.f;
+      widthValue = 2.0f;
+      break;
+
+    default:
+      radius = 6.0f;
+      thickness = 3.f;
+      widthValue = 3.0f;
+      break;
+    }
+
+    bool selected = brushShape == static_cast<ToolSettings::BrushShape>(row) &&
+                    strokeWidth == widthValue;
+
     dl->AddRectFilled(btnMin, btnMax, Theme::ButtonBg);
+
     if (selected)
       dl->AddRectFilled(btnMin, btnMax, Theme::OptionHovered);
 
-    ImVec2 c = {(btnMin.x + btnMax.x) * 0.5f, (btnMin.y + btnMax.y) * 0.5f};
-    float r = 5.0f;
+    ImVec2 center = {(btnMin.x + btnMax.x) * 0.5f,
+                     (btnMin.y + btnMax.y) * 0.5f};
 
-    switch (i) {
-    case 0:
-      dl->AddCircleFilled(c, r, Theme::BLACK);
+    switch (row) {
+    case 0: // Round
+      dl->AddCircleFilled(center, radius,
+                          selected ? Theme::WHITE : Theme::BLACK);
       break;
-    case 1:
-      dl->AddRectFilled({c.x - r, c.y - r}, {c.x + r, c.y + r}, Theme::BLACK);
+
+    case 1: // Square
+      dl->AddRectFilled({center.x - radius, center.y - radius},
+                        {center.x + radius, center.y + radius},
+                        selected ? Theme::WHITE : Theme::BLACK);
       break;
-    case 2:
-      dl->AddLine({c.x - r, c.y + r}, {c.x + r, c.y - r}, Theme::BLACK, 2.5f);
+
+    case 2: // Forward Slash
+      dl->AddLine({center.x - radius, center.y + radius},
+                  {center.x + radius, center.y - radius},
+                  selected ? Theme::WHITE : Theme::BLACK, thickness);
       break;
-    case 3:
-      dl->AddLine({c.x - r, c.y - r}, {c.x + r, c.y + r}, Theme::BLACK, 2.5f);
+
+    case 3: // Back Slash
+      dl->AddLine({center.x - radius, center.y - radius},
+                  {center.x + radius, center.y + radius},
+                  selected ? Theme::WHITE : Theme::BLACK, thickness);
       break;
     }
 
     ImGui::SetCursorScreenPos(btnMin);
     ImGui::PushID(i + 300);
-    if (ImGui::InvisibleButton("##shape", {cell, cell}))
-      shape = (ToolSettings::BrushShape)i;
+
+    if (ImGui::InvisibleButton("##brush", {cellW, cellH})) {
+      brushShape = static_cast<ToolSettings::BrushShape>(row);
+      strokeWidth = widthValue;
+    }
+
     ImGui::PopID();
   }
 }
@@ -338,83 +421,91 @@ void Toolbar::renderAirbrushSizes(Editor &editor, ImDrawList *dl, ImVec2 origin,
 //--------------------------------------------------------------------------
 // Magnifier — vertical list of zoom presets: 1x, 2x, 6x, 8x
 //--------------------------------------------------------------------------
-void Toolbar::renderZoomLevels(Editor &editor, ImDrawList *dl, ImVec2 origin) {
+void Toolbar::renderZoomLevels(Editor &editor, ImDrawList *dl, ImVec2 origin,
+                               float optionWidth, float optionHeight) {
   static constexpr int kLevels[4] = {1, 2, 6, 8};
-  const float w = 50.0f;
-  const float h = 16.0f;
+
+  constexpr float gap = 2.0f;
+  const float cellW = optionWidth;
+  //  const float cellH = (optionHeight - gap * 3.0f) / 4.0f;
+  const float cellH = (optionHeight) / 4.0f;
 
   int &target = editor.getToolSettings().zoomLevel;
 
   for (int i = 0; i < 4; ++i) {
-    ImVec2 rowMin = {origin.x, origin.y + i * h};
-    ImVec2 rowMax = {rowMin.x + w, rowMin.y + h};
+    ImVec2 btnMin = {origin.x + 1.0f, origin.y + 1.0f + i * (cellH + gap)};
+
+    ImVec2 btnMax = {btnMin.x + cellW - 1.0f, btnMin.y + cellH - 1.0f};
 
     bool selected = (target == kLevels[i]);
 
-    dl->AddRectFilled(rowMin, rowMax,
-                      selected ? Theme::Selected : Theme::ButtonBg);
+    dl->AddRectFilled(btnMin, btnMax, Theme::ButtonBg);
+
+    if (selected)
+      dl->AddRectFilled(btnMin, btnMax, Theme::OptionHovered);
 
     char label[8];
     std::snprintf(label, sizeof(label), "%dx", kLevels[i]);
+
     ImVec2 textSize = ImGui::CalcTextSize(label);
-    ImVec2 textPos = {rowMin.x + 4.0f, rowMin.y + (h - textSize.y) * 0.5f};
+    ImVec2 textPos = {(btnMin.x + btnMax.x - textSize.x) * 0.5f,
+                      (btnMin.y + btnMax.y - textSize.y) * 0.5f};
+
     dl->AddText(textPos, selected ? Theme::WHITE : Theme::BLACK, label);
 
-    ImGui::SetCursorScreenPos(rowMin);
+    ImGui::SetCursorScreenPos(btnMin);
     ImGui::PushID(i + 800);
-    if (ImGui::InvisibleButton("##zoom", {w, h}))
+
+    if (ImGui::InvisibleButton("##zoom", {cellW, cellH}))
       target = kLevels[i];
+
     ImGui::PopID();
   }
 }
 
 //--------------------------------------------------------------------------
 // Selection (FreeSelect/RectSelect) + Text — opaque/transparent background
-// Note: simplified procedural preview swatches, not the original bitmap
-// icons (white square vs checkerboard), since I don't have those assets.
 //--------------------------------------------------------------------------
 void Toolbar::renderBackgroundModeIcons(Editor &editor, ImDrawList *dl,
-                                        ImVec2 origin,
+                                        ImVec2 origin, float optionWidth,
+                                        float optionHeight,
                                         ToolSettings::BackgroundMode &target) {
-  const float w = 50.0f;
-  const float h = 26.0f;
-  const float gap = 2.0f;
+  constexpr float gap = 0.0f;
+
+  const float cellW = optionWidth;
+  const float cellH = optionHeight / 2.0f;
+
+  ImTextureID icons[2] = {(ImTextureID)m_backgroundOpaqueIcon,
+                          (ImTextureID)m_backgroundTransparentIcon};
 
   for (int i = 0; i < 2; ++i) {
-    auto mode = (i == 0) ? ToolSettings::BackgroundMode::Opaque
-                         : ToolSettings::BackgroundMode::Transparent;
+    ToolSettings::BackgroundMode mode =
+        (i == 0) ? ToolSettings::BackgroundMode::Opaque
+                 : ToolSettings::BackgroundMode::Transparent;
 
-    ImVec2 btnMin = {origin.x, origin.y + i * (h + gap)};
-    ImVec2 btnMax = {btnMin.x + w, btnMin.y + h};
+    ImVec2 btnMin = {origin.x + 1.0f, origin.y + 1.0f + i * (cellH + gap)};
+    ImVec2 btnMax = {btnMin.x + cellW - 3.0f, btnMin.y + cellH - 3.0f};
 
     bool selected = (target == mode);
 
+    // Draw background
     dl->AddRectFilled(btnMin, btnMax, Theme::ButtonBg);
+
     if (selected)
-      sunkenBorder(dl, btnMin, btnMax);
-    else
-      raisedBorder(dl, btnMin, btnMax);
+      dl->AddRectFilled(btnMin, btnMax, Theme::OptionHovered);
+    constexpr float pad = 5.f;
 
-    ImVec2 pMin = {btnMin.x + 6.0f, btnMin.y + 4.0f};
-    ImVec2 pMax = {btnMax.x - 6.0f, btnMax.y - 4.0f};
+    float iconW = cellW - 2.0f * pad;
+    float iconH = cellH - 2.0f * pad;
 
-    if (mode == ToolSettings::BackgroundMode::Opaque) {
-      dl->AddRectFilled(pMin, pMax, Theme::WHITE);
-    } else {
-      float cw = (pMax.x - pMin.x) * 0.5f;
-      float ch = (pMax.y - pMin.y) * 0.5f;
-      ImU32 light = Theme::WHITE;
-      ImU32 dark = IM_COL32(160, 160, 160, 255);
-      dl->AddRectFilled({pMin.x, pMin.y}, {pMin.x + cw, pMin.y + ch}, light);
-      dl->AddRectFilled({pMin.x + cw, pMin.y}, {pMax.x, pMin.y + ch}, dark);
-      dl->AddRectFilled({pMin.x, pMin.y + ch}, {pMin.x + cw, pMax.y}, dark);
-      dl->AddRectFilled({pMin.x + cw, pMin.y + ch}, {pMax.x, pMax.y}, light);
-    }
-    dl->AddRect(pMin, pMax, Theme::BLACK, 0.0f, 0, 1.0f);
+    ImGui::SetCursorScreenPos({btnMin.x, btnMin.y});
 
-    ImGui::SetCursorScreenPos(btnMin);
     ImGui::PushID(i + 700);
-    if (ImGui::InvisibleButton("##bgmode", {w, h}))
+
+    ImGui::ImageButton("##bgmode", icons[i], {iconW, iconH}, {0.f, 0.f},
+                       {1.f, 1.f}, ImVec4(0, 0, 0, 0));
+
+    if (ImGui::IsItemClicked())
       target = mode;
     ImGui::PopID();
   }
@@ -453,7 +544,7 @@ void Toolbar::renderOptions(Editor &editor, ImDrawList *dl) {
     break;
 
   case ToolType::Brush:
-    renderBrushShapes(editor, dl, inner);
+    renderBrushShapes(editor, dl, inner, boxW, boxH);
     break;
 
   case ToolType::Rectangle:
@@ -466,16 +557,16 @@ void Toolbar::renderOptions(Editor &editor, ImDrawList *dl) {
   case ToolType::FreeSelect:
   case ToolType::RectSelect:
   case ToolType::Text:
-    renderBackgroundModeIcons(editor, dl, inner,
+    renderBackgroundModeIcons(editor, dl, inner, boxW, boxH,
                               editor.getToolSettings().backgroundMode);
     break;
 
   case ToolType::Magnifier:
-    renderZoomLevels(editor, dl, inner);
+    renderZoomLevels(editor, dl, inner, boxW, boxW);
     break;
 
   default:
-    // Pencil, FloodFill, Eyedropper: no options, matches reference images
+    // Pencil, FloodFill, Eyedropper: no options
     break;
   }
 }

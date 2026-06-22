@@ -19,6 +19,22 @@ inline int getPitch(SDL_Surface *surface) {
 void bresenham(vec2 start, vec2 end, SDL_Surface *surface, uint32_t color,
                int brushSize, bool useXOR);
 
+// ── Brush tool support ──────────────────────────────────────────────────
+// Round/Square reuse the same horizontal/vertical span primitives already
+// used by bresenham. ForwardSlash/BackSlash stamp a diagonal footprint.
+// Sizes follow ToolSettings::BrushShape sizing (1, 2, 4).
+enum class BrushShape { Round, Square, ForwardSlash, BackSlash };
+
+// Stamps a single brush footprint centered at `pos`.
+void stampBrush(SDL_Surface *surface, vec2 pos, uint32_t color,
+                BrushShape shape, int size);
+
+// Interpolates between start and end, stamping continuously (same
+// step-per-pixel walk style as bresenham/sprayStroke) so strokes don't gap
+// between mouse-move samples.
+void brushStroke(SDL_Surface *surface, vec2 start, vec2 end, uint32_t color,
+                 BrushShape shape, int size);
+
 void spray(SDL_Surface *surface, vec2 center, uint32_t color, float radius,
            int density);
 
@@ -47,7 +63,6 @@ inline void drawHorizontalSpan(SDL_Surface *surface, int x, int y,
   int startX = std::max(0, x - half);
   int endX = std::min(surface->w - 1, x + half);
 
-  // Span completely outside canvas
   if (startX > endX)
     return;
 
@@ -79,7 +94,6 @@ inline void drawVerticalSpan(SDL_Surface *surface, int x, int y, int thickness,
   int startY = std::max(0, y - half);
   int endY = std::min(surface->h - 1, y + half);
 
-  // Span completely outside canvas
   if (startY > endY)
     return;
 
@@ -116,4 +130,12 @@ void drawCubicBezier(SDL_Surface *, vec2 p0, vec2 p1, vec2 p2, vec2 p3,
                      uint32_t color, int lineWidth);
 void drawRoundedRect(SDL_Surface *surf, vec2 start, vec2 end, uint32_t color,
                      int lw);
+
+// ── Polygon tool support ────────────────────────────────────────────────
+// Scanline point-in-polygon fill, reusing the same even-odd rule Lasso
+// already implements for its selection mask (Lasso::pointInPolygon).
+// Exposed here so Polygon can fill closed shapes without duplicating the
+// algorithm in a tool file.
+void fillPolygon(SDL_Surface *surface, const std::vector<vec2> &points,
+                 uint32_t color);
 }; // namespace Rasterizer

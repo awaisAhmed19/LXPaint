@@ -51,7 +51,7 @@ void RoundedRect::onMouseMove(vec2 pos, ToolContext &ctx) {
   ctx.preview->clearRGBA(0, 0, 0, 0);
 
   Rasterizer::drawRoundedRect(ctx.preview->getSurface(), m_start, pos,
-                              ctx.fgColor, ctx.settings->lineWidth);
+                              ctx.fgColor, brushSize);
 
   ctx.preview->invalidateRect(m_affected);
 }
@@ -74,7 +74,7 @@ std::unique_ptr<Command> RoundedRect::onMouseUp(vec2 pos, ToolContext &ctx) {
   m_command =
       std::make_unique<SnapshotCommand>(ctx.canvas->getSurface(), m_affected);
   Rasterizer::drawRoundedRect(ctx.canvas->getSurface(), m_start, pos,
-                              ctx.fgColor, ctx.settings->lineWidth);
+                              ctx.fgColor, brushSize);
 
   ctx.canvas->invalidateRect(m_affected);
 

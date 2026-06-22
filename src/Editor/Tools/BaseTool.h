@@ -9,7 +9,7 @@ struct ToolContext;
 class BaseTool {
 protected:
   SDL_Surface *m_snapshotSurface = nullptr;
- 
+
   void freeSnapshot() {
     if (m_snapshotSurface) {
       SDL_DestroySurface(m_snapshotSurface);
@@ -17,13 +17,31 @@ protected:
     }
   }
 
-  
 public:
   virtual ~BaseTool() { freeSnapshot(); }
   virtual void deactivate() { freeSnapshot(); }
-  // virtual BaseTool();
   virtual bool usesPreview() const { return false; }
   virtual void onMouseDown(vec2 pos, ToolContext &ctx) = 0;
   virtual void onMouseMove(vec2 pos, ToolContext &ctx) = 0;
   virtual std::unique_ptr<Command> onMouseUp(vec2 pos, ToolContext &ctx) = 0;
+
+  // Additive hook: most tools don't need keyboard input, so the default is
+  // a no-op and every existing tool (Pencil, Line, Rect, ...) compiles
+  // unchanged. Polygon overrides this for Escape-to-cancel; Text overrides
+  // it for the full text-editing keyset. Return true if the key was
+  // consumed (so Editor doesn't also treat it as a global shortcut).
+  virtual bool onKeyDown(SDL_Scancode scancode, ToolContext &ctx) {
+    (void)scancode;
+    (void)ctx;
+    return false;
+  }
+
+  // Additive hook for text entry (Text tool). SDL3 delivers typed unicode
+  // text via SDL_EVENT_TEXT_INPUT separately from key events; default is a
+  // no-op for every tool except Text.
+  virtual bool onTextInput(const char *text, ToolContext &ctx) {
+    (void)text;
+    (void)ctx;
+    return false;
+  }
 };

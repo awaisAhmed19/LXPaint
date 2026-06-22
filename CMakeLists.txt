@@ -42,6 +42,9 @@ set(PROJECT_SOURCES
     src/Editor/Tools/RectSelection.cpp
     src/Editor/Tools/CurveLine.cpp
     src/Editor/Tools/RoundedRect.cpp
+    src/Editor/Tools/Magnifier.cpp
+    src/Editor/Tools/Brush.cpp
+    src/Editor/Tools/EyeDropper.cpp
 
     src/UI/Ribbon.cpp
     src/UI/Toolbar.cpp

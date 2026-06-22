@@ -9,17 +9,21 @@
 
 #include "Editor/Tools/AirBrush.h"
 #include "Editor/Tools/BaseTool.h"
+#include "Editor/Tools/Brush.h"
 #include "Editor/Tools/Circle.h"
 #include "Editor/Tools/ClickTool.h"
 #include "Editor/Tools/CurveLine.h"
 #include "Editor/Tools/Eraser.h"
+#include "Editor/Tools/EyeDropper.h"
 #include "Editor/Tools/FloodFill.h"
 #include "Editor/Tools/Lasso.h"
 #include "Editor/Tools/Line.h"
+#include "Editor/Tools/Magnifier.h"
 #include "Editor/Tools/Pencil.h"
 #include "Editor/Tools/Rect.h"
 #include "Editor/Tools/RectSelection.h"
 #include "Editor/Tools/RoundedRect.h"
+#include "Editor/Tools/Text.h"
 #include "Systems/Logger.h"
 #include "UI/LayoutEngine/LayoutMetrics.h"
 #include "UI/Toolbar.h"
@@ -36,6 +40,10 @@ constexpr auto Lasso = "lasso";
 constexpr auto RectLasso = "rectlasso";
 constexpr auto CurveLine = "curveline";
 constexpr auto RoundedRect = "roundedrect";
+constexpr auto Magnifier = "magnifier";
+constexpr auto Brush = "brush";
+constexpr auto Text = "text";
+constexpr auto Eyedropper = "eyedropper";
 } // namespace ToolID
 
 int cwidth = 800;
@@ -101,6 +109,21 @@ void Editor::setActiveTool(ToolType tool) {
     m_tools.setActiveTool(ToolID::CurveLine, tool);
     break;
 
+  case ToolType::Text:
+    m_tools.setActiveTool(ToolID::Text, tool);
+    break;
+
+  case ToolType::Magnifier:
+    m_tools.setActiveTool(ToolID::Magnifier, tool);
+    break;
+
+  case ToolType::Eyedropper:
+    m_tools.setActiveTool(ToolID::Eyedropper, tool);
+    break;
+
+  case ToolType::Brush:
+    m_tools.setActiveTool(ToolID::Brush, tool);
+    break;
   default:
     break;
   }
@@ -136,6 +159,10 @@ void Editor::setupTools() {
   m_tools.registerTool(ToolID::RectLasso, std::make_unique<RectSelection>());
   m_tools.registerTool(ToolID::CurveLine, std::make_unique<CurveLine>());
   m_tools.registerTool(ToolID::RoundedRect, std::make_unique<RoundedRect>());
+  m_tools.registerTool(ToolID::Magnifier, std::make_unique<Magnifier>());
+  //  m_tools.registerTool(ToolID::Text, std::make_unique<Text>());
+  m_tools.registerTool(ToolID::Eyedropper, std::make_unique<Eyedropper>());
+  m_tools.registerTool(ToolID::Brush, std::make_unique<Brush>());
   m_tools.setActiveTool(ToolID::Pencil, ToolType::Pencil);
 }
 void Editor::setupInputBindings() {
@@ -161,9 +188,20 @@ ToolContext Editor::makeToolContext() {
       .preview = &m_preview,
       .interaction = &m_interaction,
       .commandManager = &m_commands,
+
+      // Snapshot values (for tools that only need to read them)
       .fgColor = m_fgColor,
       .bgColor = m_bgColor,
+
+      //.brushSize = m_toolSettings.brushSize,
       .settings = &m_toolSettings,
+
+      // Live write-back pointers (used by Eyedropper)
+      .fgColorOut = &m_fgColor,
+      .bgColorOut = &m_bgColor,
+
+      // Used by Magnifier (and later Text if needed)
+      .viewport = &m_viewport,
   };
 }
 

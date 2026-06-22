@@ -28,8 +28,9 @@ Application::Application(const char *title) : m_editor(nullptr) {
 
   m_layoutEngine = std::make_unique<LayoutEngine>();
   this->m_ribbon = std::make_unique<UI::Ribbon>(size.width, 10);
-  this->m_toolbar = std::make_unique<UI::Toolbar>(0, 0);
-  this->m_toolbar->init(this->m_window->nativeRenderer());
+  this->m_toolbar =
+      std::make_unique<UI::Toolbar>(0, 0, m_window->nativeRenderer());
+  this->m_toolbar->init();
   this->m_colorpalette = std::make_unique<UI::ColorPalette>(size.width, 0);
   this->m_footer = std::make_unique<UI::Footer>(size.width, 0);
   m_layoutEngine->update(size.width, size.height);

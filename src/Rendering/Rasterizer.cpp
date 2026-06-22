@@ -218,6 +218,146 @@ void sprayStroke(SDL_Surface *surface, vec2 start, vec2 end, uint32_t color,
   }
 }
 
+void stampBrush(SDL_Surface *surface, vec2 pos, uint32_t color,
+                BrushShape shape, int size) {
+  LX_ASSERT(surface != nullptr, "stampBrush surface null");
+
+  const int cx = (int)pos.x;
+  const int cy = (int)pos.y;
+
+  // size is 1, 2, or 4 — half-extent in pixels from center.
+  const int half = std::max(0, size - 1);
+
+  switch (shape) {
+
+  case BrushShape::Round: {
+    // Reuse drawCircle for size>1; size==1 is a single pixel, matching the
+    // classic MS Paint round brush at its smallest setting.
+    if (size <= 1) {
+      drawPixel(surface, cx, cy, color);
+    } else {
+      // drawCircle only plots the outline; fill the disc by sweeping
+      // horizontal spans per row within radius, matching round-brush look.
+      int r = half;
+      for (int dy = -r; dy <= r; ++dy) {
+        int dx = (int)std::round(std::sqrt((double)(r * r - dy * dy)));
+        drawHorizontalSpan(surface, cx, cy + dy, dx * 2 + 1, color, false);
+      }
+    }
+    break;
+  }
+
+  case BrushShape::Square: {
+    for (int dy = -half; dy <= half; ++dy) {
+      drawHorizontalSpan(surface, cx, cy + dy, half * 2 + 1, color, false);
+    }
+    break;
+  }
+
+  case BrushShape::ForwardSlash: {
+    // "/" pattern: bottom-left to top-right diagonal footprint.
+    for (int d = -half; d <= half; ++d) {
+      drawPixel(surface, cx + d, cy - d, color);
+    }
+    break;
+  }
+
+  case BrushShape::BackSlash: {
+    // "\" pattern: top-left to bottom-right diagonal footprint.
+    for (int d = -half; d <= half; ++d) {
+      drawPixel(surface, cx + d, cy + d, color);
+    }
+    break;
+  }
+  }
+}
+
+void brushStroke(SDL_Surface *surface, vec2 start, vec2 end, uint32_t color,
+                 BrushShape shape, int size) {
+  LX_ASSERT(surface != nullptr, "brushStroke surface null");
+
+  float dx = end.x - start.x;
+  float dy = end.y - start.y;
+
+  float dist = std::hypot(dx, dy);
+
+  // Same step-per-pixel interpolation style as sprayStroke, so the brush
+  // never gaps between mouse-move samples regardless of movement speed.
+  int steps = std::max(1, (int)dist);
+
+  for (int i = 0; i <= steps; ++i) {
+    float t = (float)i / (float)steps;
+
+    vec2 p{
+        std::lerp(start.x, end.x, t),
+        std::lerp(start.y, end.y, t),
+    };
+
+    stampBrush(surface, p, color, shape, size);
+  }
+}
+
+void fillPolygon(SDL_Surface *surface, const std::vector<vec2> &points,
+                 uint32_t color) {
+  LX_ASSERT(surface != nullptr, "fillPolygon surface null");
+
+  if (points.size() < 3)
+    return;
+
+  int minY = surface->h, maxY = 0;
+  for (const auto &p : points) {
+    minY = std::min(minY, (int)std::floor(p.y));
+    maxY = std::max(maxY, (int)std::ceil(p.y));
+  }
+  minY = std::max(0, minY);
+  maxY = std::min(surface->h - 1, maxY);
+
+  // Even-odd scanline fill — same rule Lasso::pointInPolygon already uses
+  // for its selection mask, applied here as horizontal span fills instead
+  // of a per-pixel point test for efficiency.
+  size_t n = points.size();
+
+  for (int y = minY; y <= maxY; ++y) {
+    std::vector<float> intersections;
+    float fy = (float)y + 0.5f;
+
+    for (size_t i = 0, j = n - 1; i < n; j = i++) {
+      const vec2 &a = points[i];
+      const vec2 &b = points[j];
+
+      if (a.y == b.y)
+        continue;
+
+      if ((fy >= a.y && fy < b.y) || (fy >= b.y && fy < a.y)) {
+        float x = a.x + (fy - a.y) * (b.x - a.x) / (b.y - a.y);
+        intersections.push_back(x);
+      }
+    }
+
+    std::sort(intersections.begin(), intersections.end());
+
+    for (size_t k = 0; k + 1 < intersections.size(); k += 2) {
+      int xStart = (int)std::round(intersections[k]);
+      int xEnd = (int)std::round(intersections[k + 1]);
+      xStart = std::max(0, xStart);
+      xEnd = std::min(surface->w - 1, xEnd);
+
+      if (xStart > xEnd)
+        continue;
+
+      // NOTE: deliberately not reusing drawHorizontalSpan here — that
+      // helper is center+thickness shaped (half = thickness/2, integer
+      // division), which drifts by a pixel on even-width spans when forced
+      // through a start/end range via a synthesized center. Filling the
+      // explicit [xStart, xEnd] range directly avoids that off-by-one.
+      uint32_t *pixels = getPixels(surface);
+      int pitch = getPitch(surface);
+      uint32_t *row = pixels + y * pitch;
+      std::fill(row + xStart, row + xEnd + 1, color);
+    }
+  }
+}
+
 void drawEllipse_theta(SDL_Surface *surface, int x, int y, int w, int h,
                        uint32_t color) {
   const int cx = x;
