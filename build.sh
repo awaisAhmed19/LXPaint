@@ -1,10 +1,9 @@
-
 #!/bin/bash
 set -e
 
 REPO_ROOT="$(cd "$(dirname "$0")" && pwd)"
- 
-echo $REPO_ROOT 
+
+echo $REPO_ROOT
 mkdir -p "$REPO_ROOT/build"
 cd "$REPO_ROOT/build"
 

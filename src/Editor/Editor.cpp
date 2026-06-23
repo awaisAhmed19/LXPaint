@@ -20,6 +20,7 @@
 #include "Editor/Tools/Line.h"
 #include "Editor/Tools/Magnifier.h"
 #include "Editor/Tools/Pencil.h"
+#include "Editor/Tools/Polygon.h"
 #include "Editor/Tools/Rect.h"
 #include "Editor/Tools/RectSelection.h"
 #include "Editor/Tools/RoundedRect.h"
@@ -44,13 +45,15 @@ constexpr auto Magnifier = "magnifier";
 constexpr auto Brush = "brush";
 constexpr auto Text = "text";
 constexpr auto Eyedropper = "eyedropper";
+constexpr auto Polygon = "polygon";
 } // namespace ToolID
 
 int cwidth = 800;
 int cheight = 500;
 
-Editor::Editor(SDL_Renderer *renderer, const UI::LayoutMetrics &layout)
-    : m_canvas(cwidth, cheight), m_preview(cwidth, cheight),
+Editor::Editor(SDL_Window *window, SDL_Renderer *renderer,
+               const UI::LayoutMetrics &layout)
+    : m_window(window), m_canvas(cwidth, cheight), m_preview(cwidth, cheight),
       m_renderer(renderer), m_commands(50, 256), m_docTransform({0.0f, 0.0f}) {
   setupTools();
   setupInputBindings();
@@ -109,10 +112,6 @@ void Editor::setActiveTool(ToolType tool) {
     m_tools.setActiveTool(ToolID::CurveLine, tool);
     break;
 
-  case ToolType::Text:
-    m_tools.setActiveTool(ToolID::Text, tool);
-    break;
-
   case ToolType::Magnifier:
     m_tools.setActiveTool(ToolID::Magnifier, tool);
     break;
@@ -124,6 +123,15 @@ void Editor::setActiveTool(ToolType tool) {
   case ToolType::Brush:
     m_tools.setActiveTool(ToolID::Brush, tool);
     break;
+
+  case ToolType::Text:
+    m_tools.setActiveTool(ToolID::Text, tool);
+    break;
+
+  case ToolType::Polygon:
+    m_tools.setActiveTool(ToolID::Polygon, tool);
+    break;
+
   default:
     break;
   }
@@ -160,9 +168,10 @@ void Editor::setupTools() {
   m_tools.registerTool(ToolID::CurveLine, std::make_unique<CurveLine>());
   m_tools.registerTool(ToolID::RoundedRect, std::make_unique<RoundedRect>());
   m_tools.registerTool(ToolID::Magnifier, std::make_unique<Magnifier>());
-  //  m_tools.registerTool(ToolID::Text, std::make_unique<Text>());
+  m_tools.registerTool(ToolID::Text, std::make_unique<Text>());
   m_tools.registerTool(ToolID::Eyedropper, std::make_unique<Eyedropper>());
   m_tools.registerTool(ToolID::Brush, std::make_unique<Brush>());
+  m_tools.registerTool(ToolID::Polygon, std::make_unique<Polygon>());
   m_tools.setActiveTool(ToolID::Pencil, ToolType::Pencil);
 }
 void Editor::setupInputBindings() {
@@ -202,6 +211,10 @@ ToolContext Editor::makeToolContext() {
 
       // Used by Magnifier (and later Text if needed)
       .viewport = &m_viewport,
+
+      // Used by Text for SDL_StartTextInput/SDL_StopTextInput, which
+      // require a real SDL_Window* (see ToolContext.h comment).
+      .window = m_window,
   };
 }
 
@@ -259,10 +272,47 @@ void Editor::handleEvent(const SDL_Event &e) {
 
   // m_input.beginFrame();
   m_input.update(e);
+
+  // Route key-down to the active tool BEFORE the existing Ctrl+=/Ctrl+-
+  // resize shortcuts, so a tool that wants to consume a key (Polygon's
+  // Escape, Text's full editing keyset) gets first refusal. If the tool
+  // consumes it (returns true), the global resize shortcut below is
+  // skipped for this event.
+  bool keyConsumedByTool = false;
+
+  if (e.type == SDL_EVENT_KEY_DOWN) {
+    BaseTool *activeTool = m_tools.getActiveTool();
+    if (activeTool) {
+      ToolContext ctx = makeToolContext();
+      keyConsumedByTool = activeTool->onKeyDown(e.key.scancode, ctx);
+
+      // Text specifically may have produced a commit as a side effect of
+      // this key (Ctrl+Enter) — see Text::onKeyDown / m_pendingCommit.
+      // Editor is the only place that can reach into the concrete Text
+      // type to retrieve it; every other tool only ever produces a
+      // Command via onMouseUp's return value, which is handled separately
+      // further down in this function exactly as before.
+      if (auto *textTool = dynamic_cast<Text *>(activeTool)) {
+        if (auto cmd = textTool->takePendingCommit()) {
+          m_commands.pushCommand(std::move(cmd), "Text");
+        }
+      }
+    }
+  }
+
+  if (e.type == SDL_EVENT_TEXT_INPUT) {
+    BaseTool *activeTool = m_tools.getActiveTool();
+    if (activeTool) {
+      ToolContext ctx = makeToolContext();
+      keyConsumedByTool =
+          activeTool->onTextInput(e.text.text, ctx) || keyConsumedByTool;
+    }
+  }
+
   // temp resize
   //
   // BLOCK
-  if (e.type == SDL_EVENT_KEY_DOWN) {
+  if (e.type == SDL_EVENT_KEY_DOWN && !keyConsumedByTool) {
     if (e.key.scancode == SDL_SCANCODE_EQUALS && (e.key.mod & SDL_KMOD_CTRL)) {
       ResizePolicy policy;
       policy.anchor = ResizeAnchor::CENTER;
@@ -356,6 +406,22 @@ void Editor::handleEvent(const SDL_Event &e) {
       m_interaction.currMousePos = clampToCanvas(mousePos);
 
       tool->onMouseMove(m_interaction.currMousePos, ctx);
+    }
+  } else if (!m_input.leftMouseDown()) {
+    // Hover-only move: no button held. Unlike the block above, this does
+    // NOT require m_interaction.active — Polygon is "drawing" across many
+    // independent clicks with the mouse up in between, not a single
+    // press-drag-release like Pencil/Line/Rect, so it needs move events
+    // even while m_interaction.active is false between vertex placements.
+    // Only tools that opt in via wantsHoverMoves() get this; every
+    // existing tool defaults to false (see BaseTool.h) and is unaffected.
+    BaseTool *tool = m_tools.getActiveTool();
+    if (tool && tool->wantsHoverMoves()) {
+      ToolContext ctx = makeToolContext();
+      vec2 mousePos = m_viewport.screenToCanvas(m_input.getMouseScreenPos(),
+                                                m_docTransform);
+      mousePos = clampToCanvas(mousePos);
+      tool->onMouseMove(mousePos, ctx);
     }
   }
 

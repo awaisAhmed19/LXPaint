@@ -44,4 +44,12 @@ public:
     (void)ctx;
     return false;
   }
+
+  // Default false — most tools (Pencil, Line, Rect, ...) never need
+  // onMouseMove called while no mouse button is held, since they only
+  // ever draw during a single press-drag-release. Polygon overrides this
+  // to true while actively placing vertices, so Editor::handleEvent knows
+  // to forward hover-only mouse moves to it (needed for the rubber-band
+  // edge to track the cursor between clicks, since there is no drag).
+  virtual bool wantsHoverMoves() const { return false; }
 };

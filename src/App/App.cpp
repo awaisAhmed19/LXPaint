@@ -5,11 +5,11 @@
 
 #include "App.h"
 #include "App/Globals.h"
+#include "Editor/Tools/Text.h"
+#include "Systems/Logger.h"
 #include "UI/LayoutEngine/LayoutMetrics.h"
 #include "imgui_impl_sdlrenderer3.h"
 #include <iostream>
-
-#include "Systems/Logger.h"
 
 namespace App {
 Application::Application(const char *title) : m_editor(nullptr) {
@@ -19,7 +19,15 @@ Application::Application(const char *title) : m_editor(nullptr) {
     Logger::err(SDL_GetError());
     throw std::runtime_error("SDL_Init failed");
   }
-
+  if (!TTF_Init()) {
+    Logger::err(SDL_GetError());
+    throw std::runtime_error("TTF_Init failed");
+  }
+  if (!Text::initFontSystem("../assets/fonts/NotoSans-Regular.ttf", 16)) {
+    Logger::err(
+        "Text font failed to load — text tool will be visually disabled");
+    // not fatal: Text degrades gracefully per the null-s_font guards above
+  }
   this->m_window = std::make_unique<Window>(Window::Settings{"LXPAINT"});
 
   IMGUI_CHECKVERSION();
@@ -38,8 +46,11 @@ Application::Application(const char *title) : m_editor(nullptr) {
 
   std::cout << "VP INFO FROM APP" << vp.x << " " << vp.y << " " << vp.width
             << " " << vp.height << '\n';
-  this->m_editor = std::make_unique<Editor>(m_window->nativeRenderer(),
+
+  this->m_editor = std::make_unique<Editor>(m_window->nativeWindow(),
+                                            m_window->nativeRenderer(),
                                             m_layoutEngine->layout());
+
   ImGui_ImplSDL3_InitForSDLRenderer(m_window->nativeWindow(),
                                     m_window->nativeRenderer());
   ImGui_ImplSDLRenderer3_Init(m_window->nativeRenderer());
@@ -153,6 +164,8 @@ Application::~Application() {
   ImGui_ImplSDLRenderer3_Shutdown();
   ImGui_ImplSDL3_Shutdown();
   ImGui::DestroyContext();
+  Text::shutdownFontSystem();
+  TTF_Quit();
   SDL_Quit();
 }
 }; // namespace App

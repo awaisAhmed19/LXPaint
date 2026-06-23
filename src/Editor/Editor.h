@@ -19,6 +19,7 @@
 
 #include "Input/InputDispatcher.h"
 
+#include "App/ToolSettings.h"
 #include "Interaction/ToolContext.h"
 
 #include "Rendering/Renderer.h"
@@ -26,30 +27,6 @@
 
 #include "Viewport/Viewport.h"
 
-struct ToolSettings {
-  enum class BrushShape { Round, Square, ForwardSlash, BackSlash };
-  enum class BackgroundMode { Opaque, Transparent };
-
-  float strokeWidth = 1.0f;
-  float lineWidth = 1.0f;
-
-  BrushShape brushShape = BrushShape::Round;
-  // Reused as the fill-mode selector for Rectangle/Ellipse/Polygon/
-  // RoundedRectangle (Round=Outline, Square=Fill, ForwardSlash=OutlineFill)
-  // — same field, different meaning depending on active tool, same pattern
-  // your renderFillModes() already uses.
-
-  bool useBackgroundColor = false;
-
-  // --- new ---
-  float eraserSize = 4.0f;
-  float airbrushRadius = 12.0f;
-  int airbrushDensity = 25;
-  int zoomLevel = 1; // 1,2,6,8
-  BackgroundMode backgroundMode =
-      BackgroundMode::Opaque; // shared by
-                              // Selection tools + Text
-};
 class Editor {
 private:
   // bool m_panning = false;
@@ -58,9 +35,11 @@ private:
   uint32_t m_fgColor = COLORS::BLACK;
   uint32_t m_bgColor = COLORS::WHITE;
 
+  SDL_Window *m_window = nullptr;
   Canvas m_canvas;
   PreviewLayer m_preview;
   Renderer m_renderer;
+
   CommandManager m_commands;
   ToolManager m_tools;
   ToolInteractionState m_interaction;
@@ -78,7 +57,8 @@ private:
   // vec2 screenToCanvas(vec2 screenPos) const;
 
 public:
-  explicit Editor(SDL_Renderer *renderer, const UI::LayoutMetrics &layout);
+  explicit Editor(SDL_Window *window, SDL_Renderer *renderer,
+                  const UI::LayoutMetrics &layout);
 
   void handleEvent(const SDL_Event &event);
   void update();

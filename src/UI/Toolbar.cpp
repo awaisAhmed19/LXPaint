@@ -103,7 +103,7 @@ bool Toolbar::init() {
   bool ok = true;
   for (int i = 0; i < TotalButtons; ++i) {
     std::string path =
-        "../tools_icons/" + std::string(kButtons[i].iconName) + ".png";
+        "../assets/tools_icons/" + std::string(kButtons[i].iconName) + ".png";
 
     m_textures[i] = IMG_LoadTexture(m_renderer, path.c_str());
 
@@ -114,10 +114,10 @@ bool Toolbar::init() {
   }
 
   m_backgroundOpaqueIcon = IMG_LoadTexture(
-      m_renderer, "../tools_icons/options-transparency-top.png");
+      m_renderer, "../assets/tools_icons/options-transparency-top.png");
 
   m_backgroundTransparentIcon = IMG_LoadTexture(
-      m_renderer, "../tools_icons/options-transparency-bottom.png");
+      m_renderer, "../assets/tools_icons/options-transparency-bottom.png");
   if (!m_backgroundOpaqueIcon) {
     ok = false;
     SDL_Log("%s", SDL_GetError());
