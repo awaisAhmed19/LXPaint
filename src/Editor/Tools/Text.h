@@ -1,8 +1,8 @@
 #pragma once
 
-#include "App/ToolSettings.h"
 #include "BaseTool.h"
 #include "Editor/Commands/SnapshotCommand.h"
+#include "Editor/ToolSettings.h"
 #include <SDL3_ttf/SDL_ttf.h>
 #include <string>
 #include <vector>

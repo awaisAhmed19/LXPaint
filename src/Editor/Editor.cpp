@@ -29,6 +29,7 @@
 #include "UI/LayoutEngine/LayoutMetrics.h"
 #include "UI/Toolbar.h"
 #include <SDL3/SDL_render.h>
+
 namespace ToolID {
 constexpr auto Pencil = "pencil";
 constexpr auto Line = "line";
@@ -53,8 +54,8 @@ int cheight = 500;
 
 Editor::Editor(SDL_Window *window, SDL_Renderer *renderer,
                const UI::LayoutMetrics &layout)
-    : m_window(window), m_canvas(cwidth, cheight), m_preview(cwidth, cheight),
-      m_renderer(renderer), m_commands(50, 256), m_docTransform({0.0f, 0.0f}) {
+    : m_window(window), m_document(cwidth, cheight), m_renderer(renderer),
+      m_commands(50, 256), m_docTransform({0.0f, 0.0f}) {
   setupTools();
   setupInputBindings();
 
@@ -178,12 +179,12 @@ void Editor::setupInputBindings() {
   m_input.keyBinds(SDL_SCANCODE_Z, InputCommand::UNDO);
   m_input.keyBinds(SDL_SCANCODE_Y, InputCommand::REDO);
   m_input.bindActions(InputCommand::UNDO, [this]() {
-    if (!m_commands.undo(m_canvas)) {
+    if (!m_commands.undo(m_document.getCanvas())) {
       Logger::log(LogLevel::DEBUG, "Nothing to undo");
     }
   });
   m_input.bindActions(InputCommand::REDO, [this]() {
-    if (!m_commands.redo(m_canvas)) {
+    if (!m_commands.redo(m_document.getCanvas())) {
       Logger::log(LogLevel::DEBUG, "Nothing to redo");
     }
   });
@@ -193,8 +194,8 @@ void Editor::setBgColor(uint32_t color) { m_bgColor = color; }
 
 ToolContext Editor::makeToolContext() {
   return ToolContext{
-      .canvas = &m_canvas,
-      .preview = &m_preview,
+      .canvas = &m_document.getCanvas(),
+      .preview = &m_document.getPreview(),
       .interaction = &m_interaction,
       .commandManager = &m_commands,
 
@@ -220,12 +221,13 @@ ToolContext Editor::makeToolContext() {
 
 bool Editor::inCanvas(vec2 mousePos) {
   return mousePos.x >= 0 && mousePos.y >= 0 &&
-         mousePos.x < m_canvas.getWidth() && mousePos.y < m_canvas.getHeight();
+         mousePos.x < m_document.getCanvas().getWidth() &&
+         mousePos.y < m_document.getCanvas().getHeight();
 }
 
 vec2 Editor::clampToCanvas(vec2 p) {
-  p.x = std::clamp(p.x, 0.0f, (float)m_canvas.getWidth() - 1);
-  p.y = std::clamp(p.y, 0.0f, (float)m_canvas.getHeight() - 1);
+  p.x = std::clamp(p.x, 0.0f, (float)m_document.getCanvas().getWidth() - 1);
+  p.y = std::clamp(p.y, 0.0f, (float)m_document.getCanvas().getHeight() - 1);
   return p;
 }
 
@@ -235,7 +237,8 @@ void Editor::resizeCanvas(int w, int h, const ResizePolicy &policy) {
     return;
   }
 
-  if (w == m_canvas.getWidth() && h == m_canvas.getHeight()) {
+  if (w == m_document.getCanvas().getWidth() &&
+      h == m_document.getCanvas().getHeight()) {
     Logger::debug("Resize: dimensions unchanges");
     return;
   }
@@ -245,7 +248,8 @@ void Editor::resizeCanvas(int w, int h, const ResizePolicy &policy) {
     return;
   }
 
-  m_canvas.resize(w, h, policy);
+  m_document.getCanvas().resize(w, h, policy);
+  // m_document.getPreview().resize(w, h, policy);
   m_viewport.onCanvasResized(w, h);
   m_viewport.fitCanvasToScreen(); // TODO need to call this if a new document is
                                   // made too
@@ -317,15 +321,17 @@ void Editor::handleEvent(const SDL_Event &e) {
       ResizePolicy policy;
       policy.anchor = ResizeAnchor::CENTER;
       policy.fill = ResizeFill::BACKGROUNDCOLOR;
-      resizeCanvas(m_canvas.getWidth() + 64, m_canvas.getHeight() + 64, policy);
+      resizeCanvas(m_document.getCanvas().getWidth() + 64,
+                   m_document.getCanvas().getHeight() + 64, policy);
     }
 
     if (e.key.scancode == SDL_SCANCODE_MINUS && (e.key.mod & SDL_KMOD_CTRL)) {
       ResizePolicy policy;
       policy.anchor = ResizeAnchor::CENTER;
       policy.fill = ResizeFill::BACKGROUNDCOLOR;
-      resizeCanvas(std::max(64, m_canvas.getWidth() - 64),
-                   std::max(64, m_canvas.getHeight() - 64), policy);
+      resizeCanvas(std::max(64, m_document.getCanvas().getWidth() - 64),
+                   std::max(64, m_document.getCanvas().getHeight() - 64),
+                   policy);
     }
   }
 
@@ -455,11 +461,11 @@ void Editor::renderUI() {
   /*
   ImGui::Begin("History");
   if (ImGui::Button("Undo", ImVec2(100, 0))) {
-    m_commands.undo(m_canvas);
+    m_commands.undo(m_document.canvas());
   }
   ImGui::SameLine();
   if (ImGui::Button("Redo", ImVec2(100, 0))) {
-    m_commands.redo(m_canvas);
+    m_commands.redo(m_document.canvas());
   }
   ImGui::Separator();
   ImGui::TextDisabled("%s", m_commands.getDebugInfo().c_str());
@@ -469,8 +475,8 @@ void Editor::renderUI() {
 
 void Editor::centerCanvas() {
   float zoom = m_viewport.getZoom();
-  float canvasW = m_canvas.getWidth() * zoom;
-  float canvasH = m_canvas.getHeight() * zoom;
+  float canvasW = m_document.getCanvas().getWidth() * zoom;
+  float canvasH = m_document.getCanvas().getHeight() * zoom;
 
   SDL_FRect vp = m_viewport.getScreenRect();
 
@@ -483,11 +489,12 @@ void Editor::centerCanvas() {
 void Editor::update() { m_input.beginFrame(); }
 
 void Editor::render() {
-  m_renderer.renderTarget(m_canvas, m_viewport, m_docTransform);
+  m_renderer.renderTarget(m_document.getCanvas(), m_viewport, m_docTransform);
 
   BaseTool *activeTool = m_tools.getActiveTool();
 
   if (activeTool && activeTool->usesPreview()) {
-    m_renderer.renderTarget(m_preview, m_viewport, m_docTransform);
+    m_renderer.renderTarget(m_document.getPreview(), m_viewport,
+                            m_docTransform);
   }
 }

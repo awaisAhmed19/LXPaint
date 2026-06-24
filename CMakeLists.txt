@@ -13,15 +13,19 @@ set(PROJECT_SOURCES
     src/App/main.cpp
     src/App/Window.cpp
     src/App/App.cpp
+
     #src/UI/Theme.cpp
     src/Input/InputDispatcher.cpp
     src/Editor/Viewport/Viewport.cpp
     src/Editor/Editor.cpp
+    src/Editor/EditorDocument.cpp
+    
     src/Rendering/Rasterizer.cpp
     src/Rendering/Renderer.cpp
     src/Document/Canvas.cpp
     src/Document/RenderTarget.cpp
     src/Document/PreviewLayer.cpp
+    
     # Tools
     src/Editor/Tools/SelectionTool.cpp
     src/Editor/Tools/Pencil.cpp

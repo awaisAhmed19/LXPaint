@@ -1,7 +1,8 @@
 #include "CurveLine.h"
 
-#include "Editor/Editor.h"
+#include "Editor/Interaction/ToolContext.h"
 #include "Editor/Interaction/ToolInteractionState.h"
+#include "Editor/ToolSettings.h"
 #include "Rendering/Rasterizer.h"
 #include "Systems/Logger.h"
 #include <algorithm>

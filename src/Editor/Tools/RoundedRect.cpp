@@ -3,7 +3,6 @@
 
 #include "Document/PreviewLayer.h"
 #include "Editor/Commands/SnapshotCommand.h"
-#include "Editor/Editor.h"
 #include "Editor/Interaction/ToolContext.h"
 #include "Editor/Interaction/ToolInteractionState.h"
 #include "Rendering/Rasterizer.h"

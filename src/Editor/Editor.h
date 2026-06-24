@@ -8,10 +8,8 @@
 #include "UI/LayoutEngine/LayoutMetrics.h"
 #include "imgui_impl_sdl3.h"
 
-#include "Document/Canvas.h"
-#include "Document/PreviewLayer.h"
-
 #include "Editor/Commands/CommandManager.h"
+#include "EditorDocument.h"
 
 #include "Editor/Interaction/ToolInteractionState.h"
 
@@ -19,8 +17,8 @@
 
 #include "Input/InputDispatcher.h"
 
-#include "App/ToolSettings.h"
 #include "Interaction/ToolContext.h"
+#include "ToolSettings.h"
 
 #include "Rendering/Renderer.h"
 #include "Rendering/Transform2D.h"
@@ -36,8 +34,7 @@ private:
   uint32_t m_bgColor = COLORS::WHITE;
 
   SDL_Window *m_window = nullptr;
-  Canvas m_canvas;
-  PreviewLayer m_preview;
+  EditorDocument m_document;
   Renderer m_renderer;
 
   CommandManager m_commands;
@@ -67,8 +64,6 @@ public:
 
   void centerCanvas();
   void resizeCanvas(int w, int h, const ResizePolicy &policy);
-
-  Canvas &getCanvas() { return m_canvas; }
 
   void setActiveTool(ToolType tool);
   ToolType getActiveTool() const { return m_tools.getActiveToolType(); }
