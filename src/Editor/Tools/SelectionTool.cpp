@@ -2,6 +2,7 @@
 #include "Editor/Commands/SnapshotCommand.h"
 #include "Rendering/Rasterizer.h"
 
+#include "Document/PreviewLayer.h"
 SelectionTool::~SelectionTool() { clearSelection(); }
 
 void SelectionTool::copyFromCanvas(SDL_Surface *canvas) {

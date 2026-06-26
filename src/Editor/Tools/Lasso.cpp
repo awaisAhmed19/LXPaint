@@ -6,6 +6,7 @@
 #include "Rendering/Rasterizer.h"
 #include "Systems/Logger.h"
 
+#include "Document/PreviewLayer.h"
 #include <climits>
 #include <cmath>
 

@@ -1,6 +1,7 @@
 #pragma once
 #include "App/Globals.h"
 #include <SDL3/SDL.h>
+struct ResizePolicy;
 class Renderer;
 class RenderTarget {
 protected:
@@ -13,6 +14,13 @@ protected:
   SDL_Rect m_dirtyRect{0, 0, 0, 0};
   enum KIND { PREVIEW, CANVAS, LAYER };
   bool m_dirty = false;
+
+protected:
+  SDL_Rect computeSourceRect(int oldW, int oldH, int newW, int newH,
+                             const ResizePolicy &policy) const;
+
+  SDL_Rect computeDestinationRect(int oldW, int oldH, int newW, int newH,
+                                  const ResizePolicy &policy) const;
 
 public:
   friend class Renderer;
@@ -27,7 +35,7 @@ public:
   SDL_Surface *getSurface() const;
   SDL_Texture *getTexture() const;
 
-  void resize(int w, int h);
+  void resize(int w, int h, const ResizePolicy &policy);
 
   int getWidth() const;
   int getHeight() const;

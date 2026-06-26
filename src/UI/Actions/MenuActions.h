@@ -1,62 +1,62 @@
 #pragma once
 
 enum class MenuAction {
-    None,
+  None,
 
-    // ── File ─────────────────────────────────────────────
-    FileNew,
-    FileOpen,
-    FileSave,
-    FileSaveAs,
+  // ── File ─────────────────────────────────────────────
+  FileNew,
+  FileOpen,
+  FileSave,
+  FileSaveAs,
 
-    FileLoadURL,
-    FileUploadImgur,
-    FileManageStorage,
+  FileLoadURL,
+  FileUploadImgur,
+  FileManageStorage,
 
-    FilePrintPreview,
-    FilePageSetup,
-    FilePrint,
+  FilePrintPreview,
+  FilePageSetup,
+  FilePrint,
 
-    FileWallpaperTiled,
-    FileWallpaperCentered,
+  FileWallpaperTiled,
+  FileWallpaperCentered,
 
-    FileExit,
+  FileExit,
 
-    // ── Edit ─────────────────────────────────────────────
-    EditUndo,
-    EditRedo,
-    EditHistory,
+  // ── Edit ─────────────────────────────────────────────
+  EditUndo,
+  EditRedo,
+  EditHistory,
 
-    EditCut,
-    EditCopy,
-    EditPaste,
-    EditClearSelection,
-    EditSelectAll,
+  EditCut,
+  EditCopy,
+  EditPaste,
+  EditClearSelection,
+  EditSelectAll,
 
-    EditCopyTo,
-    EditPasteFrom,
+  EditCopyTo,
+  EditPasteFrom,
 
-    // ── View ─────────────────────────────────────────────
-    ViewToggleToolbox,
-    ViewToggleColorBox,
-    ViewToggleStatusBar,
-    ViewTextToolbar,
+  // ── View ─────────────────────────────────────────────
+  ViewToggleToolbox,
+  ViewToggleColorBox,
+  ViewToggleStatusBar,
+  ViewTextToolbar,
 
-    ViewZoom,
-    ViewBitmap,
-    ViewFullscreen,
+  ViewZoom,
+  ViewBitmap,
+  ViewFullscreen,
 
-    // ── Image ────────────────────────────────────────────
-    ImageFlipRotate,
-    ImageStretchSkew,
+  // ── Image ────────────────────────────────────────────
+  ImageFlipRotate,
+  ImageStretchSkew,
 
-    ImageInvertColors,
-    ImageAttributes,
-    ImageClear,
-    ImageDrawOpaque,
+  ImageInvertColors,
+  ImageAttributes,
+  ImageClear,
+  ImageDrawOpaque,
 
-    // ── Colors ───────────────────────────────────────────
-    ColorsEdit,
-    ColorsGet,
-    ColorsSave,
+  // ── Colors ───────────────────────────────────────────
+  ColorsEdit,
+  ColorsGet,
+  ColorsSave,
 };

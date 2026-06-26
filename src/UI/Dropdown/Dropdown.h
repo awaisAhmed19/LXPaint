@@ -31,63 +31,66 @@
 
 class Dropdown {
 public:
-    explicit Dropdown(std::string title, std::vector<MenuItem> items);
+  explicit Dropdown(std::string title, std::vector<MenuItem> items);
 
-    // ── State ─────────────────────────────────────────────────────────────
+  // ── State ─────────────────────────────────────────────────────────────
 
-    bool isOpen()  const { return m_open; }
-    void open()          { m_open = true;  m_hoveredIndex = -1; }
-    void close()         { m_open = false; m_hoveredIndex = -1; }
-    void toggle()        { m_open ? close() : open(); }
+  bool isOpen() const { return m_open; }
+  void open() {
+    m_open = true;
+    m_hoveredIndex = -1;
+  }
+  void close() {
+    m_open = false;
+    m_hoveredIndex = -1;
+  }
+  void toggle() { m_open ? close() : open(); }
 
-    const std::string& title() const { return m_title; }
+  const std::string &title() const { return m_title; }
 
-    // Allow external code (e.g. ImageAttributes checkbox) to sync checked state
-    void setChecked(size_t index, bool checked);
+  // Allow external code (e.g. ImageAttributes checkbox) to sync checked state
+  void setChecked(size_t index, bool checked);
 
-    // ── Rendering ─────────────────────────────────────────────────────────
+  // ── Rendering ─────────────────────────────────────────────────────────
 
-    // Draw the ribbon label button.  Returns true if clicked.
-    // anchorMin/anchorMax are the screen-space rect of the button (used to
-    // position the popup directly below it).
-    bool renderRibbonButton(ImDrawList* dl,
-                            ImVec2      btnMin,
-                            ImVec2      btnMax,
-                            bool        isActive);
+  // Draw the ribbon label button.  Returns true if clicked.
+  // anchorMin/anchorMax are the screen-space rect of the button (used to
+  // position the popup directly below it).
+  bool renderRibbonButton(ImDrawList *dl, ImVec2 btnMin, ImVec2 btnMax,
+                          bool isActive);
 
-    // Draw the open popup panel, starting at originPos (typically the
-    // bottom-left of the ribbon button).  Returns the action the user
-    // clicked, or MenuAction::None.
-    MenuAction renderPanel(ImVec2 originPos);
-    bool contains(ImVec2 origin, ImVec2 mouse) const;
+  // Draw the open popup panel, starting at originPos (typically the
+  // bottom-left of the ribbon button).  Returns the action the user
+  // clicked, or MenuAction::None.
+  MenuAction renderPanel(ImVec2 originPos);
+  bool contains(ImVec2 origin, ImVec2 mouse) const;
+
 private:
-    // ── Internal rendering helpers ────────────────────────────────────────
+  // ── Internal rendering helpers ────────────────────────────────────────
 
-    float computePanelWidth()  const;
-    float computePanelHeight() const;
+  float computePanelWidth() const;
+  float computePanelHeight() const;
 
-    // Render one row.  Returns the action if clicked, None otherwise.
-    MenuAction renderItem(ImDrawList* dl,
-                          const MenuItem& item,
-                          ImVec2          rowMin,
-                          float           panelWidth,
-                          int             index);
+  // Render one row.  Returns the action if clicked, None otherwise.
+  MenuAction renderItem(ImDrawList *dl, const MenuItem &item, ImVec2 rowMin,
+                        float panelWidth, int index);
 
-    void renderSeparator(ImDrawList* dl, ImVec2 rowMin, float panelWidth);
-    void renderCheckmark(ImDrawList* dl, ImVec2 rowMin) const;
-    void renderSubmenuArrow(ImDrawList* dl, ImVec2 rowMin, float panelWidth) const;
-    // Classic Win95 raised / sunken panel border
-    void drawRaisedBorder(ImDrawList* dl, ImVec2 min, ImVec2 max) const;
-    void drawSunkenBorder(ImDrawList* dl, ImVec2 min, ImVec2 max) const;
+  void renderSeparator(ImDrawList *dl, ImVec2 rowMin, float panelWidth);
+  void renderCheckmark(ImDrawList *dl, ImVec2 rowMin) const;
+  void renderSubmenuArrow(ImDrawList *dl, ImVec2 rowMin,
+                          float panelWidth) const;
+  // Classic Win95 raised / sunken panel border
+  void drawRaisedBorder(ImDrawList *dl, ImVec2 min, ImVec2 max) const;
+  void drawSunkenBorder(ImDrawList *dl, ImVec2 min, ImVec2 max) const;
 
-    // ── Data ──────────────────────────────────────────────────────────────
+  // ── Data ──────────────────────────────────────────────────────────────
 
-    std::string           m_title;
-    std::vector<MenuItem> m_items;
-    bool                  m_open         = false;
-    int                   m_hoveredIndex = -1;
+  std::string m_title;
+  std::vector<MenuItem> m_items;
+  bool m_open = false;
+  int m_hoveredIndex = -1;
 
-    // Submenu open state: index into m_items of the currently open submenu,
-    // -1 if none.
-    int                   m_openSubmenu  = -1;
+  // Submenu open state: index into m_items of the currently open submenu,
+  // -1 if none.
+  int m_openSubmenu = -1;
 };

@@ -64,8 +64,12 @@ std::vector<MenuItem> Ribbon::buildFileMenu() {
 std::vector<MenuItem> Ribbon::buildEditMenu() {
   using MI = MenuItem;
   return {
-      MI::normal("Undo", MenuAction::EditUndo, "Ctrl+Z", false),
-      MI::normal("Repeat", MenuAction::EditRedo, "F4", false),
+      // Undo/Redo are now wired through to CommandManager via
+      // Editor::undo()/Editor::redo() (MenuActionDispatcher::doUndo/doRedo),
+      // so these are enabled — previously they were left disabled (false)
+      // because nothing backed them yet; that's no longer the case.
+      MI::normal("Undo", MenuAction::EditUndo, "Ctrl+Z", true),
+      MI::normal("Repeat", MenuAction::EditRedo, "F4", true),
       MI::normal("History", MenuAction::EditHistory, "Ctrl+Shift+Y"),
       MI::separator(),
       MI::normal("Cut", MenuAction::EditCut, "Ctrl+X", false),
@@ -199,8 +203,6 @@ void Ribbon::render(Editor &editor) {
 
   ImDrawList *dl = ImGui::GetWindowDrawList();
 
-  // ── Draw each menu button ──────────────────────────────────────────────
-
   // Escape pressed: close all menus
   if (ImGui::IsKeyPressed(ImGuiKey_Escape)) {
     for (auto &d : m_dropdowns)
@@ -247,7 +249,7 @@ void Ribbon::render(Editor &editor) {
         d.open();
         m_activeDropdown = i;
       }
-        } else if (hovered && m_activeDropdown >= 0 && m_activeDropdown != i) {
+    } else if (hovered && m_activeDropdown >= 0 && m_activeDropdown != i) {
       // Hover-switch while a menu is already open (classic Win95 feel)
       m_dropdowns[m_activeDropdown].close();
       d.open();
@@ -271,7 +273,7 @@ void Ribbon::render(Editor &editor) {
   ImGui::PopStyleVar(4);
 
   // ── Render open dropdown panels (outside the Ribbon ImGui window) ──────
-    // ────────────────────────────────────────────────────────────────────────
+  // ────────────────────────────────────────────────────────────────────────
   // Render active dropdown
   // ────────────────────────────────────────────────────────────────────────
 
@@ -325,9 +327,7 @@ void Ribbon::render(Editor &editor) {
             m_rect.y + kRibbonButtonHeight,
         };
 
-        if (mousePos.x >= min.x &&
-            mousePos.x <= max.x &&
-            mousePos.y >= min.y &&
+        if (mousePos.x >= min.x && mousePos.x <= max.x && mousePos.y >= min.y &&
             mousePos.y <= max.y) {
           insideRibbon = true;
           break;

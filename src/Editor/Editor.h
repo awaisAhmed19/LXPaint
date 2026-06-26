@@ -1,4 +1,3 @@
-
 #pragma once
 #include <SDL3/SDL.h>
 #include <cstdint>
@@ -97,6 +96,19 @@ public:
      return m_toolSettings.useBackgroundColor;
    }
  */
+
+  // ── Undo / Redo ─────────────────────────────────────────────────────
+  // Thin pass-through to CommandManager, operating on the active
+  // document's canvas. This is the one place that knows how to turn
+  // "undo the last thing" into the concrete (CommandManager, Canvas)
+  // pair — Ctrl+Z/Y (setupInputBindings) and the Edit menu
+  // (MenuActionDispatcher) both call through here instead of each
+  // reaching into m_commands / m_document themselves.
+  bool undo() { return m_commands.undo(m_document.getCanvas()); }
+  bool redo() { return m_commands.redo(m_document.getCanvas()); }
+  bool canUndo() const { return m_commands.canUndo(); }
+  bool canRedo() const { return m_commands.canRedo(); }
+
   vec2 clampToCanvas(vec2 p);
   bool inCanvas(vec2 mousePos);
 };

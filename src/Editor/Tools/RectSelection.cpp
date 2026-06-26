@@ -7,6 +7,7 @@
 
 #include <algorithm>
 
+#include "Document/PreviewLayer.h"
 bool RectSelection::containsPoint(vec2 pos) const {
   if (m_selection.empty())
     return false;

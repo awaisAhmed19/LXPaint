@@ -1,6 +1,5 @@
 #pragma once
 
-
 #include "MenuActions.h"
 
 class Editor;
@@ -20,8 +19,8 @@ class Editor;
 
 class MenuActionDispatcher {
 public:
-    // Execute the action against the editor.
-    // Returns true if the action was handled (even if as a no-op for
-    // currently-unimplemented items), false only for MenuAction::None.
-    static bool execute(MenuAction action, Editor& editor);
+  // Execute the action against the editor.
+  // Returns true if the action was handled (even if as a no-op for
+  // currently-unimplemented items), false only for MenuAction::None.
+  static bool execute(MenuAction action, Editor &editor);
 };

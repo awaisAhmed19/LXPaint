@@ -117,7 +117,7 @@ void Application::render() {
   SDL_RenderClear(m_window->nativeRenderer());
 
   m_editor->render();
- //  m_editor->renderUI();
+  //  m_editor->renderUI();
 
   m_ribbon->render(*m_editor);
   m_toolbar->render(*m_editor);

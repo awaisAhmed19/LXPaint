@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <cmath>
 
+#include "Document/PreviewLayer.h"
 namespace {
 constexpr int kBoundsPad = 4; // safety margin so stroke width / handles
                               // never get clipped at the edge of the

@@ -3,36 +3,13 @@
 
 #include <vector>
 
-#include "PreviewLayer.h"
 #include "RenderTarget.h"
-
-enum class ResizeAnchor { TOPLEFT, CENTER };
-enum class ResizeFill { TRANSPARENT, BACKGROUNDCOLOR };
-
-struct ResizePolicy {
-  ResizeAnchor anchor = ResizeAnchor::TOPLEFT;
-  ResizeFill fill = ResizeFill::TRANSPARENT;
-  bool preservePixels = true;
-};
-
-struct ResizeRequest {
-  int newWidth, newHeight;
-  ResizePolicy policy;
-  bool preserveUndoHistory = true;
-};
-
 class Canvas : public RenderTarget {
 private:
-  std::vector<RenderTarget *> m_renderTargets;
-  PreviewLayer m_preview;
-
+  // std::vector<RenderTarget *> m_renderTargets;
 public:
-  Canvas(int width, int height);
-  void resize(int w, int h, ResizePolicy &resizePolicy);
-  SDL_Rect computeSourceRect(int oldW, int oldH, int newW, int newH,
-                             const ResizePolicy &policy) const;
-  SDL_Rect computeDestinationRect(int oldW, int oldH, int newW, int newH,
-                                  const ResizePolicy &policy) const;
+  Canvas(int w, int h);
+
   void resize(int w, int h, const ResizePolicy &policy);
   /* resize Transform pipeline
     {

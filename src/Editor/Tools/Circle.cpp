@@ -9,7 +9,6 @@
 #include "Editor/Interaction/ToolInteractionState.h"
 #include "Rendering/Rasterizer.h"
 #include "Systems/Logger.h"
-
 static SDL_Rect computeEllipseBounds(vec2 center, int rx, int ry, int padding,
                                      int maxW, int maxH) {
   int minX = std::max(0, (int)(center.x - rx - padding));

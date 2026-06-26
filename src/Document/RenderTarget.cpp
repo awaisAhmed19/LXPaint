@@ -136,36 +136,69 @@ void RenderTarget::blitFrom(const RenderTarget &src, const SDL_Rect *srcRect,
   markDirty();
 }
 
-void RenderTarget::resize(int w, int h) {
-  LX_ASSERT(w > 0 && h > 0, "Invalid RenderTarget resize");
-  Logger::debug(std::format("Resizing RenderTarget {}x{} -> {}x{}", m_width,
-                            m_height, w, h));
-  SDL_Surface *newSurface = SDL_CreateSurface(w, h, SDL_PIXELFORMAT_ARGB8888);
-  LX_ASSERT(newSurface != nullptr, "Failed to create resized surface");
+void RenderTarget::resize(int w, int h, const ResizePolicy &policy) {
+  int oldW = getWidth();
+  int oldH = getHeight();
 
-  SDL_FillSurfaceRect(newSurface, nullptr,
-                      SDL_MapSurfaceRGBA(newSurface, 255, 255, 255, 255));
+  RenderTarget newTarget;
 
-  if (m_surface) {
-    SDL_Rect src = {0, 0, std::min(m_width, w), std::min(m_height, h)};
-    SDL_BlitSurface(m_surface, &src, newSurface, &src);
-    SDL_DestroySurface(m_surface);
-  }
+  FillColor fill = (policy.fill == ResizeFill::BACKGROUNDCOLOR)
+                       ? FillColor::WHITE
+                       : FillColor::TRANSPARENT;
 
-  m_surface = newSurface;
+  newTarget.allocate(w, h, fill);
 
-  m_width = w;
-  m_height = h;
+  SDL_Rect src = computeSourceRect(oldW, oldH, w, h, policy);
+  SDL_Rect dst = computeDestinationRect(oldW, oldH, w, h, policy);
 
-  if (m_texture) {
-    SDL_DestroyTexture(m_texture);
-    m_texture = nullptr;
-  }
+  newTarget.blitFrom(*this, &src, &dst);
 
-  m_textureWidth = 0;
-  m_textureHeight = 0;
+  swapTarget(newTarget);
 
   markDirty();
+}
+SDL_Rect
+RenderTarget::computeDestinationRect(int oldW, int oldH, int newW, int newH,
+                                     const ResizePolicy &policy) const {
+
+  SDL_Rect rect{};
+  rect.w = std::min(oldW, newW);
+  rect.h = std::min(oldH, newH);
+
+  switch (policy.anchor) {
+  case ResizeAnchor::TOPLEFT:
+    rect.x = 0;
+    rect.y = 0;
+    break;
+
+  case ResizeAnchor::CENTER:
+    rect.x = std::max(0, (newW - oldW) / 2);
+    rect.y = std::max(0, (newH - oldH) / 2);
+    break;
+  }
+
+  return rect;
+}
+SDL_Rect RenderTarget::computeSourceRect(int oldW, int oldH, int newW, int newH,
+                                         const ResizePolicy &policy) const {
+
+  SDL_Rect rect{};
+  rect.w = std::min(oldW, newW);
+  rect.h = std::min(oldH, newH);
+
+  switch (policy.anchor) {
+  case ResizeAnchor::TOPLEFT:
+    rect.x = 0;
+    rect.y = 0;
+    break;
+
+  case ResizeAnchor::CENTER:
+    rect.x = std::max(0, (oldW - newW) / 2);
+    rect.y = std::max(0, (oldH - newH) / 2);
+    break;
+  }
+
+  return rect;
 }
 
 void RenderTarget::markDirty() {

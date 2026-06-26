@@ -248,7 +248,7 @@ void Editor::resizeCanvas(int w, int h, const ResizePolicy &policy) {
     return;
   }
 
-  m_document.getCanvas().resize(w, h, policy);
+  m_document.resize(w, h, policy);
   // m_document.getPreview().resize(w, h, policy);
   m_viewport.onCanvasResized(w, h);
   m_viewport.fitCanvasToScreen(); // TODO need to call this if a new document is

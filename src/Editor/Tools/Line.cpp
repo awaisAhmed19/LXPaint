@@ -7,6 +7,7 @@
 #include "Systems/Logger.h"
 #include <algorithm>
 
+#include "Document/PreviewLayer.h"
 static SDL_Rect computeLineBounds(vec2 a, vec2 b, int brushSize, int maxW,
                                   int maxH) {
   int minX = std::max(0, std::min((int)a.x, (int)b.x) - brushSize);

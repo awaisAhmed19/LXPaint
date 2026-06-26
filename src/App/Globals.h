@@ -235,3 +235,18 @@ enum class ToolType {
   Ellipse,
   RoundedRectangle
 };
+
+enum class ResizeAnchor { TOPLEFT, CENTER };
+enum class ResizeFill { TRANSPARENT, BACKGROUNDCOLOR };
+
+struct ResizePolicy {
+  ResizeAnchor anchor = ResizeAnchor::TOPLEFT;
+  ResizeFill fill = ResizeFill::TRANSPARENT;
+  bool preservePixels = true;
+};
+
+struct ResizeRequest {
+  int newWidth, newHeight;
+  ResizePolicy policy;
+  bool preserveUndoHistory = true;
+};

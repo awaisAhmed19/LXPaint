@@ -11,7 +11,7 @@ const PreviewLayer &EditorDocument::getPreview() const { return m_preview; }
 
 void EditorDocument::resize(int width, int height, const ResizePolicy &policy) {
   m_canvas.resize(width, height, policy);
-
+  m_preview.resize(width, height, policy);
   // TODO:
   // m_preview.resize(...)
   // selection.resize(...)
