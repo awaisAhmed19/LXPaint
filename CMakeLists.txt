@@ -44,11 +44,13 @@ set(PROJECT_SOURCES
     src/Editor/Tools/EyeDropper.cpp
     src/Editor/Tools/Polygon.cpp
     src/Editor/Tools/Text.cpp
-    src/UI/Ribbon.cpp
-    src/UI/Toolbar.cpp
-    src/UI/ColorPalette.cpp
-    src/UI/Footer.cpp
-    src/UI/LayoutEngine/LayoutEngine.cpp
+src/UI/Ribbon.cpp
+src/UI/Toolbar.cpp
+src/UI/ColorPalette.cpp
+src/UI/Footer.cpp
+src/UI/LayoutEngine/LayoutEngine.cpp
+src/UI/Dropdown/Dropdown.cpp
+src/UI/Actions/MenuActionDispatcher.cpp
   )
 # ImGui
 set(IMGUI_SRCS
