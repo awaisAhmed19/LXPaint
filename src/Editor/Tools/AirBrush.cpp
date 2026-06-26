@@ -17,7 +17,6 @@ static float distance(vec2 start, vec2 end) {
 void AirBrush::onMouseDown(vec2 pos, ToolContext &ctx) {
 
   Logger::debug("AirBrush START");
-
   auto &settings = *ctx.settings;
 
   m_start = pos;
@@ -27,7 +26,6 @@ void AirBrush::onMouseDown(vec2 pos, ToolContext &ctx) {
 
   beginStrokeBounds(pos, margin, ctx.canvas->getSurface()->w,
                     ctx.canvas->getSurface()->h);
-
   freeBackupSurface();
 
   m_backupSurface = SDL_DuplicateSurface(ctx.canvas->getSurface());
@@ -44,7 +42,6 @@ void AirBrush::onMouseDown(vec2 pos, ToolContext &ctx) {
 
   SDL_Rect dirty{int(pos.x) - margin, int(pos.y) - margin, margin * 2 + 1,
                  margin * 2 + 1};
-
   ctx.canvas->invalidateRect(dirty);
 }
 
@@ -54,7 +51,6 @@ void AirBrush::onMouseMove(vec2 pos, ToolContext &ctx) {
     return;
 
   auto &settings = *ctx.settings;
-
   int margin = static_cast<int>(std::ceil(settings.airbrushRadius));
 
   expandStrokeBounds(pos, margin, ctx.canvas->getSurface()->w,
@@ -69,7 +65,6 @@ void AirBrush::onMouseMove(vec2 pos, ToolContext &ctx) {
                  std::abs(int(pos.y - m_last.y)) + margin * 2 + 1};
 
   ctx.canvas->invalidateRect(dirty);
-
   m_last = pos;
 }
 std::unique_ptr<Command> AirBrush::onMouseUp(vec2 pos, ToolContext &ctx) {
@@ -80,19 +75,16 @@ std::unique_ptr<Command> AirBrush::onMouseUp(vec2 pos, ToolContext &ctx) {
     return nullptr;
 
   auto &settings = *ctx.settings;
-
   int margin = static_cast<int>(std::ceil(settings.airbrushRadius));
 
   expandStrokeBounds(pos, margin, ctx.canvas->getSurface()->w,
                      ctx.canvas->getSurface()->h);
 
   auto before = SnapshotCommand::copyRegion(m_backupSurface, m_strokeBounds);
-
   auto after =
       SnapshotCommand::copyRegion(ctx.canvas->getSurface(), m_strokeBounds);
 
   freeBackupSurface();
-
   m_hasStrokeBounds = false;
 
   if (!before || !after) {

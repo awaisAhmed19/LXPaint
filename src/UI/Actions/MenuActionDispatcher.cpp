@@ -10,53 +10,27 @@
 namespace {
 
 void doUndo(Editor &editor) {
-  // Editor::undo() now exists and forwards to CommandManager — this is
-  // the same call path Ctrl+Z already uses via setupInputBindings().
   if (!editor.undo()) {
     Logger::log(LogLevel::DEBUG, "Edit Undo: nothing to undo");
   }
 }
 
 void doRedo(Editor &editor) {
-  // Same as doUndo: now forwards to CommandManager via Editor::redo(),
-  // matching the existing Ctrl+Y keyboard path.
   if (!editor.redo()) {
     Logger::log(LogLevel::DEBUG, "Edit Redo: nothing to redo");
   }
 }
 
 void doNew(Editor &editor) {
-  // Resize to the default document size to simulate "New"
-  // until a proper NewDocumentDialog is implemented.
   ResizePolicy policy;
   policy.anchor = ResizeAnchor::TOPLEFT;
   policy.fill = ResizeFill::BACKGROUNDCOLOR;
   editor.resizeCanvas(800, 500, policy);
-}
-
-void doInvertColors(Editor &editor) {
-  Logger::warn("MenuAction::ImageInvertColors — not yet implemented");
-  (void)editor;
-}
-
-void doSelectAll(Editor &editor) {
-  Logger::warn("MenuAction::EditSelectAll — not yet implemented");
-  (void)editor;
-}
-
-void doFlipRotate(Editor &editor) {
-  Logger::warn("MenuAction::ImageFlipRotate — not yet implemented");
-  (void)editor;
-}
-
-void doStretchSkew(Editor &editor) {
-  Logger::warn("MenuAction::ImageStretchSkew — not yet implemented");
-  (void)editor;
-}
-
-void doClear(Editor &editor) {
-  Logger::warn("MenuAction::ImageClear — not yet implemented");
-  (void)editor;
+  // first check if the undo is empty
+  // if it is then there was no interaction that happened in the canvas
+  // if there was interation then we have to first save/ saveas the canvas
+  // clear the canvas
+  // resize to default
 }
 
 } // anonymous namespace
@@ -72,21 +46,21 @@ bool MenuActionDispatcher::execute(MenuAction action, Editor &editor) {
   case MenuAction::None:
     return false;
 
-  // ── File ─────────────────────────────────────────────────────────────
+    // ── File ─────────────────────────────────────────────────────────────
   case MenuAction::FileNew:
-    doNew(editor);
+    editor.newDocument();
     return true;
 
   case MenuAction::FileOpen:
-    Logger::warn("MenuAction::FileOpen — file dialog not yet implemented");
+    editor.openDocument();
     return true;
 
   case MenuAction::FileSave:
-    Logger::warn("MenuAction::FileSave — not yet implemented");
+    editor.saveDocument();
     return true;
 
   case MenuAction::FileSaveAs:
-    Logger::warn("MenuAction::FileSaveAs — not yet implemented");
+    editor.saveDocumentAs();
     return true;
 
   case MenuAction::FileLoadURL:
@@ -122,23 +96,13 @@ bool MenuActionDispatcher::execute(MenuAction action, Editor &editor) {
     return true;
 
   case MenuAction::FileExit: {
-
-    /*eventually expose something like:
-
-  editor.requestQuit();
-
-  or
-
-  Application::requestQuit();
-
-  Then the dispatcher doesn't know anything about SDL either.
-    */
     SDL_Event quit{};
     quit.type = SDL_EVENT_QUIT;
     SDL_PushEvent(&quit);
     return true;
   }
-    // ── Edit ─────────────────────────────────────────────────────────────
+
+  // ── Edit ─────────────────────────────────────────────────────────────
   case MenuAction::EditUndo:
     doUndo(editor);
     return true;
@@ -164,11 +128,11 @@ bool MenuActionDispatcher::execute(MenuAction action, Editor &editor) {
     return true;
 
   case MenuAction::EditClearSelection:
-    Logger::warn("MenuAction::EditClearSelection — not yet implemented");
+    editor.clearSelection();
     return true;
 
   case MenuAction::EditSelectAll:
-    doSelectAll(editor);
+    editor.selectAll();
     return true;
 
   case MenuAction::EditCopyTo:
@@ -181,10 +145,19 @@ bool MenuActionDispatcher::execute(MenuAction action, Editor &editor) {
 
   // ── View ─────────────────────────────────────────────────────────────
   case MenuAction::ViewToggleToolbox:
+    editor.setToolboxVisible(!editor.isToolboxVisible());
+    return true;
+
   case MenuAction::ViewToggleColorBox:
+    editor.setPaletteVisible(!editor.isPaletteVisible());
+    return true;
+
   case MenuAction::ViewToggleStatusBar:
+    editor.setStatusBarVisible(!editor.isStatusBarVisible());
+    return true;
+
   case MenuAction::ViewTextToolbar:
-    Logger::warn("MenuAction::View toggle — not yet implemented");
+    Logger::warn("MenuAction::ViewTextToolbar — not yet implemented");
     return true;
 
   case MenuAction::ViewZoom:
@@ -196,20 +169,28 @@ bool MenuActionDispatcher::execute(MenuAction action, Editor &editor) {
     return true;
 
   case MenuAction::ViewFullscreen:
-    Logger::warn("MenuAction::ViewFullscreen — not yet implemented");
+    editor.setFullscreen(!editor.isFullscreen());
     return true;
 
   // ── Image ─────────────────────────────────────────────────────────────
   case MenuAction::ImageFlipRotate:
-    doFlipRotate(editor);
+    // The Ribbon's "Flip/Rotate" entry is a single menu item standing in
+    // for what classic MS Paint shows as a sub-dialog (flip horizontal /
+    // flip vertical / rotate by angle). MenuItems.h has no submenu wired
+    // here yet (see Ribbon::buildImageMenu) — until that dialog/submenu
+    // exists, route the single entry to the most common case (flip
+    // horizontal) rather than leaving it a no-op. Rotate90CW/CCW are
+    // already separately callable via Editor for when the UI grows
+    // dedicated entries.
+    editor.flipHorizontal();
     return true;
 
   case MenuAction::ImageStretchSkew:
-    doStretchSkew(editor);
+    Logger::warn("MenuAction::ImageStretchSkew — not yet implemented");
     return true;
 
   case MenuAction::ImageInvertColors:
-    doInvertColors(editor);
+    editor.invertColors();
     return true;
 
   case MenuAction::ImageAttributes:
@@ -217,7 +198,7 @@ bool MenuActionDispatcher::execute(MenuAction action, Editor &editor) {
     return true;
 
   case MenuAction::ImageClear:
-    doClear(editor);
+    editor.clearImage();
     return true;
 
   case MenuAction::ImageDrawOpaque:

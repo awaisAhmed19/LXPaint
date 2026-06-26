@@ -2,11 +2,11 @@
 #pragma once
 
 #include "Command.h"
+#include "Editor/EditorDocument.h"
 #include <deque>
 #include <format>
 #include <memory>
 #include <string>
-
 class CommandManager {
 public:
   static constexpr size_t DEFAULT_MAX_UNDO = 50;
@@ -24,7 +24,6 @@ private:
 private:
   std::deque<CommandEntry> m_undoStack;
   std::deque<CommandEntry> m_redoStack;
-
   size_t m_maxUndoDepth;
   size_t m_maxMemoryBytes;
 
@@ -41,11 +40,9 @@ public:
       return false;
 
     clearRedo();
-
     m_undoStack.emplace_back(std::move(cmd), description);
 
     trimUndoStack();
-
     return true;
   }
   size_t undoCount() const { return m_undoStack.size(); }

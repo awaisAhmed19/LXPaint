@@ -2,6 +2,7 @@
 #include <SDL3/SDL_surface.h>
 
 #include <algorithm>
+#include <vector>
 
 #include "RenderTarget.h"
 
@@ -237,4 +238,173 @@ void RenderTarget::clearRGBA(uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
       SDL_GetPixelFormatDetails(m_surface->format);
 
   clear(SDL_MapRGBA(fmt, nullptr, r, g, b, a));
+}
+
+void RenderTarget::invertColors() {
+  LX_ASSERT(m_surface != nullptr, "invertColors null surface");
+  if (!m_surface)
+    return;
+
+  if (!lockSurface(m_surface))
+    return;
+
+  uint32_t *pixels = static_cast<uint32_t *>(m_surface->pixels);
+  int pitch = m_surface->pitch / 4;
+
+  for (int y = 0; y < m_height; ++y) {
+    uint32_t *row = pixels + y * pitch;
+    for (int x = 0; x < m_width; ++x) {
+      uint32_t px = row[x];
+      uint32_t a = px & 0xFF000000u;
+      uint32_t rgb = px & 0x00FFFFFFu;
+      row[x] = a | (~rgb & 0x00FFFFFFu);
+    }
+  }
+
+  unlockSurface(m_surface);
+  markDirty();
+}
+
+void RenderTarget::flipHorizontal() {
+  LX_ASSERT(m_surface != nullptr, "flipHorizontal null surface");
+  if (!m_surface)
+    return;
+
+  if (!lockSurface(m_surface))
+    return;
+
+  uint32_t *pixels = static_cast<uint32_t *>(m_surface->pixels);
+  int pitch = m_surface->pitch / 4;
+
+  for (int y = 0; y < m_height; ++y) {
+    uint32_t *row = pixels + y * pitch;
+    for (int x = 0; x < m_width / 2; ++x) {
+      std::swap(row[x], row[m_width - 1 - x]);
+    }
+  }
+
+  unlockSurface(m_surface);
+  markDirty();
+}
+
+void RenderTarget::flipVertical() {
+  LX_ASSERT(m_surface != nullptr, "flipVertical null surface");
+  if (!m_surface)
+    return;
+
+  if (!lockSurface(m_surface))
+    return;
+
+  uint32_t *pixels = static_cast<uint32_t *>(m_surface->pixels);
+  int pitch = m_surface->pitch / 4;
+
+  std::vector<uint32_t> tmp(m_width);
+
+  for (int y = 0; y < m_height / 2; ++y) {
+    uint32_t *rowTop = pixels + y * pitch;
+    uint32_t *rowBottom = pixels + (m_height - 1 - y) * pitch;
+
+    std::copy(rowTop, rowTop + m_width, tmp.begin());
+    std::copy(rowBottom, rowBottom + m_width, rowTop);
+    std::copy(tmp.begin(), tmp.end(), rowBottom);
+  }
+
+  unlockSurface(m_surface);
+  markDirty();
+}
+
+void RenderTarget::rotate90CW() {
+  LX_ASSERT(m_surface != nullptr, "rotate90CW null surface");
+  if (!m_surface)
+    return;
+
+  const int oldW = m_width;
+  const int oldH = m_height;
+
+  SDL_Surface *rotated = SDL_CreateSurface(oldH, oldW, m_surface->format);
+  LX_ASSERT(rotated != nullptr, "rotate90CW allocation failed");
+  if (!rotated)
+    return;
+
+  if (!lockSurface(m_surface)) {
+    SDL_DestroySurface(rotated);
+    return;
+  }
+
+  uint32_t *src = static_cast<uint32_t *>(m_surface->pixels);
+  int srcPitch = m_surface->pitch / 4;
+
+  uint32_t *dst = static_cast<uint32_t *>(rotated->pixels);
+  int dstPitch = rotated->pitch / 4;
+
+  // (x, y) in source -> (oldH - 1 - y, x) in destination
+  for (int y = 0; y < oldH; ++y) {
+    for (int x = 0; x < oldW; ++x) {
+      dst[x * dstPitch + (oldH - 1 - y)] = src[y * srcPitch + x];
+    }
+  }
+
+  unlockSurface(m_surface);
+
+  SDL_DestroySurface(m_surface);
+  m_surface = rotated;
+  m_width = oldH;
+  m_height = oldW;
+
+  if (m_texture) {
+    SDL_DestroyTexture(m_texture);
+    m_texture = nullptr;
+  }
+  m_textureWidth = 0;
+  m_textureHeight = 0;
+
+  markDirty();
+}
+
+void RenderTarget::rotate90CCW() {
+  LX_ASSERT(m_surface != nullptr, "rotate90CCW null surface");
+  if (!m_surface)
+    return;
+
+  const int oldW = m_width;
+  const int oldH = m_height;
+
+  SDL_Surface *rotated = SDL_CreateSurface(oldH, oldW, m_surface->format);
+  LX_ASSERT(rotated != nullptr, "rotate90CCW allocation failed");
+  if (!rotated)
+    return;
+
+  if (!lockSurface(m_surface)) {
+    SDL_DestroySurface(rotated);
+    return;
+  }
+
+  uint32_t *src = static_cast<uint32_t *>(m_surface->pixels);
+  int srcPitch = m_surface->pitch / 4;
+
+  uint32_t *dst = static_cast<uint32_t *>(rotated->pixels);
+  int dstPitch = rotated->pitch / 4;
+
+  // (x, y) in source -> (y, oldW - 1 - x) in destination
+  for (int y = 0; y < oldH; ++y) {
+    for (int x = 0; x < oldW; ++x) {
+      dst[(oldW - 1 - x) * dstPitch + y] = src[y * srcPitch + x];
+    }
+  }
+
+  unlockSurface(m_surface);
+
+  SDL_DestroySurface(m_surface);
+  m_surface = rotated;
+  m_width = oldH;
+  m_height = oldW;
+
+  if (m_texture) {
+    SDL_DestroyTexture(m_texture);
+    m_texture = nullptr;
+  }
+  m_textureWidth = 0;
+  m_textureHeight = 0;
+
+  markDirty();
 }

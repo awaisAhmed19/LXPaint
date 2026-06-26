@@ -120,9 +120,14 @@ void Application::render() {
   //  m_editor->renderUI();
 
   m_ribbon->render(*m_editor);
-  m_toolbar->render(*m_editor);
-  m_colorpalette->render();
-  m_footer->render();
+  if (m_editor->isToolboxVisible())
+    m_toolbar->render(*m_editor);
+
+  if (m_editor->isPaletteVisible())
+    m_colorpalette->render();
+
+  if (m_editor->isStatusBarVisible())
+    m_footer->render();
   m_editor->setFgColor(UI::ColorPalette::toU32(m_colorpalette->getFgColor()));
   m_editor->setBgColor(UI::ColorPalette::toU32(m_colorpalette->getBgColor()));
   ImGui::Render();

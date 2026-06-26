@@ -38,16 +38,22 @@ void InputDispatcher::update(const SDL_Event &e) {
     if (e.key.scancode == SDL_SCANCODE_SPACE) {
       m_spaceHeld = true;
     }
+    if (e.type == SDL_EVENT_KEY_DOWN) {
+      const bool ctrl = e.key.mod & SDL_KMOD_CTRL;
+      const bool shift = e.key.mod & SDL_KMOD_SHIFT;
 
-    if (e.key.mod & SDL_KMOD_CTRL) {
+      if (ctrl && shift && e.key.scancode == SDL_SCANCODE_S) {
+        execute(InputCommand::SAVE_AS);
+        return;
+      }
 
-      auto it = keyBindings.find(e.key.scancode);
+      if (ctrl) {
+        auto it = keyBindings.find(e.key.scancode);
 
-      if (it != keyBindings.end()) {
-        execute(it->second);
+        if (it != keyBindings.end())
+          execute(it->second);
       }
     }
-
     break;
   }
 
@@ -113,23 +119,13 @@ void InputDispatcher::update(const SDL_Event &e) {
 }
 
 bool InputDispatcher::isSpaceHeld() const { return m_spaceHeld; }
-
 bool InputDispatcher::leftMousePressed() const { return m_leftPressed; }
-
 bool InputDispatcher::leftMouseReleased() const { return m_leftReleased; }
-
 bool InputDispatcher::leftMouseDown() const { return m_leftDown; }
-
 vec2 InputDispatcher::getMouseScreenPos() const { return m_mousePos; }
-
 vec2 InputDispatcher::getMouseDelta() const { return m_mouseDelta; }
-
 bool InputDispatcher::beginPanRequested() const { return m_beginPan; }
-
 bool InputDispatcher::endPanRequested() const { return m_endPan; }
-
 bool InputDispatcher::isPanning() const { return m_panning; }
-
 bool InputDispatcher::zoomTriggered() const { return m_zoomTriggered; }
-
 float InputDispatcher::getZoomFactor() const { return m_zoomFactor; }

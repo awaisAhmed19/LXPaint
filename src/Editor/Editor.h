@@ -26,9 +26,11 @@
 
 class Editor {
 private:
-  // bool m_panning = false;
-  // vec2 m_lastPanMouse{0.0f, 0.0f};
-  // bool m_spaceHeld = false;
+  bool m_fullscreen = false;
+  bool m_toolboxVisible = true;
+  bool m_paletteVisible = true;
+  bool m_statusBarVisible = true;
+
   uint32_t m_fgColor = COLORS::BLACK;
   uint32_t m_bgColor = COLORS::WHITE;
 
@@ -97,6 +99,11 @@ public:
    }
  */
 
+  void newDocument();
+  bool saveDocument();
+  bool saveDocumentAs();
+  bool openDocument();
+
   // ── Undo / Redo ─────────────────────────────────────────────────────
   // Thin pass-through to CommandManager, operating on the active
   // document's canvas. This is the one place that knows how to turn
@@ -108,6 +115,43 @@ public:
   bool redo() { return m_commands.redo(m_document.getCanvas()); }
   bool canUndo() const { return m_commands.canUndo(); }
   bool canRedo() const { return m_commands.canRedo(); }
+
+  // ── Image menu ────────────────────────────────────────────────────
+  // Each wraps the corresponding EditorDocument call in a whole-canvas
+  // SnapshotCommand so it participates in undo/redo like every other
+  // canvas mutation. Refuses while a tool interaction is in progress,
+  // same guard resizeCanvas() already uses, since the canvas surface
+  // pointer/dimensions must not change out from under an active stroke.
+  void invertColors();
+  void flipHorizontal();
+  void flipVertical();
+  void rotate90CW();
+  void rotate90CCW();
+  void clearImage();
+
+  // ── Edit menu ─────────────────────────────────────────────────────
+  // Selection lives inside whichever SelectionTool subclass is active
+  // (Lasso / RectSelection), not in Editor — see SelectionTool.h. Editor
+  // does not currently have a single addressable "the selection", so
+  // these forward to the active tool when it is a SelectionTool, and are
+  // no-ops otherwise. This is the minimal correct mapping given today's
+  // ownership; a future unified SelectionTool* accessor on ToolManager
+  // would let this drop the dynamic_cast.
+  void selectAll();
+  void clearSelection();
+
+  // ── View menu ─────────────────────────────────────────────────────
+  void setFullscreen(bool fullscreen);
+  bool isFullscreen() const { return m_fullscreen; }
+
+  void setToolboxVisible(bool visible) { m_toolboxVisible = visible; }
+  bool isToolboxVisible() const { return m_toolboxVisible; }
+
+  void setPaletteVisible(bool visible) { m_paletteVisible = visible; }
+  bool isPaletteVisible() const { return m_paletteVisible; }
+
+  void setStatusBarVisible(bool visible) { m_statusBarVisible = visible; }
+  bool isStatusBarVisible() const { return m_statusBarVisible; }
 
   vec2 clampToCanvas(vec2 p);
   bool inCanvas(vec2 mousePos);

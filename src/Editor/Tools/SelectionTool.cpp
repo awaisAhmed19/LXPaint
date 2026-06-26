@@ -34,6 +34,17 @@ void SelectionTool::copyFromCanvas(SDL_Surface *canvas) {
     }
   }
 }
+void SelectionTool::selectAllCanvas(ToolContext &ctx) {
+  int w = ctx.canvas->getWidth();
+  int h = ctx.canvas->getHeight();
+
+  m_selection.bounds = {0, 0, w, h};
+  m_selection.mask.assign(w * h, 1);
+  m_selection.offset = {0.f, 0.f};
+
+  copyFromCanvas(ctx.canvas->getSurface());
+  m_state = SelectionState::Selected;
+}
 
 void SelectionTool::clearSelection() {
   if (m_selection.pixels) {

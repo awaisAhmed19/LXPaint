@@ -4,9 +4,7 @@
 #include "App/Utils.h"
 
 #include "Document/Canvas.h"
-
 #include "Editor/Interaction/ToolContext.h"
-
 #include "Editor/Tools/AirBrush.h"
 #include "Editor/Tools/BaseTool.h"
 #include "Editor/Tools/Brush.h"
@@ -24,7 +22,9 @@
 #include "Editor/Tools/Rect.h"
 #include "Editor/Tools/RectSelection.h"
 #include "Editor/Tools/RoundedRect.h"
+#include "Editor/Tools/SelectionTool.h"
 #include "Editor/Tools/Text.h"
+#include "IO/ImageIO.h"
 #include "Systems/Logger.h"
 #include "UI/LayoutEngine/LayoutMetrics.h"
 #include "UI/Toolbar.h"
@@ -178,6 +178,9 @@ void Editor::setupTools() {
 void Editor::setupInputBindings() {
   m_input.keyBinds(SDL_SCANCODE_Z, InputCommand::UNDO);
   m_input.keyBinds(SDL_SCANCODE_Y, InputCommand::REDO);
+  m_input.keyBinds(SDL_SCANCODE_S, InputCommand::SAVE);
+  m_input.keyBinds(SDL_SCANCODE_O, InputCommand::OPEN);
+  m_input.keyBinds(SDL_SCANCODE_N, InputCommand::NEW_DOCUMENT);
   m_input.bindActions(InputCommand::UNDO, [this]() {
     if (!m_commands.undo(m_document.getCanvas())) {
       Logger::log(LogLevel::DEBUG, "Nothing to undo");
@@ -188,6 +191,10 @@ void Editor::setupInputBindings() {
       Logger::log(LogLevel::DEBUG, "Nothing to redo");
     }
   });
+  m_input.bindActions(InputCommand::SAVE, [this]() { saveDocument(); });
+  m_input.bindActions(InputCommand::SAVE_AS, [this]() { saveDocumentAs(); });
+  m_input.bindActions(InputCommand::OPEN, [this]() { openDocument(); });
+  m_input.bindActions(InputCommand::NEW_DOCUMENT, [this]() { newDocument(); });
 }
 void Editor::setFgColor(uint32_t color) { m_fgColor = color; }
 void Editor::setBgColor(uint32_t color) { m_bgColor = color; }
@@ -299,6 +306,7 @@ void Editor::handleEvent(const SDL_Event &e) {
       if (auto *textTool = dynamic_cast<Text *>(activeTool)) {
         if (auto cmd = textTool->takePendingCommit()) {
           m_commands.pushCommand(std::move(cmd), "Text");
+          m_document.markModified();
         }
       }
     }
@@ -387,8 +395,10 @@ void Editor::handleEvent(const SDL_Event &e) {
     if (clicktool) {
       auto cmd = clicktool->onMouseClick(mousePos, ctx);
 
-      if (cmd)
-        m_commands.pushCommand(std::move(cmd), "Flood Fill Executed");
+      if (cmd) {
+        m_commands.pushCommand(std::move(cmd), "Clicktool Executed");
+        m_document.markModified();
+      }
 
       m_interaction.active = false;
       m_interaction.mouseDown = false;
@@ -450,6 +460,7 @@ void Editor::handleEvent(const SDL_Event &e) {
 
       if (command) {
         m_commands.pushCommand(std::move(command), "Draw Stroke");
+        m_document.markModified();
       }
     }
     m_interaction.active = false;
@@ -472,6 +483,68 @@ void Editor::renderUI() {
   ImGui::End();
   */
 }
+void Editor::newDocument() {
+  if (m_document.isModified()) {
+    Logger::warn("TODO: Prompt to save changes.");
+    // return if user cancels
+  }
+
+  ResizePolicy policy;
+  policy.anchor = ResizeAnchor::TOPLEFT;
+  policy.fill = ResizeFill::BACKGROUNDCOLOR;
+
+  m_document.resize(800, 500, policy);
+  m_document.clear(COLORS::WHITE);
+
+  m_document.setPath({});
+  m_document.markSaved();
+
+  m_commands.clear();
+  m_tools.reset();
+  m_interaction.reset();
+
+  centerCanvas();
+}
+
+bool Editor::saveDocumentAs() {
+  std::filesystem::path path = "test.png";
+
+  if (!ImageIO::save(m_document.getCanvas(), path))
+    return false;
+
+  m_document.setPath(path);
+  m_document.markSaved();
+
+  return true;
+}
+
+bool Editor::saveDocument() {
+  if (!m_document.hasPath())
+    return saveDocumentAs();
+
+  if (!ImageIO::save(m_document.getCanvas(), m_document.path()))
+    return false;
+
+  m_document.markSaved();
+
+  return true;
+}
+
+bool Editor::openDocument() {
+  std::filesystem::path path = "test.png";
+  // when dialog box is implemented std::filesystem::path path =
+  // FileDialog::save();
+  if (!ImageIO::load(m_document.getCanvas(), path))
+    return false;
+
+  m_document.setPath(path);
+  m_document.markSaved();
+
+  m_commands.clear();
+  centerCanvas();
+
+  return true;
+}
 
 void Editor::centerCanvas() {
   float zoom = m_viewport.getZoom();
@@ -486,6 +559,139 @@ void Editor::centerCanvas() {
   m_viewport.setPan({x, y});
 }
 
+void Editor::invertColors() {
+  if (m_interaction.active) {
+    Logger::warn("Cannot invert colors: tool in progress");
+    return;
+  }
+
+  Canvas &canvas = m_document.getCanvas();
+  SDL_Rect bounds{0, 0, canvas.getWidth(), canvas.getHeight()};
+
+  auto cmd = std::make_unique<SnapshotCommand>(canvas.getSurface(), bounds);
+  m_document.invertColors();
+  cmd->captureAfter(canvas.getSurface());
+
+  m_commands.pushCommand(std::move(cmd), "Invert Colors");
+  m_document.markModified();
+}
+
+void Editor::flipHorizontal() {
+  if (m_interaction.active) {
+    Logger::warn("Cannot flip: tool in progress");
+    return;
+  }
+
+  Canvas &canvas = m_document.getCanvas();
+  SDL_Rect bounds{0, 0, canvas.getWidth(), canvas.getHeight()};
+
+  auto cmd = std::make_unique<SnapshotCommand>(canvas.getSurface(), bounds);
+  m_document.flipHorizontal();
+  cmd->captureAfter(canvas.getSurface());
+
+  m_commands.pushCommand(std::move(cmd), "Flip Horizontal");
+  m_document.markModified();
+}
+
+void Editor::flipVertical() {
+  if (m_interaction.active) {
+    Logger::warn("Cannot flip: tool in progress");
+    return;
+  }
+
+  Canvas &canvas = m_document.getCanvas();
+  SDL_Rect bounds{0, 0, canvas.getWidth(), canvas.getHeight()};
+
+  auto cmd = std::make_unique<SnapshotCommand>(canvas.getSurface(), bounds);
+  m_document.flipVertical();
+  cmd->captureAfter(canvas.getSurface());
+
+  m_commands.pushCommand(std::move(cmd), "Flip Vertical");
+  m_document.markModified();
+}
+
+void Editor::rotate90CW() {
+  if (m_interaction.active) {
+    Logger::warn("Cannot rotate: tool in progress");
+    return;
+  }
+
+  // Rotation changes canvas dimensions, which SnapshotCommand's
+  // fixed-bounds before/after model cannot represent (it assumes the
+  // canvas rect is the same shape before and after — true for invert/
+  // flip/clear, false here). Rather than silently producing a corrupt
+  // undo entry, rotation clears history the same way resizeCanvas()
+  // already does for dimension changes.
+  m_document.rotate90CW();
+  m_viewport.onCanvasResized(m_document.getCanvas().getWidth(),
+                             m_document.getCanvas().getHeight());
+  m_viewport.fitCanvasToScreen();
+  centerCanvas();
+  m_commands.clear();
+
+  Logger::debug("Rotated canvas 90° CW");
+}
+
+void Editor::rotate90CCW() {
+  if (m_interaction.active) {
+    Logger::warn("Cannot rotate: tool in progress");
+    return;
+  }
+
+  m_document.rotate90CCW();
+  m_viewport.onCanvasResized(m_document.getCanvas().getWidth(),
+                             m_document.getCanvas().getHeight());
+  m_viewport.fitCanvasToScreen();
+  centerCanvas();
+  m_commands.clear();
+
+  Logger::debug("Rotated canvas 90° CCW");
+}
+
+void Editor::clearImage() {
+  if (m_interaction.active) {
+    Logger::warn("Cannot clear: tool in progress");
+    return;
+  }
+
+  Canvas &canvas = m_document.getCanvas();
+  SDL_Rect bounds{0, 0, canvas.getWidth(), canvas.getHeight()};
+
+  auto cmd = std::make_unique<SnapshotCommand>(canvas.getSurface(), bounds);
+  m_document.clear(m_bgColor);
+  cmd->captureAfter(canvas.getSurface());
+
+  m_commands.pushCommand(std::move(cmd), "Clear Image");
+  m_document.markModified();
+}
+
+void Editor::selectAll() {
+  BaseTool *tool = m_tools.getActiveTool();
+  if (auto *sel = dynamic_cast<SelectionTool *>(tool)) {
+    ToolContext ctx = makeToolContext();
+    sel->selectAllCanvas(ctx);
+  } else {
+    Logger::warn("Editor::selectAll — no active selection tool");
+  }
+}
+
+void Editor::clearSelection() {
+  BaseTool *tool = m_tools.getActiveTool();
+  if (auto *sel = dynamic_cast<SelectionTool *>(tool)) {
+    sel->clearSelection();
+  } else {
+    Logger::warn("Editor::clearSelection — no active selection tool");
+  }
+}
+
+void Editor::setFullscreen(bool fullscreen) {
+  if (!m_window)
+    return;
+
+  SDL_SetWindowFullscreen(m_window, fullscreen);
+  m_fullscreen = fullscreen;
+  Logger::debug(std::format("Fullscreen: {}", fullscreen));
+}
 void Editor::update() { m_input.beginFrame(); }
 
 void Editor::render() {

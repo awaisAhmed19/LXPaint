@@ -50,4 +50,12 @@ public:
 
   bool isDirty() const;
   void markDirty();
+  void invertColors();
+  void flipHorizontal();
+  void flipVertical();
+
+  // 90° rotation changes width/height, so these reallocate m_surface
+  // (same pattern as resize()/allocate()) rather than mutating in place.
+  void rotate90CW();
+  void rotate90CCW();
 };

@@ -10,6 +10,10 @@
 enum class InputCommand {
   UNDO,
   REDO,
+  SAVE,
+  SAVE_AS,
+  OPEN,
+  NEW_DOCUMENT,
 };
 
 class InputDispatcher {
