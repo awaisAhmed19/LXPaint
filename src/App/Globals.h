@@ -7,11 +7,6 @@
 typedef uint8_t ui8;
 typedef uint16_t ui16;
 typedef uint32_t ui32;
-/*
-========================================
-Core Math Types
-========================================
-*/
 
 struct vec2 {
 
@@ -81,7 +76,7 @@ struct dim {
 struct coords {
   int x;
   int y;
-  constexpr coords() = default;
+  // constexpr coords() = default;
 
   constexpr coords(int _x, int _y) : x(_x), y(_y) {}
 
@@ -136,59 +131,25 @@ struct vec3 {
   float z = 0.0f;
 };
 
-/*
-========================================
-Raster Algorithms
-========================================
-*/
-
 enum class LineAlgo { BRESENHAM, DDA };
-
 extern LineAlgo g_CurrentAlgo;
 
-/*
-========================================
-Engine Config
-========================================
-*/
-
 namespace Config {
-
 inline bool ENABLE_DEBUG_LOGS = true;
-
 inline bool ENABLE_ASSERTS = true;
-
 inline bool ENABLE_PERFORMANCE_LOGS = true;
 
 } // namespace Config
 
-/*
-========================================
-Engine Colors
-========================================
-*/
-
 namespace COLORS {
-
 constexpr uint32_t RED = 0xFFFF0000;
-
 constexpr uint32_t GREEN = 0xFF00FF00;
-
 constexpr uint32_t BLUE = 0xFF0000FF;
-
 constexpr uint32_t BLACK = 0xFF000000;
-
 constexpr uint32_t WHITE = 0xFFFFFFFF;
-
 constexpr uint32_t CLEAR = 0x00000000;
 
-} // namespace COLORS
-
-/*
-========================================
-SDL Surface Utilities
-========================================
-*/
+}; // namespace COLORS
 
 inline bool lockSurface(SDL_Surface *surface) {
 

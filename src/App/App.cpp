@@ -140,10 +140,6 @@ void Application::render() {
   SDL_RenderPresent(m_window->nativeRenderer());
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  Update / Run
-// ─────────────────────────────────────────────────────────────────────────────
-
 void Application::update() {
   ToolType currentTool = m_toolbar->getActiveTool();
   if (currentTool != m_lastTool) {
@@ -154,14 +150,8 @@ void Application::update() {
 }
 
 int Application::run() {
-  uint64_t last = SDL_GetTicks();
-  if (m_exist_status == 1)
-    return m_exist_status;
 
   while (m_running) {
-    uint64_t now = SDL_GetTicks();
-    float deltaTime = (now - last) / 1000.0f;
-    last = now;
     handleEvents();
     update();
     render();

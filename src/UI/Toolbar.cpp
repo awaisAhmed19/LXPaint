@@ -594,7 +594,7 @@ void Toolbar::render(Editor &editor) {
 
   ImGui::SetNextWindowPos({vp->Pos.x, vp->Pos.y + kRibbonHeight},
                           ImGuiCond_Always);
-  ImGui::SetNextWindowSize({toolMax.x, toolMax.y}, ImGuiCond_Always);
+  ImGui::SetNextWindowSize({toolMax.x, vp->Size.y * 0.849f}, ImGuiCond_Always);
 
   ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, {0.f, 0.f});
   ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, kWindowPadding);

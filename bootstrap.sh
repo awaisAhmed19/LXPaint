@@ -7,21 +7,21 @@ IMGUI_DIR="$REPO_ROOT/external/imgui"
 mkdir -p "$REPO_ROOT/external"
 echo "--- Checking SDL ---"
 if [ ! -d "$SDL_DIR/.git" ]; then
-  git clone --depth 1 https://github.com/libsdl-org/SDL.git "$SDL_DIR"
+	git clone --depth 1 https://github.com/libsdl-org/SDL.git "$SDL_DIR"
 else
-  echo "SDL already exists"
+	echo "SDL already exists"
 fi
 echo "--- Checking SDL_ttf ---"
 if [ ! -d "$SDL_TTF_DIR/.git" ]; then
-  git clone --depth 1 https://github.com/libsdl-org/SDL_ttf.git "$SDL_TTF_DIR"
+	git clone --depth 1 https://github.com/libsdl-org/SDL_ttf.git "$SDL_TTF_DIR"
 else
-  echo "SDL_ttf already exists"
+	echo "SDL_ttf already exists"
 fi
 echo "--- Checking ImGui ---"
 if [ ! -d "$IMGUI_DIR/.git" ]; then
-  git clone --depth 1 https://github.com/ocornut/imgui.git "$IMGUI_DIR"
+	git clone --depth 1 https://github.com/ocornut/imgui.git "$IMGUI_DIR"
 else
-  echo "ImGui already exists"
+	echo "ImGui already exists"
 fi
 echo "--- Bootstrap complete ---"
 echo ""

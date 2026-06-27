@@ -1,0 +1,45 @@
+version: "3.9"
+
+x-lxpaint: &lxpaint
+  working_dir: /workspace
+  volumes:
+    - .:/workspace
+  stdin_open: true
+  tty: true
+
+services:
+  arch:
+    image: archlinux:latest
+    <<: *lxpaint
+
+  ubuntu24:
+    image: ubuntu:24.04
+    <<: *lxpaint
+
+  ubuntu22:
+    image: ubuntu:22.04
+    <<: *lxpaint
+
+  debian-bookworm:
+    image: debian:bookworm
+    <<: *lxpaint
+
+  debian-trixie:
+    image: debian:trixie
+    <<: *lxpaint
+
+  fedora:
+    image: fedora:latest
+    <<: *lxpaint
+
+  opensuse:
+    image: opensuse/tumbleweed
+    <<: *lxpaint
+
+  alpine:
+    image: alpine:latest
+    <<: *lxpaint
+
+  void:
+    image: ghcr.io/void-linux/void-glibc-full:latest
+    <<: *lxpaint
