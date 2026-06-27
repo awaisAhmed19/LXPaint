@@ -44,9 +44,9 @@ public:
 
     if (auto it = m_registry.find(name); it != m_registry.end()) {
       m_activeTool = it->second.get();
-    } else if (auto it = m_clickRegistry.find(name);
-               it != m_clickRegistry.end()) {
-      m_activeClickTool = it->second.get();
+    } else if (auto cit = m_clickRegistry.find(name);
+               cit != m_clickRegistry.end()) {
+      m_activeClickTool = cit->second.get();
     }
 
     Logger::log(LogLevel::INFO, "ACTIVE TOOL: " + name);
@@ -63,8 +63,6 @@ public:
   }
 
   BaseTool *getActiveTool() { return m_activeTool; }
-
   ClickTool *getActiveClickTool() { return m_activeClickTool; }
-
   ToolType getActiveToolType() const { return m_activeType; }
 };

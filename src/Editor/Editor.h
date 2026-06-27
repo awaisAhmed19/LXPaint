@@ -38,7 +38,7 @@ private:
 
   uint32_t m_fgColor = COLORS::BLACK;
   uint32_t m_bgColor = COLORS::WHITE;
-
+  bool m_colorSampledThisFrame = false;
   SDL_Window *m_window = nullptr;
   EditorDocument m_document;
   Renderer m_renderer;
@@ -81,6 +81,8 @@ public:
   void centerCanvas();
   void resizeCanvas(int w, int h, const ResizePolicy &policy);
 
+  bool wasColorSampled() const { return m_colorSampledThisFrame; }
+  void clearColorSampled() { m_colorSampledThisFrame = false; }
   void setActiveTool(ToolType tool);
   ToolType getActiveTool() const { return m_tools.getActiveToolType(); }
   void setViewportRect(SDL_FRect rect);

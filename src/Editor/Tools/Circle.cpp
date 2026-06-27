@@ -40,8 +40,8 @@ void Circle::onMouseMove(vec2 pos, ToolContext &ctx) {
   m_last = pos;
 
   ctx.preview->clearRGBA(0, 0, 0, 0);
-  int dx = (int)(pos.x - m_start.x);
-  int dy = (int)(pos.y - m_start.y);
+  // int dx = (int)(pos.x - m_start.x);
+  // int dy = (int)(pos.y - m_start.y);
 
   int rx = (int)(pos.x - m_start.x);
   int ry = (int)(pos.y - m_start.y);
@@ -68,8 +68,8 @@ std::unique_ptr<Command> Circle::onMouseUp(vec2 pos, ToolContext &ctx) {
 
   m_last = pos;
 
-  int dx = (int)(pos.x - m_start.x);
-  int dy = (int)(pos.y - m_start.y);
+  // int dx = (int)(pos.x - m_start.x);
+  // int dy = (int)(pos.y - m_start.y);
 
   int rx = (int)(pos.x - m_start.x);
   int ry = (int)(pos.y - m_start.y);

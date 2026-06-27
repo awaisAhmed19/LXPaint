@@ -205,24 +205,15 @@ ToolContext Editor::makeToolContext() {
       .preview = &m_document.getPreview(),
       .interaction = &m_interaction,
       .commandManager = &m_commands,
-
-      // Snapshot values (for tools that only need to read them)
       .fgColor = m_fgColor,
       .bgColor = m_bgColor,
-
-      //.brushSize = m_toolSettings.brushSize,
       .settings = &m_toolSettings,
-
-      // Live write-back pointers (used by Eyedropper)
       .fgColorOut = &m_fgColor,
       .bgColorOut = &m_bgColor,
-
-      // Used by Magnifier (and later Text if needed)
+      .colorSampledOut = &m_colorSampledThisFrame,
       .viewport = &m_viewport,
-
-      // Used by Text for SDL_StartTextInput/SDL_StopTextInput, which
-      // require a real SDL_Window* (see ToolContext.h comment).
       .window = m_window,
+
   };
 }
 

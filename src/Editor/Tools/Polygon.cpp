@@ -82,12 +82,12 @@ Polygon::FillMode Polygon::currentFillMode(ToolContext &ctx) const {
   // RoundedRectangle ("same field, different meaning depending on active
   // tool"). Mapping: Round -> Outline, Square -> Filled (foreground),
   // ForwardSlash -> Opaque (background). BackSlash is unused for Polygon.
-  switch (ctx.settings->brushShape) {
-  case ToolSettings::BrushShape::Round:
+  switch (ctx.settings->fillmode) {
+  case ToolSettings::FillMode::Outline:
     return FillMode::Outline;
-  case ToolSettings::BrushShape::Square:
+  case ToolSettings::FillMode::Fill:
     return FillMode::Filled;
-  case ToolSettings::BrushShape::ForwardSlash:
+  case ToolSettings::FillMode::Opaque:
     return FillMode::Opaque;
   default:
     return FillMode::Outline;

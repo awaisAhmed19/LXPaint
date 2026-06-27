@@ -75,7 +75,7 @@ uint32_t ColorPalette::toU32(const ImVec4 &color) {
 }
 void ColorPalette::drawFgBgSelector(ImDrawList *drawlist, ImVec2 origin) {
   const float bigSize = 22.0f;
-  const float smallSize = 16.0f;
+  // const float smallSize = 16.0f;
   const float offset = 9.0f;
 
   // Background square (drawn first, behind)
@@ -236,10 +236,6 @@ void ColorPalette::render() {
     if ((i + 1) % kColumns != 0)
       ImGui::SameLine();
   }
-
-  //----------------------------------------------------------------------
-  // Window border
-  //----------------------------------------------------------------------
 
   ImVec2 winMin = ImGui::GetWindowPos();
   ImVec2 winMax = {winMin.x + ImGui::GetWindowWidth(),

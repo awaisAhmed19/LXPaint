@@ -128,6 +128,13 @@ void Application::render() {
   if (m_editor->isStatusBarVisible())
     m_footer->render();
 
+  if (m_editor->wasColorSampled()) {
+    m_colorpalette->setFgColor(m_editor->getFgColor(),
+                               UI::ColorPalette::HexFormat::AARRGGBB);
+    m_colorpalette->setBgColor(m_editor->getBgColor(),
+                               UI::ColorPalette::HexFormat::AARRGGBB);
+    m_editor->clearColorSampled();
+  }
   m_editor->setFgColor(UI::ColorPalette::toU32(m_colorpalette->getFgColor()));
   m_editor->setBgColor(UI::ColorPalette::toU32(m_colorpalette->getBgColor()));
 

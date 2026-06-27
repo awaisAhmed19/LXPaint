@@ -51,7 +51,7 @@ std::unique_ptr<Command> Line::onMouseUp(vec2 pos, ToolContext &ctx) {
   ctx.preview->invalidateRect(m_affected);
   m_last = pos;
 
-  SDL_Rect m_affected =
+  m_affected =
       computeLineBounds(m_start, pos, brushSize, ctx.canvas->getSurface()->w,
                         ctx.canvas->getSurface()->h);
   m_command =

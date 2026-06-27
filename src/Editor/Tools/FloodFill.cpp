@@ -7,7 +7,8 @@
 #include "Rendering/Rasterizer.h"
 #include "Systems/Logger.h"
 #include <memory>
-std::unique_ptr<Command> FloodFill::onMouseClick(vec2 pos, ToolContext &ctx) {
+std::unique_ptr<Command> FloodFill::onMouseClick(vec2 clickPos,
+                                                 ToolContext &ctx) {
 
   LX_ASSERT(ctx.canvas != nullptr, "FloodFill canvas missing");
   LX_ASSERT(ctx.interaction != nullptr, "FloodFill interaction missing");
@@ -21,7 +22,7 @@ std::unique_ptr<Command> FloodFill::onMouseClick(vec2 pos, ToolContext &ctx) {
   auto before =
       SnapshotCommand::copyRegion(ctx.canvas->getSurface(), {0, 0, w, h});
 
-  Rasterizer::floodFill(ctx.canvas->getSurface(), pos, ctx.fgColor);
+  Rasterizer::floodFill(ctx.canvas->getSurface(), clickPos, ctx.fgColor);
   auto after =
       SnapshotCommand::copyRegion(ctx.canvas->getSurface(), {0, 0, w, h});
   initialRect = {0, 0, ctx.canvas->getWidth(), ctx.canvas->getHeight()};

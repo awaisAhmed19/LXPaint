@@ -148,7 +148,7 @@ openFlipRotate(DialogManager &mgr,
       0);
 
   // Sub-radio for angle
-  auto *angleRG = box->add<RadioGroupControl>(
+  box->add<RadioGroupControl>(
       std::vector<RadioGroupControl::Option>{{"90°"}, {"180°"}, {"270°"}}, 0,
       16.f /* indent */);
 

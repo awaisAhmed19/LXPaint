@@ -1,43 +1,54 @@
 #pragma once
-#include <SDL3/SDL.h>
-#include <cstdint>
-class Canvas;
-class PreviewLayer;
 
-struct ToolInteractionState;
-struct ToolSettings;
-class CommandManager;
+#include "App/Globals.h"
+#include "Document/Canvas.h"
+#include "Document/PreviewLayer.h"
+#include "Editor/Commands/CommandManager.h"
+#include "Editor/Interaction/ToolInteractionState.h"
+#include "Editor/ToolSettings.h"
+
+// Forward declarations
 class Viewport;
+struct SDL_Window;
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  ToolContext
+//
+//  Passed by value into every tool event handler. Contains read-only
+//  snapshots of editor state (fgColor, bgColor) plus write-back pointers
+//  for the tools that need to mutate editor state directly (Eyedropper,
+//  Magnifier). Avoids giving tools a raw Editor reference.
+// ─────────────────────────────────────────────────────────────────────────────
 
 struct ToolContext {
-  Canvas *canvas;
-  PreviewLayer *preview;
-  ToolInteractionState *interaction;
+  Canvas *canvas = nullptr;
+  PreviewLayer *preview = nullptr;
+  ToolInteractionState *interaction = nullptr;
+  CommandManager *commandManager = nullptr;
 
-  CommandManager *commandManager;
+  // ── Snapshot values (read-only for most tools) ────────────────────────
+  uint32_t fgColor = 0xFF000000;
+  uint32_t bgColor = 0xFFFFFFFF;
 
-  uint32_t fgColor;
-  uint32_t bgColor;
+  // Brush size shorthand — kept for backwards compat; prefer
+  // settings->strokeWidth.
   int brushSize = 1;
-  ToolSettings *settings;
 
-  // Write-back pointers into Editor's live color state.
-  // Tools that change the active fg/bg color (Eyedropper) write through
-  // these instead of mutating the ctx copies above, which are snapshots
-  // taken at dispatch time via Editor::makeToolContext().
+  ToolSettings *settings = nullptr;
+
+  // ── Write-back pointers ───────────────────────────────────────────────
+  // Eyedropper writes the sampled pixel directly into the editor's live
+  // color fields via these pointers.
   uint32_t *fgColorOut = nullptr;
   uint32_t *bgColorOut = nullptr;
 
-  // Needed by Magnifier (zoom in/out at click point) and Text (knowing the
-  // doc transform / screen mapping for placing the editable rect is handled
-  // by Editor before calling the tool, so only Viewport is required here).
+  // Eyedropper sets this to true after writing fgColorOut / bgColorOut so
+  // App::render() knows to push editor → palette instead of the normal
+  // palette → editor direction this frame.
+  bool *colorSampledOut = nullptr;
+
   Viewport *viewport = nullptr;
 
-  // Needed by Text: SDL_StartTextInput/SDL_StopTextInput require a real,
-  // non-null SDL_Window* in SDL3 (unlike some SDL functions, there is no
-  // "use default window" meaning for nullptr here — passing nullptr is
-  // incorrect, not merely suboptimal). Editor::makeToolContext() sets this
-  // from the SDL_Window* it's given at construction (see Editor::Editor /
-  // App::Application — Window::nativeWindow() already exists for this).
+  // SDL_Window* required by SDL_StartTextInput / SDL_StopTextInput (Text tool).
   SDL_Window *window = nullptr;
 };

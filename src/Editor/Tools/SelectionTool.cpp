@@ -97,7 +97,7 @@ std::unique_ptr<Command> SelectionTool::commitSelection(ToolContext &ctx) {
   }
 
   if (m_selection.pixels) {
-    auto *src = static_cast<Uint32 *>(m_selection.pixels->pixels);
+    auto *srcPixels = static_cast<Uint32 *>(m_selection.pixels->pixels);
     int srcPitch = m_selection.pixels->pitch / sizeof(Uint32);
 
     for (int y = 0; y < m_selection.bounds.h; ++y) {
@@ -111,7 +111,7 @@ std::unique_ptr<Command> SelectionTool::commitSelection(ToolContext &ctx) {
         if (dx < 0 || dx >= canvas->w || dy < 0 || dy >= canvas->h)
           continue;
 
-        pixels[dy * dstPitch + dx] = src[y * srcPitch + x];
+        pixels[dy * dstPitch + dx] = srcPixels[y * srcPitch + x];
       }
     }
   }

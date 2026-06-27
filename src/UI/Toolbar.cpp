@@ -36,22 +36,22 @@ struct ToolButton {
 };
 
 static constexpr ToolButton kButtons[] = {
-    {ToolType::FreeSelect, "01_free_form_select"},
-    {ToolType::RectSelect, "02_select"},
-    {ToolType::Eraser, "03_eraser"},
-    {ToolType::FloodFill, "04_fill_bucket"},
-    {ToolType::Eyedropper, "05_pick_color"},
-    {ToolType::Magnifier, "06_magnifier"},
-    {ToolType::Pencil, "07_pencil"},
-    {ToolType::Brush, "08_brush"},
-    {ToolType::Airbrush, "09_airbrush"},
-    {ToolType::Text, "10_text"},
-    {ToolType::Line, "11_line"},
-    {ToolType::Curve, "12_curve"},
-    {ToolType::Rectangle, "13_rectangle"},
-    {ToolType::Polygon, "14_polygon"},
-    {ToolType::Ellipse, "15_ellipse"},
-    {ToolType::RoundedRectangle, "16_rounded_rectangle"},
+    {ToolType::FreeSelect, "01_free_form_select", {}},
+    {ToolType::RectSelect, "02_select", {}},
+    {ToolType::Eraser, "03_eraser", {}},
+    {ToolType::FloodFill, "04_fill_bucket", {}},
+    {ToolType::Eyedropper, "05_pick_color", {}},
+    {ToolType::Magnifier, "06_magnifier", {}},
+    {ToolType::Pencil, "07_pencil", {}},
+    {ToolType::Brush, "08_brush", {}},
+    {ToolType::Airbrush, "09_airbrush", {}},
+    {ToolType::Text, "10_text", {}},
+    {ToolType::Line, "11_line", {}},
+    {ToolType::Curve, "12_curve", {}},
+    {ToolType::Rectangle, "13_rectangle", {}},
+    {ToolType::Polygon, "14_polygon", {}},
+    {ToolType::Ellipse, "15_ellipse", {}},
+    {ToolType::RoundedRectangle, "16_rounded_rectangle", {}},
 };
 
 Toolbar::Toolbar(int w, int h, SDL_Renderer *renderer)

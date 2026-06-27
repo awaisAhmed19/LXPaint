@@ -8,12 +8,14 @@
 #include "Rendering/Rasterizer.h"
 #include "Systems/Logger.h"
 #include <cmath>
+/*
 static float distance(vec2 start, vec2 end) {
   float x_prime = end.x - start.x;
   float y_prime = end.y - start.y;
 
   return std::sqrtf(std::powf(x_prime, 2.f) + std::powf(y_prime, 2.f));
 }
+*/
 void AirBrush::onMouseDown(vec2 pos, ToolContext &ctx) {
 
   Logger::debug("AirBrush START");

@@ -6,7 +6,6 @@
 class FloodFill : public ClickTool {
   uint32_t m_color = 0;
   std::unique_ptr<SnapshotCommand> m_command;
-  vec2 pos;
 
 public:
   std::string ToolID = "floodfill";

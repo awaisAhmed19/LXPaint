@@ -1,37 +1,42 @@
 #include "EyeDropper.h"
 
-#include "Editor/Interaction/ToolContext.h"
-#include "Rendering/Rasterizer.h"
-#include "Systems/Assert.h"
+#include "App/Globals.h"
 #include "Systems/Logger.h"
 
 std::unique_ptr<Command> Eyedropper::onMouseClick(vec2 pos, ToolContext &ctx) {
-  LX_ASSERT(ctx.canvas != nullptr, "Eyedropper canvas missing");
+  if (!ctx.canvas || !ctx.fgColorOut)
+    return nullptr;
 
   SDL_Surface *surface = ctx.canvas->getSurface();
-
-  int x = (int)pos.x;
-  int y = (int)pos.y;
-
-  if (x < 0 || x >= surface->w || y < 0 || y >= surface->h) {
+  if (!surface)
     return nullptr;
-  }
 
-  // Sample directly from the canvas surface, never the preview layer.
-  uint32_t *pixels = Rasterizer::getPixels(surface);
-  int pitch = Rasterizer::getPitch(surface);
-  uint32_t sampled = pixels[y * pitch + x];
+  const int x = static_cast<int>(pos.x);
+  const int y = static_cast<int>(pos.y);
+
+  if (x < 0 || x >= surface->w || y < 0 || y >= surface->h)
+    return nullptr;
+
+  // Surface format is ARGB8888 — same layout as Editor's m_fgColor.
+  if (!lockSurface(surface))
+    return nullptr;
+
+  const uint32_t *pixels = static_cast<const uint32_t *>(surface->pixels);
+  const int pitch = surface->pitch / 4;
+  const uint32_t sampled = pixels[y * pitch + x];
+
+  unlockSurface(surface);
+
+  // Write the sampled color into the editor's live foreground field.
+  *ctx.fgColorOut = sampled;
+
+  // Signal App::render() to push editor → palette this frame.
+  if (ctx.colorSampledOut)
+    *ctx.colorSampledOut = true;
 
   Logger::debug(
-      std::format("Eyedropper sampled {:08X} at ({}, {})", sampled, x, y));
+      std::format("Eyedropper sampled 0x{:08X} at ({},{})", sampled, x, y));
 
-  if (m_rightClick) {
-    if (ctx.bgColorOut)
-      *ctx.bgColorOut = sampled;
-  } else {
-    if (ctx.fgColorOut)
-      *ctx.fgColorOut = sampled;
-  }
-  // No canvas mutation occurred — no command, no undo entry.
+  // No canvas modification → no Command needed.
   return nullptr;
 }
