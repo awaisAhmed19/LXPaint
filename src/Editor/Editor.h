@@ -24,6 +24,11 @@
 
 #include "Viewport/Viewport.h"
 
+// Forward declare to avoid including the full dialog headers in Editor.h
+namespace UI {
+class DialogManager;
+}
+
 class Editor {
 private:
   bool m_fullscreen = false;
@@ -44,20 +49,30 @@ private:
   InputDispatcher m_input;
   Viewport m_viewport;
   Transform2D m_docTransform;
+  ToolSettings m_toolSettings;
+
+  // Dialog manager pointer — set by Application after construction.
+  // Never null after setDialogManager() has been called; every call site
+  // that opens a dialog must check this is non-null before calling through.
+  UI::DialogManager *m_dialogManager = nullptr;
+
   void setupTools();
   void setupInputBindings();
-  ToolSettings m_toolSettings;
   ToolContext makeToolContext();
 
   void handleMouseDown(const SDL_Event &e);
   void handleMouseMove(const SDL_Event &e);
   void handleMouseUp(const SDL_Event &e);
-  // vec2 screenToCanvas(vec2 screenPos) const;
 
 public:
   explicit Editor(SDL_Window *window, SDL_Renderer *renderer,
                   const UI::LayoutMetrics &layout);
 
+  // ── Dialog manager wiring ─────────────────────────────────────────────────
+  void setDialogManager(UI::DialogManager *mgr) { m_dialogManager = mgr; }
+  UI::DialogManager *dialogManager() const { return m_dialogManager; }
+
+  // ── Core ──────────────────────────────────────────────────────────────────
   void handleEvent(const SDL_Event &event);
   void update();
   void render();
@@ -77,51 +92,30 @@ public:
 
   void setBrushSize(int size) { m_toolSettings.strokeWidth = size; }
   int getBrushSize() const { return m_toolSettings.strokeWidth; }
+
   void setBrushShape(ToolSettings::BrushShape shape) {
     m_toolSettings.brushShape = shape;
   }
   ToolSettings::BrushShape getBrushShape() const {
     return m_toolSettings.brushShape;
   }
-  // void setFilledShape(bool filled) { m_toolSettings.fillShapes = filled; }
-  // bool getFilledShape() const { return m_toolSettings.fillShapes; }
   void setLineWidth(int width) { m_toolSettings.lineWidth = width; }
-
   int getLineWidth() const { return m_toolSettings.lineWidth; }
   ToolSettings &getToolSettings() { return m_toolSettings; }
-  /*
-   void setUseBackgroundColor(bool value) {
-     m_toolSettings.useBackgroundColor = value;
-   }
 
-   bool getUseBackgroundColor() const {
-     return m_toolSettings.useBackgroundColor;
-   }
- */
-
+  // ── Document ──────────────────────────────────────────────────────────────
   void newDocument();
   bool saveDocument();
   bool saveDocumentAs();
   bool openDocument();
 
-  // ── Undo / Redo ─────────────────────────────────────────────────────
-  // Thin pass-through to CommandManager, operating on the active
-  // document's canvas. This is the one place that knows how to turn
-  // "undo the last thing" into the concrete (CommandManager, Canvas)
-  // pair — Ctrl+Z/Y (setupInputBindings) and the Edit menu
-  // (MenuActionDispatcher) both call through here instead of each
-  // reaching into m_commands / m_document themselves.
+  // ── Undo / Redo ───────────────────────────────────────────────────────────
   bool undo() { return m_commands.undo(m_document.getCanvas()); }
   bool redo() { return m_commands.redo(m_document.getCanvas()); }
   bool canUndo() const { return m_commands.canUndo(); }
   bool canRedo() const { return m_commands.canRedo(); }
 
-  // ── Image menu ────────────────────────────────────────────────────
-  // Each wraps the corresponding EditorDocument call in a whole-canvas
-  // SnapshotCommand so it participates in undo/redo like every other
-  // canvas mutation. Refuses while a tool interaction is in progress,
-  // same guard resizeCanvas() already uses, since the canvas surface
-  // pointer/dimensions must not change out from under an active stroke.
+  // ── Image menu ────────────────────────────────────────────────────────────
   void invertColors();
   void flipHorizontal();
   void flipVertical();
@@ -129,18 +123,11 @@ public:
   void rotate90CCW();
   void clearImage();
 
-  // ── Edit menu ─────────────────────────────────────────────────────
-  // Selection lives inside whichever SelectionTool subclass is active
-  // (Lasso / RectSelection), not in Editor — see SelectionTool.h. Editor
-  // does not currently have a single addressable "the selection", so
-  // these forward to the active tool when it is a SelectionTool, and are
-  // no-ops otherwise. This is the minimal correct mapping given today's
-  // ownership; a future unified SelectionTool* accessor on ToolManager
-  // would let this drop the dynamic_cast.
+  // ── Edit menu ─────────────────────────────────────────────────────────────
   void selectAll();
   void clearSelection();
 
-  // ── View menu ─────────────────────────────────────────────────────
+  // ── View menu ─────────────────────────────────────────────────────────────
   void setFullscreen(bool fullscreen);
   bool isFullscreen() const { return m_fullscreen; }
 
@@ -153,6 +140,9 @@ public:
   void setStatusBarVisible(bool visible) { m_statusBarVisible = visible; }
   bool isStatusBarVisible() const { return m_statusBarVisible; }
 
+  // ── Helpers ───────────────────────────────────────────────────────────────
   vec2 clampToCanvas(vec2 p);
   bool inCanvas(vec2 mousePos);
+
+  bool isModified() const { return m_document.isModified(); }
 };

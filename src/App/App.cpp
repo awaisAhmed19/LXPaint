@@ -12,6 +12,7 @@
 #include <iostream>
 
 namespace App {
+
 Application::Application(const char *title) : m_editor(nullptr) {
   unsigned int init_flags = SDL_INIT_VIDEO;
   Logger::init();
@@ -26,7 +27,6 @@ Application::Application(const char *title) : m_editor(nullptr) {
   if (!Text::initFontSystem("../assets/fonts/NotoSans-Regular.ttf", 16)) {
     Logger::err(
         "Text font failed to load — text tool will be visually disabled");
-    // not fatal: Text degrades gracefully per the null-s_font guards above
   }
   this->m_window = std::make_unique<Window>(Window::Settings{"LXPAINT"});
 
@@ -51,19 +51,24 @@ Application::Application(const char *title) : m_editor(nullptr) {
                                             m_window->nativeRenderer(),
                                             m_layoutEngine->layout());
 
+  // Give the editor a pointer to the dialog manager so MenuActionDispatcher
+  // can open dialogs via Editor::dialogManager() (see Editor.h).
+  m_editor->setDialogManager(&m_dialogManager);
+
   ImGui_ImplSDL3_InitForSDLRenderer(m_window->nativeWindow(),
                                     m_window->nativeRenderer());
   ImGui_ImplSDLRenderer3_Init(m_window->nativeRenderer());
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+//  Event handling
+// ─────────────────────────────────────────────────────────────────────────────
+
 void Application::handleEvents() {
   while (SDL_PollEvent(&m_event)) {
-
-    // Give ImGui first chance to process the event
     ImGui_ImplSDL3_ProcessEvent(&m_event);
 
     switch (m_event.type) {
-
     case SDL_EVENT_QUIT:
       m_running = false;
       return;
@@ -71,26 +76,11 @@ void Application::handleEvents() {
     case SDL_EVENT_WINDOW_RESIZED:
     case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED: {
       auto size = m_window->size();
-
       m_layoutEngine->update(size.width, size.height);
-
       const auto &layout = m_layoutEngine->layout();
-
-      m_editor->setViewportRect({
-          layout.viewport.x,
-          layout.viewport.y,
-          layout.viewport.width,
-          layout.viewport.height,
-      });
-      std::cout << "\n=== WINDOW RESIZED ===\n";
-      std::cout << "Window: " << size.width << " x " << size.height << '\n';
-
-      std::cout << "Viewport: " << layout.viewport.x << ", "
-                << layout.viewport.y << ", " << layout.viewport.width << ", "
-                << layout.viewport.height << '\n';
-      // Uncomment if you want automatic fit-to-window on resize.
-      // m_editor->fitCanvasToScreen();
-
+      m_editor->setViewportRect({layout.viewport.x, layout.viewport.y,
+                                 layout.viewport.width,
+                                 layout.viewport.height});
       break;
     }
 
@@ -98,28 +88,37 @@ void Application::handleEvents() {
       break;
     }
 
-    // Don't forward mouse/keyboard events to the editor if ImGui wants them.
-    if (ImGui::GetIO().WantCaptureMouse || ImGui::GetIO().WantCaptureKeyboard) {
+    // ── Modal guard
+    // ─────────────────────────────────────────────────────────── While a
+    // dialog is open, neither ImGui panels nor the editor receive events — the
+    // dialog manager has already consumed them via SetNextFrameWantCaptureMouse
+    // / SetNextFrameWantCaptureKeyboard.
+    if (m_dialogManager.isModal())
       continue;
-    }
+
+    if (ImGui::GetIO().WantCaptureMouse || ImGui::GetIO().WantCaptureKeyboard)
+      continue;
 
     m_editor->handleEvent(m_event);
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Render
+// ─────────────────────────────────────────────────────────────────────────────
+
 void Application::render() {
   ImGui_ImplSDLRenderer3_NewFrame();
   ImGui_ImplSDL3_NewFrame();
-
   ImGui::NewFrame();
 
   SDL_SetRenderDrawColor(m_window->nativeRenderer(), 128, 128, 128, 255);
-
   SDL_RenderClear(m_window->nativeRenderer());
 
   m_editor->render();
-  //  m_editor->renderUI();
 
   m_ribbon->render(*m_editor);
+
   if (m_editor->isToolboxVisible())
     m_toolbar->render(*m_editor);
 
@@ -128,32 +127,37 @@ void Application::render() {
 
   if (m_editor->isStatusBarVisible())
     m_footer->render();
+
   m_editor->setFgColor(UI::ColorPalette::toU32(m_colorpalette->getFgColor()));
   m_editor->setBgColor(UI::ColorPalette::toU32(m_colorpalette->getBgColor()));
-  ImGui::Render();
 
+  // ── Dialog rendering — MUST be last so it draws on top of everything ────
+  m_dialogManager.render();
+
+  ImGui::Render();
   ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(),
                                         m_window->nativeRenderer());
-
   SDL_RenderPresent(m_window->nativeRenderer());
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+//  Update / Run
+// ─────────────────────────────────────────────────────────────────────────────
+
 void Application::update() {
   ToolType currentTool = m_toolbar->getActiveTool();
-
   if (currentTool != m_lastTool) {
     m_editor->setActiveTool(currentTool);
     m_lastTool = currentTool;
   }
-
   m_editor->update();
 }
 
 int Application::run() {
   uint64_t last = SDL_GetTicks();
-  if (m_exist_status == 1) {
+  if (m_exist_status == 1)
     return m_exist_status;
-  }
+
   while (m_running) {
     uint64_t now = SDL_GetTicks();
     float deltaTime = (now - last) / 1000.0f;
@@ -164,7 +168,9 @@ int Application::run() {
   }
   return m_exist_status;
 }
+
 void Application::stop() { m_running = false; }
+
 Application::~Application() {
   ImGui_ImplSDLRenderer3_Shutdown();
   ImGui_ImplSDL3_Shutdown();
@@ -173,4 +179,5 @@ Application::~Application() {
   TTF_Quit();
   SDL_Quit();
 }
-}; // namespace App
+
+} // namespace App

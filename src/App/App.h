@@ -9,6 +9,7 @@
 
 #include "Editor/Editor.h"
 #include "UI/ColorPalette.h"
+#include "UI/Dialogs/DialogManager.h"
 #include "UI/Footer.h"
 #include "UI/LayoutEngine/LayoutEngine.h"
 #include "UI/Ribbon.h"
@@ -27,10 +28,13 @@ public:
   int run();
   void stop();
 
+  UI::DialogManager &dialogManager() { return m_dialogManager; }
+
 private:
   bool m_running = true;
   int m_exist_status = 0;
   SDL_Event m_event;
+
   std::unique_ptr<Editor> m_editor = nullptr;
   std::unique_ptr<Window> m_window = nullptr;
   std::unique_ptr<LayoutEngine> m_layoutEngine = nullptr;
@@ -38,6 +42,9 @@ private:
   std::unique_ptr<UI::Toolbar> m_toolbar = nullptr;
   std::unique_ptr<UI::ColorPalette> m_colorpalette = nullptr;
   std::unique_ptr<UI::Footer> m_footer = nullptr;
+
+  UI::DialogManager m_dialogManager;
+
   ToolType m_lastTool;
 
 private:
@@ -45,4 +52,5 @@ private:
   void update();
   void render();
 };
-}; // namespace App
+
+} // namespace App

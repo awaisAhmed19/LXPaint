@@ -2,35 +2,49 @@
 
 #include "Editor/Editor.h"
 #include "Systems/Logger.h"
+#include "UI/Dialogs/AppDialogs.h"
+#include "UI/Dialogs/DialogManager.h"
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  Helpers — thin wrappers used below so the switch stays readable
+//  Helper — open "Save Changes?" before a destructive document operation.
+//
+//  If the document is unmodified, `action` runs immediately.
+//  If modified, the dialog runs, and `action` runs only if user chose Save
+//  or Don't Save (not Cancel).
 // ─────────────────────────────────────────────────────────────────────────────
 
 namespace {
 
-void doUndo(Editor &editor) {
-  if (!editor.undo()) {
-    Logger::log(LogLevel::DEBUG, "Edit Undo: nothing to undo");
+void guardedDocumentAction(Editor &editor,
+                           std::function<void(bool saved)> action) {
+  UI::DialogManager *mgr = editor.dialogManager();
+
+  if (!editor.isModified() || !mgr) {
+    // Nothing to save — run immediately (saved = false, just discard).
+    action(false);
+    return;
   }
+
+  UI::AppDialogs::openSaveChanges(*mgr,
+                                  [&editor, action](const UI::DialogResult &r) {
+                                    if (r.buttonLabel == "Save") {
+                                      editor.saveDocument();
+                                      action(true);
+                                    } else if (r.buttonLabel == "Don't Save") {
+                                      action(false);
+                                    }
+                                    // "Cancel" or X: do nothing
+                                  });
+}
+
+void doUndo(Editor &editor) {
+  if (!editor.undo())
+    Logger::log(LogLevel::DEBUG, "Edit Undo: nothing to undo");
 }
 
 void doRedo(Editor &editor) {
-  if (!editor.redo()) {
+  if (!editor.redo())
     Logger::log(LogLevel::DEBUG, "Edit Redo: nothing to redo");
-  }
-}
-
-void doNew(Editor &editor) {
-  ResizePolicy policy;
-  policy.anchor = ResizeAnchor::TOPLEFT;
-  policy.fill = ResizeFill::BACKGROUNDCOLOR;
-  editor.resizeCanvas(800, 500, policy);
-  // first check if the undo is empty
-  // if it is then there was no interaction that happened in the canvas
-  // if there was interation then we have to first save/ saveas the canvas
-  // clear the canvas
-  // resize to default
 }
 
 } // anonymous namespace
@@ -40,6 +54,8 @@ void doNew(Editor &editor) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 bool MenuActionDispatcher::execute(MenuAction action, Editor &editor) {
+  UI::DialogManager *mgr = editor.dialogManager();
+
   switch (action) {
 
   // ── None ─────────────────────────────────────────────────────────────
@@ -47,12 +63,26 @@ bool MenuActionDispatcher::execute(MenuAction action, Editor &editor) {
     return false;
 
     // ── File ─────────────────────────────────────────────────────────────
+
   case MenuAction::FileNew:
-    editor.newDocument();
+    guardedDocumentAction(editor,
+                          [&editor](bool /*saved*/) { editor.newDocument(); });
     return true;
 
   case MenuAction::FileOpen:
-    editor.openDocument();
+    if (mgr) {
+      guardedDocumentAction(editor, [&editor, mgr](bool /*saved*/) {
+        UI::AppDialogs::openFileOpen(
+            *mgr, [&editor](const std::string &path, bool accepted) {
+              if (accepted && !path.empty()) {
+                // TODO: use path once file-dialog is properly wired
+                editor.openDocument();
+              }
+            });
+      });
+    } else {
+      editor.openDocument();
+    }
     return true;
 
   case MenuAction::FileSave:
@@ -60,7 +90,18 @@ bool MenuActionDispatcher::execute(MenuAction action, Editor &editor) {
     return true;
 
   case MenuAction::FileSaveAs:
-    editor.saveDocumentAs();
+    if (mgr) {
+      UI::AppDialogs::openFileSaveAs(
+          *mgr, "", [&editor](const std::string &path, bool accepted) {
+            if (accepted) {
+              // TODO: pass path through to ImageIO once Save As is
+              // fully wired; for now fall back to existing behaviour.
+              editor.saveDocumentAs();
+            }
+          });
+    } else {
+      editor.saveDocumentAs();
+    }
     return true;
 
   case MenuAction::FileLoadURL:
@@ -161,7 +202,16 @@ bool MenuActionDispatcher::execute(MenuAction action, Editor &editor) {
     return true;
 
   case MenuAction::ViewZoom:
-    Logger::warn("MenuAction::ViewZoom — not yet implemented");
+    if (mgr) {
+      // TODO: read current zoom from editor viewport and pass it
+      UI::AppDialogs::openCustomZoom(
+          *mgr, 1.0f, [](const UI::AppDialogs::ZoomResult &r) {
+            if (r.accepted) {
+              Logger::debug(std::format("Zoom set to {}%", r.zoomPercent));
+              // TODO: forward zoom to editor viewport
+            }
+          });
+    }
     return true;
 
   case MenuAction::ViewBitmap:
@@ -174,19 +224,45 @@ bool MenuActionDispatcher::execute(MenuAction action, Editor &editor) {
 
   // ── Image ─────────────────────────────────────────────────────────────
   case MenuAction::ImageFlipRotate:
-    // The Ribbon's "Flip/Rotate" entry is a single menu item standing in
-    // for what classic MS Paint shows as a sub-dialog (flip horizontal /
-    // flip vertical / rotate by angle). MenuItems.h has no submenu wired
-    // here yet (see Ribbon::buildImageMenu) — until that dialog/submenu
-    // exists, route the single entry to the most common case (flip
-    // horizontal) rather than leaving it a no-op. Rotate90CW/CCW are
-    // already separately callable via Editor for when the UI grows
-    // dedicated entries.
-    editor.flipHorizontal();
+    if (mgr) {
+      UI::AppDialogs::openFlipRotate(
+          *mgr, [&editor](const UI::AppDialogs::FlipRotateResult &r) {
+            if (!r.accepted)
+              return;
+            switch (r.choice) {
+            case UI::AppDialogs::FlipRotateChoice::FlipHorizontal:
+              editor.flipHorizontal();
+              break;
+            case UI::AppDialogs::FlipRotateChoice::FlipVertical:
+              editor.flipVertical();
+              break;
+            case UI::AppDialogs::FlipRotateChoice::RotateByAngle:
+              // Snap to nearest 90° increment
+              if (r.angleDeg <= 135.f)
+                editor.rotate90CW();
+              else if (r.angleDeg <= 225.f) {
+                editor.rotate90CW();
+                editor.rotate90CW();
+              } else
+                editor.rotate90CCW();
+              break;
+            }
+          });
+    } else {
+      editor.flipHorizontal();
+    }
     return true;
 
   case MenuAction::ImageStretchSkew:
-    Logger::warn("MenuAction::ImageStretchSkew — not yet implemented");
+    if (mgr) {
+      UI::AppDialogs::openStretchSkew(
+          *mgr, [](const UI::AppDialogs::StretchSkewResult &r) {
+            if (!r.accepted)
+              return;
+            Logger::warn(
+                "Stretch/Skew accepted — operation not yet implemented");
+          });
+    }
     return true;
 
   case MenuAction::ImageInvertColors:
@@ -194,7 +270,18 @@ bool MenuActionDispatcher::execute(MenuAction action, Editor &editor) {
     return true;
 
   case MenuAction::ImageAttributes:
-    Logger::warn("MenuAction::ImageAttributes — not yet implemented");
+    if (mgr) {
+      int cw = 800, ch = 500; // TODO: read from editor document
+      UI::AppDialogs::openAttributes(
+          *mgr, cw, ch, [&editor](const UI::AppDialogs::AttributesResult &r) {
+            if (!r.accepted)
+              return;
+            ResizePolicy policy;
+            policy.anchor = ResizeAnchor::TOPLEFT;
+            policy.fill = ResizeFill::BACKGROUNDCOLOR;
+            editor.resizeCanvas(r.width, r.height, policy);
+          });
+    }
     return true;
 
   case MenuAction::ImageClear:
