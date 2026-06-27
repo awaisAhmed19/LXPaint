@@ -7,6 +7,7 @@
 #include "Editor/Commands/SnapshotCommand.h"
 #include "Editor/Interaction/ToolContext.h"
 #include "Editor/Interaction/ToolInteractionState.h"
+#include "Editor/ToolSettings.h"
 #include "Rendering/Rasterizer.h"
 #include "Systems/Logger.h"
 static SDL_Rect computeEllipseBounds(vec2 center, int rx, int ry, int padding,
@@ -50,7 +51,8 @@ void Circle::onMouseMove(vec2 pos, ToolContext &ctx) {
                                     ctx.canvas->getSurface()->h);
 
   Rasterizer::drawEllipse_theta(ctx.preview->getSurface(), (int)m_start.x,
-                                (int)m_start.y, rx, ry, ctx.fgColor);
+                                (int)m_start.y, rx, ry, ctx.fgColor,
+                                ctx.settings->fillmode);
 
   ctx.preview->invalidateRect(m_affected);
 }
@@ -79,7 +81,8 @@ std::unique_ptr<Command> Circle::onMouseUp(vec2 pos, ToolContext &ctx) {
   m_command =
       std::make_unique<SnapshotCommand>(ctx.canvas->getSurface(), m_affected);
   Rasterizer::drawEllipse_theta(ctx.canvas->getSurface(), (int)m_start.x,
-                                (int)m_start.y, rx, ry, ctx.fgColor);
+                                (int)m_start.y, rx, ry, ctx.fgColor,
+                                ctx.settings->fillmode);
   // TODO:add settings to tools so that we can distiguish the stoke, fill etc
   ctx.canvas->invalidateRect(m_affected);
   m_command->captureAfter(ctx.canvas->getSurface());

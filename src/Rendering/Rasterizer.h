@@ -1,5 +1,6 @@
 #pragma once
 #include "App/Globals.h"
+#include "Editor/ToolSettings.h"
 #include "Systems/Assert.h"
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_surface.h>
@@ -44,7 +45,7 @@ void dda(vec2 start, vec2 end, SDL_Surface *surface, uint32_t color,
          int brushSize, bool useXOR);
 void floodFill(SDL_Surface *surface, vec2 pos, uint32_t newcolor);
 void drawEllipse_theta(SDL_Surface *surface, int x, int y, int w, int h,
-                       uint32_t color);
+                       uint32_t color, ToolSettings::FillMode fillmode);
 void drawEllipse(SDL_Surface *surface, int xc, int yc, int rx, int ry,
                  uint32_t color);
 void drawCircle(SDL_Surface *surface, int x_centre, int y_centre, int r,
@@ -128,8 +129,9 @@ void floodFill(SDL_Surface *surface, vec2 pos, uint32_t newcolor);
 
 void drawCubicBezier(SDL_Surface *, vec2 p0, vec2 p1, vec2 p2, vec2 p3,
                      uint32_t color, int lineWidth);
+
 void drawRoundedRect(SDL_Surface *surf, vec2 start, vec2 end, uint32_t color,
-                     int lw);
+                     int lw, std::vector<vec2> &points);
 
 // ── Polygon tool support ────────────────────────────────────────────────
 // Scanline point-in-polygon fill, reusing the same even-odd rule Lasso

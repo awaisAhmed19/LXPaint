@@ -29,10 +29,6 @@ void drawHitboxIndicator(SDL_Surface *surf, vec2 center, float radius,
 }
 } // namespace
 
-// ─────────────────────────────────────────────────────────────
-//  Bounds tracking
-// ─────────────────────────────────────────────────────────────
-
 void Polygon::expandBounds(vec2 p) {
   if (m_points.empty()) {
     m_bounds = {(int)p.x, (int)p.y, 1, 1};

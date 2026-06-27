@@ -25,6 +25,30 @@ public:
   static uint32_t toU32(const ImVec4 &color);
   ImVec4 getFgColor() const { return m_fgColor; }
   ImVec4 getBgColor() const { return m_bgColor; }
+
+  void setFgColor(const ImVec4 &color) { m_fgColor = color; }
+
+  // ImU32 / ImGui color (IM_COL32 or GetColorU32)
+  void setFgColor(ImU32 color) {
+    m_fgColor = ImGui::ColorConvertU32ToFloat4(color);
+  }
+
+  // RGBA bytes
+  void setFgColor(uint8_t r, uint8_t g, uint8_t b, uint8_t a = 255) {
+    m_fgColor = ImVec4(r / 255.0f, g / 255.0f, b / 255.0f, a / 255.0f);
+  }
+
+  enum class HexFormat { RRGGBBAA, AARRGGBB };
+
+  void setFgColor(uint32_t hex, HexFormat fmt = HexFormat::AARRGGBB) {
+    if (fmt == HexFormat::AARRGGBB) {
+      setFgColor((hex >> 16) & 0xFF, (hex >> 8) & 0xFF, hex & 0xFF,
+                 (hex >> 24) & 0xFF);
+    } else {
+      setFgColor((hex >> 24) & 0xFF, (hex >> 16) & 0xFF, (hex >> 8) & 0xFF,
+                 hex & 0xFF);
+    }
+  }
 };
 
 } // namespace UI

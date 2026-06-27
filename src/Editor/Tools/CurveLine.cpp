@@ -9,10 +9,6 @@
 #include <cmath>
 
 #include "Document/PreviewLayer.h"
-// ─────────────────────────────────────────────────────────────
-//  Constants
-// ─────────────────────────────────────────────────────────────
-
 static constexpr int BEZIER_STEPS = 100; // line segments to approximate curve
 static constexpr int MARKER_HALF = 3; // half-size of square handle markers (px)
 static constexpr int BOUNDS_PAD = 4;  // extra safety margin on affected rect
@@ -25,11 +21,6 @@ static constexpr uint32_t COLOR_ANCHOR = 0xFFFFFFFF; // white  endpoint handles
 static constexpr uint32_t COLOR_CP1 = 0xFF0000FF;    // blue   CP1 handle
 static constexpr uint32_t COLOR_CP2 = 0xFFFF0000;    // red    CP2 handle
 static constexpr uint32_t COLOR_BORDER = 0xFF000000; // black  handle border
-
-// ─────────────────────────────────────────────────────────────
-//  Bezier math
-// ─────────────────────────────────────────────────────────────
-
 static vec2 evalCubicBezier(vec2 p0, vec2 p1, vec2 p2, vec2 p3, float t) {
   const float u = 1.0f - t;
   const float uu = u * u;

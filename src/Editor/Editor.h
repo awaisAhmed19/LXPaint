@@ -103,6 +103,10 @@ public:
   int getLineWidth() const { return m_toolSettings.lineWidth; }
   ToolSettings &getToolSettings() { return m_toolSettings; }
 
+  // ── Canvas size (used by dialogs, e.g. ImageAttributes) ──────────────────
+  int getCanvasWidth() const { return m_document.getCanvas().getWidth(); }
+  int getCanvasHeight() const { return m_document.getCanvas().getHeight(); }
+
   // ── Document ──────────────────────────────────────────────────────────────
   void newDocument();
   bool saveDocument();

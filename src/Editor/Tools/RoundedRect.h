@@ -3,6 +3,7 @@
 #include "Editor/Commands/SnapshotCommand.h"
 #include "GeometricTool.h"
 
+#include <vector>
 class RoundedRect : public GeometricTool {
 private:
   bool m_useXOR = false;
@@ -20,6 +21,7 @@ private:
   };
 
   int m_cornerRadius = 16;
+  std::vector<vec2> m_points;
 
 public:
   uint32_t Wcolor = COLORS::WHITE;

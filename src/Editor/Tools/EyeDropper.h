@@ -1,6 +1,5 @@
 #pragma once
 #include "ClickTool.h"
-
 class Eyedropper : public ClickTool {
 public:
   std::string ToolID = "eyedropper";

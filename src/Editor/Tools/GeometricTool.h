@@ -2,4 +2,6 @@
 
 #include "BaseTool.h"
 
-class GeometricTool : public BaseTool {};
+class GeometricTool : public BaseTool {
+public:
+};

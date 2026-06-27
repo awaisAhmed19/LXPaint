@@ -32,7 +32,6 @@ void RoundedRect::onMouseDown(vec2 pos, ToolContext &ctx) {
 
   m_start = pos;
   m_last = pos;
-
   m_affected =
       computeRectBounds(pos, pos, brushSize, ctx.canvas->getSurface()->w,
                         ctx.canvas->getSurface()->h);
@@ -50,9 +49,23 @@ void RoundedRect::onMouseMove(vec2 pos, ToolContext &ctx) {
 
   ctx.preview->clearRGBA(0, 0, 0, 0);
 
-  Rasterizer::drawRoundedRect(ctx.preview->getSurface(), m_start, pos,
-                              ctx.fgColor, brushSize);
+  switch (ctx.settings->fillmode) {
+  case ToolSettings::FillMode::Fill: {
+    Rasterizer::drawRoundedRect(ctx.preview->getSurface(), m_start, pos,
+                                ctx.fgColor, brushSize, m_points);
+    Rasterizer::fillPolygon(ctx.preview->getSurface(), m_points, ctx.fgColor);
+  } break;
 
+  case ToolSettings::FillMode::Opaque: {
+    Rasterizer::drawRoundedRect(ctx.preview->getSurface(), m_start, pos,
+                                ctx.fgColor, 4, m_points);
+    Rasterizer::fillPolygon(ctx.preview->getSurface(), m_points, 0xFFFFFFFF);
+  } break;
+  case ToolSettings::FillMode::Outline:
+    Rasterizer::drawRoundedRect(ctx.preview->getSurface(), m_start, pos,
+                                ctx.fgColor, brushSize, m_points);
+    break;
+  }
   ctx.preview->invalidateRect(m_affected);
 }
 
@@ -73,8 +86,23 @@ std::unique_ptr<Command> RoundedRect::onMouseUp(vec2 pos, ToolContext &ctx) {
 
   m_command =
       std::make_unique<SnapshotCommand>(ctx.canvas->getSurface(), m_affected);
-  Rasterizer::drawRoundedRect(ctx.canvas->getSurface(), m_start, pos,
-                              ctx.fgColor, brushSize);
+
+  switch (ctx.settings->fillmode) {
+  case ToolSettings::FillMode::Outline: {
+    Rasterizer::drawRoundedRect(ctx.canvas->getSurface(), m_start, pos,
+                                ctx.fgColor, brushSize, m_points);
+  } break;
+  case ToolSettings::FillMode::Fill: {
+    Rasterizer::drawRoundedRect(ctx.canvas->getSurface(), m_start, pos,
+                                ctx.fgColor, 2, m_points);
+    Rasterizer::fillPolygon(ctx.canvas->getSurface(), m_points, ctx.fgColor);
+  } break;
+  case ToolSettings::FillMode::Opaque: {
+    Rasterizer::drawRoundedRect(ctx.canvas->getSurface(), m_start, pos,
+                                ctx.fgColor, 4, m_points);
+    Rasterizer::fillPolygon(ctx.canvas->getSurface(), m_points, 0xFFFFFFFF);
+  } break;
+  }
 
   ctx.canvas->invalidateRect(m_affected);
 

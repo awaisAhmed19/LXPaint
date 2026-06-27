@@ -5,6 +5,7 @@
 #include "Editor/Commands/SnapshotCommand.h"
 #include "Editor/Interaction/ToolContext.h"
 #include "Editor/Interaction/ToolInteractionState.h"
+#include "Editor/ToolSettings.h"
 #include "Rect.h"
 #include "Rendering/Rasterizer.h"
 #include "Systems/Logger.h"
@@ -42,9 +43,23 @@ void Rect::onMouseMove(vec2 pos, ToolContext &ctx) {
                         ctx.canvas->getSurface()->h);
 
   ctx.preview->clearRGBA(0, 0, 0, 0);
-
-  Rasterizer::drawRectStroke(ctx.preview->getSurface(), m_start, pos,
-                             ctx.fgColor, brushSize);
+  switch (ctx.settings->fillmode) {
+  case ToolSettings::FillMode::Outline:
+    Rasterizer::drawRectStroke(ctx.preview->getSurface(), m_start, pos,
+                               ctx.fgColor, brushSize);
+    break;
+  case ToolSettings::FillMode::Opaque:
+    Rasterizer::drawRectStroke(ctx.preview->getSurface(), m_start, pos,
+                               ctx.fgColor, brushSize);
+    Rasterizer::rectFillWhite(ctx.preview->getSurface(), (int)m_start.x + 1,
+                              (int)m_start.y + 1, (int)pos.x - 1,
+                              (int)pos.y - 1);
+    break;
+  case ToolSettings::FillMode::Fill:
+    Rasterizer::rectFill(ctx.preview->getSurface(), (int)m_start.x,
+                         (int)m_start.y, (int)pos.x, (int)pos.y, ctx.fgColor);
+    break;
+  }
 
   ctx.preview->invalidateRect(m_affected);
 }
@@ -66,9 +81,23 @@ std::unique_ptr<Command> Rect::onMouseUp(vec2 pos, ToolContext &ctx) {
 
   m_command =
       std::make_unique<SnapshotCommand>(ctx.canvas->getSurface(), m_affected);
-
-  Rasterizer::drawRectStroke(ctx.canvas->getSurface(), m_start, pos,
-                             ctx.fgColor, brushSize);
+  switch (ctx.settings->fillmode) {
+  case ToolSettings::FillMode::Outline:
+    Rasterizer::drawRectStroke(ctx.canvas->getSurface(), m_start, pos,
+                               ctx.fgColor, brushSize);
+    break;
+  case ToolSettings::FillMode::Opaque:
+    Rasterizer::drawRectStroke(ctx.canvas->getSurface(), m_start, pos,
+                               ctx.fgColor, brushSize);
+    Rasterizer::rectFillWhite(ctx.canvas->getSurface(), (int)m_start.x + 1,
+                              (int)m_start.y + 1, (int)pos.x - 1,
+                              (int)pos.y - 1);
+    break;
+  case ToolSettings::FillMode::Fill:
+    Rasterizer::rectFill(ctx.canvas->getSurface(), (int)m_start.x,
+                         (int)m_start.y, (int)pos.x, (int)pos.y, ctx.fgColor);
+    break;
+  }
 
   ctx.canvas->invalidateRect(m_affected);
 

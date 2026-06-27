@@ -32,7 +32,6 @@ std::unique_ptr<Command> Eyedropper::onMouseClick(vec2 pos, ToolContext &ctx) {
     if (ctx.fgColorOut)
       *ctx.fgColorOut = sampled;
   }
-
   // No canvas mutation occurred — no command, no undo entry.
   return nullptr;
 }

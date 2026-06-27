@@ -1,6 +1,5 @@
 #include "Toolbar.h"
 #include "App/Globals.h"
-#include "Editor/Editor.h"
 #include "UI/LayoutEngine/UILayoutConstant.h"
 #include "imgui.h"
 #include <SDL3/SDL_render.h>
@@ -276,8 +275,7 @@ void Toolbar::renderFillModes(Editor &editor, ImDrawList *dl, ImVec2 origin,
                               float optionWidth, float optionHeight) {
   constexpr float gap = 1.0f;
 
-  auto &mode =
-      editor.getToolSettings().brushShape; // TODO: replace with fillMode
+  auto &mode = editor.getToolSettings().fillmode; // TODO: replace with fillMode
 
   struct FillPreview {
     const char *id;
@@ -299,7 +297,7 @@ void Toolbar::renderFillModes(Editor &editor, ImDrawList *dl, ImVec2 origin,
 
     ImVec2 btnMax = {btnMin.x + cellW - 1.0f, btnMin.y + cellH - 1.0f};
 
-    bool selected = (mode == static_cast<ToolSettings::BrushShape>(i));
+    bool selected = (mode == static_cast<ToolSettings::FillMode>(i));
 
     dl->AddRectFilled(btnMin, btnMax, Theme::ButtonBg);
 
@@ -322,7 +320,7 @@ void Toolbar::renderFillModes(Editor &editor, ImDrawList *dl, ImVec2 origin,
     ImGui::PushID(i + 400);
 
     if (ImGui::InvisibleButton(kModes[i].id, {cellW, cellH}))
-      mode = static_cast<ToolSettings::BrushShape>(i);
+      mode = static_cast<ToolSettings::FillMode>(i);
 
     ImGui::PopID();
   }

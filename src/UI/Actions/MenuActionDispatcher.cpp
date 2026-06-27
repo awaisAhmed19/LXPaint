@@ -271,7 +271,8 @@ bool MenuActionDispatcher::execute(MenuAction action, Editor &editor) {
 
   case MenuAction::ImageAttributes:
     if (mgr) {
-      int cw = 800, ch = 500; // TODO: read from editor document
+      int cw = editor.getCanvasWidth();
+      int ch = editor.getCanvasHeight();
       UI::AppDialogs::openAttributes(
           *mgr, cw, ch, [&editor](const UI::AppDialogs::AttributesResult &r) {
             if (!r.accepted)

@@ -1,8 +1,10 @@
 #include "Rasterizer.h"
+#include "Editor/ToolSettings.h"
 #include "Systems/Assert.h"
 #include <SDL3/SDL_surface.h>
 #include <cmath>
 #include <cstdint>
+#include <limits>
 #include <random>
 #define TAU 6.2831853
 namespace Rasterizer {
@@ -40,12 +42,44 @@ inline void drawPolygon(SDL_Surface *surface, const std::vector<vec2> points,
                         uint32_t color) {
   if (points.size() < 2)
     return;
-  for (int p = 0; p < points.size() - 1; ++p) {
+  for (int p = 0; p < (int)points.size() - 1; ++p) {
     bresenham(points[p], points[p + 1], surface, color, 1, false);
   }
   bresenham(points.back(), points.front(), surface, color, 1, false);
 }
+static SDL_Rect computeRectBounds(vec2 a, vec2 b, int brushSize, int maxW,
+                                  int maxH) {
+  int minX = std::max(0, std::min((int)a.x, (int)b.x) - brushSize - 4);
+  int minY = std::max(0, std::min((int)a.y, (int)b.y) - brushSize - 4);
+  int maxX = std::min(maxW - 1, std::max((int)a.x, (int)b.x) + brushSize + 4);
+  int maxY = std::min(maxH - 1, std::max((int)a.y, (int)b.y) + brushSize + 4);
+  return SDL_Rect{minX, minY, maxX - minX + 1, maxY - minY + 1};
+}
 
+inline void drawPolygonOpaque(SDL_Surface *surface,
+                              const std::vector<vec2> &points, uint32_t color) {
+  if (!surface || points.size() < 2)
+    return;
+
+  for (size_t i = 0; i < points.size(); ++i) {
+    bresenham(points[i], points[(i + 1) % points.size()], surface, color, 4,
+              false);
+  }
+  uint32_t white = 0xFFFFFFFF;
+  fillPolygon(surface, points, white);
+}
+inline void drawPolygonFill(SDL_Surface *surface,
+                            const std::vector<vec2> &points, uint32_t color) {
+  if (!surface || points.size() < 2)
+    return;
+
+  for (size_t i = 0; i < points.size(); ++i) {
+    bresenham(points[i], points[(i + 1) % points.size()], surface, color, 4,
+              false);
+  }
+
+  fillPolygon(surface, points, color);
+}
 static vec2 evalCubicBezier(vec2 p0, vec2 p1, vec2 p2, vec2 p3, float t) {
   const float u = 1.0f - t;
   const float uu = u * u;
@@ -131,8 +165,23 @@ void drawEllipse(SDL_Surface *surface, int xc, int yc, int rx, int ry,
   }
 }
 
+void appendBezierPoints(std::vector<vec2> &points, vec2 p0, vec2 p1, vec2 p2,
+                        vec2 p3, int segments = 12) {
+  int start = points.empty() ? 0 : 1;
+
+  for (int i = start; i <= segments; ++i) {
+    float t = (float)i / segments;
+    float u = 1.0f - t;
+
+    vec2 p = p0 * (u * u * u) + p1 * (3.0f * u * u * t) +
+             p2 * (3.0f * u * t * t) + p3 * (t * t * t);
+
+    points.push_back(p);
+  }
+}
+
 void drawRoundedRect(SDL_Surface *surf, vec2 start, vec2 end, uint32_t color,
-                     int lw) {
+                     int lw, std::vector<vec2> &points) {
   const float left = std::min(start.x, end.x);
   const float right = std::max(start.x, end.x);
   const float top = std::min(start.y, end.y);
@@ -140,26 +189,50 @@ void drawRoundedRect(SDL_Surface *surf, vec2 start, vec2 end, uint32_t color,
 
   const float width = right - left;
   const float height = bottom - top;
-
   constexpr float cornerRadius = 12.0f;
 
   const float r = std::min({cornerRadius, width * 0.5f, height * 0.5f});
-
+  points.clear();
   // Cubic Bezier approximation constant for a quarter circle
   constexpr float K = 0.552284749831f;
   const float o = r * K;
 
+  // Top edge
+  points.push_back({left + r, top});
+  points.push_back({right - r, top});
+
+  // Top-right corner
+  appendBezierPoints(points, {right - r, top}, {right - r + o, top},
+                     {right, top + r - o}, {right, top + r});
+
+  // Right edge
+  points.push_back({right, bottom - r});
+
+  // Bottom-right corner
+  appendBezierPoints(points, {right, bottom - r}, {right, bottom - r + o},
+                     {right - r + o, bottom}, {right - r, bottom});
+
+  // Bottom edge
+  points.push_back({left + r, bottom});
+
+  // Bottom-left corner
+  appendBezierPoints(points, {left + r, bottom}, {left + r - o, bottom},
+                     {left, bottom - r + o}, {left, bottom - r});
+
+  // Left edge
+  points.push_back({left, top + r});
+
+  // Top-left corner
+  appendBezierPoints(points, {left, top + r}, {left, top + r - o},
+                     {left + r - o, top}, {left + r, top});
   // ───────────── Straight edges ─────────────
 
   Rasterizer::bresenham({left + r, top}, {right - r, top}, surf, color, lw,
                         false);
-
   Rasterizer::bresenham({right, top + r}, {right, bottom - r}, surf, color, lw,
                         false);
-
   Rasterizer::bresenham({right - r, bottom}, {left + r, bottom}, surf, color,
                         lw, false);
-
   Rasterizer::bresenham({left, bottom - r}, {left, top + r}, surf, color, lw,
                         false);
 
@@ -359,7 +432,7 @@ void fillPolygon(SDL_Surface *surface, const std::vector<vec2> &points,
 }
 
 void drawEllipse_theta(SDL_Surface *surface, int x, int y, int w, int h,
-                       uint32_t color) {
+                       uint32_t color, ToolSettings::FillMode fillmode) {
   const int cx = x;
   const int cy = y;
 
@@ -370,7 +443,17 @@ void drawEllipse_theta(SDL_Surface *surface, int x, int y, int w, int h,
     float newY = (cy + std::sin(theta) * h);
     points.push_back({newX, newY});
   }
-  drawPolygon(surface, points, color);
+  switch (fillmode) {
+  case ToolSettings::FillMode::Outline:
+    drawPolygon(surface, points, color);
+    break;
+  case ToolSettings::FillMode::Fill:
+    drawPolygonOpaque(surface, points, color);
+    break;
+  case ToolSettings::FillMode::Opaque:
+    drawPolygonFill(surface, points, color);
+    break;
+  }
 }
 
 /*Function draw_ellipse(ctx, x, y, w, h, stroke, fill) {
@@ -425,13 +508,19 @@ void drawCircle(SDL_Surface *surface, int x_centre, int y_centre, int r,
     }
   }
 }
+
 void rectFill(SDL_Surface *surface, int minX, int minY, int maxX, int maxY,
               uint32_t color) {
+  int nminX = std::min(minX, maxX);
+  int nminY = std::min(minY, maxY);
+
+  int nmaxX = std::max(minX, maxX);
+  int nmaxY = std::max(minY, maxY);
   if (!lockSurface(surface))
     return;
 
-  for (int y = minY; y <= maxY; y++) {
-    for (int x = minX; x <= maxX; x++) {
+  for (int y = nminY; y <= nmaxY; y++) {
+    for (int x = nminX; x <= nmaxX; x++) {
       drawPixel(surface, x, y, color);
     }
   }
@@ -441,13 +530,18 @@ void rectFill(SDL_Surface *surface, int minX, int minY, int maxX, int maxY,
 
 void rectFillWhite(SDL_Surface *surface, int minX, int minY, int maxX,
                    int maxY) {
+  int nminX = std::min(minX, maxX);
+  int nminY = std::min(minY, maxY);
+
+  int nmaxX = std::max(minX, maxX);
+  int nmaxY = std::max(minY, maxY);
   if (!lockSurface(surface))
     return;
 
   constexpr uint32_t color = 0xFFFFFFFF;
 
-  for (int y = minY + 1; y <= maxY - 1; y++) {
-    for (int x = minX + 1; x <= maxX - 1; x++) {
+  for (int y = nminY; y <= nmaxY; y++) {
+    for (int x = nminX; x <= nmaxX; x++) {
       drawPixel(surface, x, y, color);
     }
   }

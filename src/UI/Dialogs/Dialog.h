@@ -8,10 +8,6 @@
 #include <string>
 #include <vector>
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  DialogResult  — what the dialog returns when it closes
-// ─────────────────────────────────────────────────────────────────────────────
-
 namespace UI {
 
 struct DialogResult {
@@ -19,10 +15,6 @@ struct DialogResult {
   std::string buttonLabel; // label of pressed button
   bool closed = false;     // dialog was closed (X or Escape)
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  DialogButton  — one push-button at the bottom of the dialog
-// ─────────────────────────────────────────────────────────────────────────────
 
 struct DialogButton {
   std::string label;
@@ -195,6 +187,7 @@ public:
         m_result.closed = true;
         m_result.buttonIndex = -1;
         hide();
+        ImGui::PopID();
         return false;
       }
       ImGui::PopID();

@@ -4,11 +4,8 @@
 #include "imgui.h"
 #include <array>
 
+#include "Editor/Editor.h"
 namespace UI {
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  Local theme constants (Win95 palette, same as the rest of the UI)
-// ─────────────────────────────────────────────────────────────────────────────
 
 namespace Theme {
 constexpr ImU32 BLACK = IM_COL32(0, 0, 0, 255);
@@ -20,19 +17,7 @@ constexpr ImU32 ButtonActive = IM_COL32(150, 150, 150, 255);
 constexpr ImU32 TextColor = IM_COL32(0, 0, 0, 255);
 } // namespace Theme
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  Construction
-// ─────────────────────────────────────────────────────────────────────────────
-
-Ribbon::Ribbon(int w, int h) : m_w(w), m_h(h) {
-  buildMenus(); // just added this now which started showing the menu buttons
-                // but the buttons are not active for more than a sec and the
-                // dropdown is just flickering once and deactivating
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  Menu data — pure MenuItem trees, no Editor knowledge
-// ─────────────────────────────────────────────────────────────────────────────
+Ribbon::Ribbon(int w, int h) : m_w(w), m_h(h) { buildMenus(); }
 
 std::vector<MenuItem> Ribbon::buildFileMenu() {
   using MI = MenuItem;
@@ -120,11 +105,6 @@ std::vector<MenuItem> Ribbon::buildColorsMenu() {
       MI::normal("Save Colors", MenuAction::ColorsSave),
   };
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  buildMenus — assembles Dropdown objects from the data above
-// ─────────────────────────────────────────────────────────────────────────────
-
 void Ribbon::buildMenus() {
   m_dropdowns.clear();
   m_dropdowns.emplace_back("File", buildFileMenu());
@@ -135,10 +115,6 @@ void Ribbon::buildMenus() {
   m_dropdowns.emplace_back("Help", std::vector<MenuItem>{}); // placeholder
   Logger::debug("Building ribbon menus");
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  Border helpers
-// ─────────────────────────────────────────────────────────────────────────────
 
 void Ribbon::raisedBorder(ImDrawList *dl, ImVec2 min, ImVec2 max, float) {
   dl->AddLine(min, {max.x, min.y}, Theme::WHITE, 1.0f);
@@ -154,20 +130,12 @@ void Ribbon::sunkenBorder(ImDrawList *dl, ImVec2 min, ImVec2 max, float) {
   dl->AddLine({max.x, min.y}, max, Theme::WHITE, 1.0f);
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  Layout
-// ─────────────────────────────────────────────────────────────────────────────
-
 void Ribbon::layout(const ImGuiViewport *vp) {
   constexpr float kRibbonHeight = 21.0f;
   m_rect = {vp->Pos.x, vp->Pos.y, vp->Size.x, kRibbonHeight};
 }
 
 float Ribbon::preferredHeight() const { return UI::Layout::RibbonHeight; }
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  Render
-// ─────────────────────────────────────────────────────────────────────────────
 
 void Ribbon::render(Editor &editor) {
   constexpr float kBorderThickness = 1.0f;
@@ -214,7 +182,13 @@ void Ribbon::render(Editor &editor) {
   // (individual dropdowns also self-close; this is a belt-and-suspenders
   //  backstop for the ribbon button row itself)
   const ImVec2 mousePos = ImGui::GetMousePos();
-
+  // ── Sync View menu checkbox states to live editor flags ──────────────
+  // View dropdown is always m_dropdowns[2]; items 0/1/2 are the checkboxes.
+  if (m_dropdowns.size() > 2) {
+    m_dropdowns[2].setChecked(0, editor.isToolboxVisible());
+    m_dropdowns[2].setChecked(1, editor.isPaletteVisible());
+    m_dropdowns[2].setChecked(2, editor.isStatusBarVisible());
+  }
   float cursorX = m_rect.x + 4.0f; // small left inset
 
   for (int i = 0; i < static_cast<int>(m_dropdowns.size()); ++i) {

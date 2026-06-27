@@ -5,12 +5,16 @@
 
 class Rect : public GeometricTool {
 private:
-  bool m_useXOR = false;
   vec2 m_start;
   vec2 m_last;
-  SDL_Rect m_affected{};
   std::unique_ptr<SnapshotCommand> m_command;
-  enum class RectMode { STROKE, FILL, WHITEFILL };
+  SDL_Rect m_affected{};
+  enum class FillMode {
+    Outline, // edges only
+    Opaque,  // edges + interior filled with background color on close
+    Filled,  // edges + interior filled with foreground color on close
+  };
+  FillMode currentFillMode(ToolContext &ctx) const;
 
 public:
   uint32_t Wcolor = COLORS::WHITE;
