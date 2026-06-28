@@ -9,6 +9,8 @@ Makefile
 github_LXpaint
 github_LXpaint.pub
 Notes/
+Paint_release/
+
 # Compiled binaries
 *.out
 *.txt

@@ -68,12 +68,9 @@ void RenderTarget::clearDirty() {
 void RenderTarget::allocate(int w, int h, FillColor fill) {
 
   LX_ASSERT(w > 0 && h > 0, "Invalid RenderTarget allocation");
-
   Logger::debug(std::format("Allocating RenderTarget {}x{} -> {}x{}", m_width,
                             m_height, w, h));
-
   SDL_Surface *newSurface = SDL_CreateSurface(w, h, SDL_PIXELFORMAT_ARGB8888);
-
   LX_ASSERT(newSurface != nullptr, "Failed to allocate RenderTarget surface");
 
   /*

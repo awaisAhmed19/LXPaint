@@ -5,6 +5,7 @@
 
 #include "App.h"
 #include "App/Globals.h"
+#include "Core/AssetManager.h"
 #include "Editor/Tools/Text.h"
 #include "Systems/Logger.h"
 #include "UI/LayoutEngine/LayoutMetrics.h"
@@ -16,6 +17,9 @@ namespace App {
 Application::Application(const char *title) : m_editor(nullptr) {
   unsigned int init_flags = SDL_INIT_VIDEO;
   Logger::init();
+
+  AssetManager::initialize();
+
   if (!SDL_Init(init_flags)) {
     Logger::err(SDL_GetError());
     throw std::runtime_error("SDL_Init failed");
@@ -24,7 +28,8 @@ Application::Application(const char *title) : m_editor(nullptr) {
     Logger::err(SDL_GetError());
     throw std::runtime_error("TTF_Init failed");
   }
-  if (!Text::initFontSystem("../assets/fonts/NotoSans-Regular.ttf", 16)) {
+  if (!Text::initFontSystem(AssetManager::font("NotoSans-Regular.ttf").string(),
+                            16)) {
     Logger::err(
         "Text font failed to load — text tool will be visually disabled");
   }
@@ -88,11 +93,10 @@ void Application::handleEvents() {
       break;
     }
 
-    // ── Modal guard
-    // ─────────────────────────────────────────────────────────── While a
-    // dialog is open, neither ImGui panels nor the editor receive events — the
-    // dialog manager has already consumed them via SetNextFrameWantCaptureMouse
-    // / SetNextFrameWantCaptureKeyboard.
+    // ── Modal guard ──────────────────────────────────────────────────────
+    // While a dialog is open, neither ImGui panels nor the editor receive
+    // events — the dialog manager has already consumed them via
+    // SetNextFrameWantCaptureMouse / SetNextFrameWantCaptureKeyboard.
     if (m_dialogManager.isModal())
       continue;
 
@@ -134,7 +138,7 @@ void Application::render() {
   m_editor->setFgColor(UI::ColorPalette::toU32(m_colorpalette->getFgColor()));
   m_editor->setBgColor(UI::ColorPalette::toU32(m_colorpalette->getBgColor()));
 
-  // ── Dialog rendering — MUST be last so it draws on top of everything ────
+  // ── Dialog rendering — MUST be last so it draws on top of everything ──
   m_dialogManager.render();
 
   ImGui::Render();

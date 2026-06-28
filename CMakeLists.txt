@@ -7,9 +7,6 @@ project(
     LANGUAGES CXX
 )
 
-# =============================================================================
-# Global settings
-# =============================================================================
 
 # Default to Debug when nothing is specified.
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
@@ -24,13 +21,9 @@ endif()
 # Helps IDEs and clangd find the right files.
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# =============================================================================
-# Dependencies — system libraries discovered via pkg-config / find_package
-# =============================================================================
 
 find_package(PkgConfig REQUIRED)
 
-# SDL3 -------------------------------------------------------------------------
 find_package(SDL3 REQUIRED CONFIG) # modern SDL3 cmake config
 # falls back below if absent
 if(NOT TARGET SDL3::SDL3)
@@ -39,9 +32,6 @@ if(NOT TARGET SDL3::SDL3)
     add_library(SDL3::SDL3 ALIAS PkgConfig::SDL3)
 endif()
 
-# SDL3_image -------------------------------------------------------------------
-# Arch ships the pc file as "sdl3-image"; Debian/Fedora use "SDL3_image". Try
-# the cmake config first, then fall back through both pc names.
 find_package(SDL3_image QUIET CONFIG)
 if(NOT TARGET SDL3_image::SDL3_image)
     pkg_check_modules(SDL3_image QUIET IMPORTED_TARGET sdl3-image)
@@ -51,8 +41,6 @@ if(NOT TARGET SDL3_image::SDL3_image)
     add_library(SDL3_image::SDL3_image ALIAS PkgConfig::SDL3_image)
 endif()
 
-# SDL3_ttf ---------------------------------------------------------------------
-# Same naming split: "sdl3-ttf" on Arch, "SDL3_ttf" elsewhere.
 find_package(SDL3_ttf QUIET CONFIG)
 if(NOT TARGET SDL3_ttf::SDL3_ttf)
     pkg_check_modules(SDL3_ttf QUIET IMPORTED_TARGET sdl3-ttf)
@@ -62,11 +50,7 @@ if(NOT TARGET SDL3_ttf::SDL3_ttf)
     add_library(SDL3_ttf::SDL3_ttf ALIAS PkgConfig::SDL3_ttf)
 endif()
 
-# =============================================================================
-# Vendored / header-only libraries
-# =============================================================================
 
-# ImGui — vendored source
 set(IMGUI_DIR "${CMAKE_SOURCE_DIR}/external/imgui")
 set(IMGUI_SOURCES
     "${IMGUI_DIR}/imgui.cpp"
@@ -87,23 +71,16 @@ target_compile_features(imgui PRIVATE cxx_std_17)
 add_library(stb INTERFACE)
 target_include_directories(stb INTERFACE "${CMAKE_SOURCE_DIR}/third_party")
 
-# =============================================================================
-# Collect application sources
-# =============================================================================
-
 # Glob is intentional here: the file list grows with every new tool/dialog. Any
 # CMake-aware IDE will re-run cmake when CMakeLists.txt changes, so the
 # CONFIGURE_DEPENDS flag keeps it accurate during development.
+# src/Core/ is included automatically — no manual listing required.
 file(
     GLOB_RECURSE APP_SOURCES
     CONFIGURE_DEPENDS
     "${CMAKE_SOURCE_DIR}/src/*.cpp"
     "${CMAKE_SOURCE_DIR}/third_party/*.cpp"
 )
-
-# =============================================================================
-# Main executable
-# =============================================================================
 
 add_executable(lxpaint ${APP_SOURCES})
 
@@ -117,9 +94,22 @@ target_link_libraries(
     PRIVATE SDL3::SDL3 SDL3_image::SDL3_image SDL3_ttf::SDL3_ttf imgui stb
 )
 
-# =============================================================================
-# Compiler warnings & hardening
-# =============================================================================
+# AssetManager searches several runtime locations first (executable directory,
+# parent directory, cwd).  If none of them contain the assets tree — which
+# happens when the binary is launched from an arbitrary working directory with
+# no deployment step, e.g. directly from an IDE debugger — this definition
+# gives it a guaranteed absolute path that always works on the developer's
+# machine.
+#
+# The value intentionally points at the *source* tree so in-tree development
+# (bootstrap.sh → build.sh) works without a cmake --install step.
+# Production packages will find the assets via the executable-relative path
+# set up by the install(DIRECTORY …) rule below and will never need this
+# fallback.
+
+target_compile_definitions(lxpaint PRIVATE
+    LX_ASSET_DIR="${CMAKE_SOURCE_DIR}/assets"
+)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(
@@ -142,15 +132,11 @@ if(MSVC)
     target_compile_options(lxpaint PRIVATE /W4 /permissive-)
 endif()
 
-# =============================================================================
-# Assets — copied next to the binary at build time, installed alongside it at
-# install time.
-# =============================================================================
 
 set(ASSETS_SRC "${CMAKE_SOURCE_DIR}/assets")
 
 # Copy assets to the build tree so the binary can find them at runtime using
-# relative paths (../assets/…) as the current code expects.
+# the executable-relative search path (../assets/ from the binary location).
 add_custom_command(
     TARGET lxpaint
     POST_BUILD
@@ -160,15 +146,12 @@ add_custom_command(
     COMMENT "Copying assets to build directory"
 )
 
-# =============================================================================
-# Installation rules
-# =============================================================================
-
 include(GNUInstallDirs)
 
 install(TARGETS lxpaint RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
 
-# Install assets relative to the binary
+# Install assets relative to the binary so the executable-relative search path
+# in AssetManager (../assets/) resolves correctly in production.
 install(
     DIRECTORY "${ASSETS_SRC}/"
     DESTINATION "${CMAKE_INSTALL_DATADIR}/lxpaint/assets"
@@ -178,10 +161,6 @@ install(
 # install(FILES "packaging/lxpaint.desktop" DESTINATION
 # "${CMAKE_INSTALL_DATADIR}/applications") install(FILES "packaging/lxpaint.png"
 # DESTINATION "${CMAKE_INSTALL_DATADIR}/pixmaps")
-
-# =============================================================================
-# Summary
-# =============================================================================
 
 message(STATUS "")
 message(STATUS "  ┌─────────────────────────────────────────┐")
@@ -193,5 +172,6 @@ message(
 )
 message(STATUS "  │  Build dir  : ${CMAKE_BINARY_DIR}")
 message(STATUS "  │  Install to : ${CMAKE_INSTALL_PREFIX}")
+message(STATUS "  │  Asset root : ${CMAKE_SOURCE_DIR}/assets  (compile-time fallback)")
 message(STATUS "  └─────────────────────────────────────────┘")
 message(STATUS "")

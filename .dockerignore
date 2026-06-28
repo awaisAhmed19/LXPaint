@@ -1,0 +1,31 @@
+# =============================================================================
+# .dockerignore — lives at the PROJECT ROOT
+#
+# Docker reads this before sending the build context to the daemon.
+# Run builds from the project root: docker build -f Paint_release/Ubuntu/dockerfile .
+# =============================================================================
+
+# Build artifacts from local machine
+build/
+*.log
+imgui.ini
+compile_commands.json
+
+# SDL and SDL_ttf source trees — not needed in Docker because dev-install.sh
+# installs them as system packages (libsdl3-dev etc.).
+# external/imgui IS needed: CMakeLists.txt vendors it directly.
+external/SDL/
+external/SDL_ttf/
+
+# Documentation and notes — not part of the build
+Documentation/
+Notes/
+
+# Packaging output
+lxpaint.zip
+Paint_release/
+
+# Git internals
+.git/
+.gitignore
+.gitmodules

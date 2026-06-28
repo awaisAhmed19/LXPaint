@@ -1,5 +1,6 @@
 #include "Toolbar.h"
 #include "App/Globals.h"
+#include "Core/AssetManager.h"
 #include "FooterMessages.h"
 #include "HoverStatus.h"
 #include "UI/LayoutEngine/UILayoutConstant.h"
@@ -99,27 +100,38 @@ void Toolbar::sunkenBorder(ImDrawList *dl, ImVec2 min, ImVec2 max, float) {
 
 bool Toolbar::init() {
   bool ok = true;
+
   for (int i = 0; i < TotalButtons; ++i) {
-    std::string path =
-        "../assets/tools_icons/" + std::string(kButtons[i].iconName) + ".png";
+    const std::string path =
+        AssetManager::toolIcon(std::string(kButtons[i].iconName) + ".png")
+            .string();
     m_textures[i] = IMG_LoadTexture(m_renderer, path.c_str());
     if (!m_textures[i]) {
       SDL_Log("Toolbar: failed to load '%s': %s", path.c_str(), SDL_GetError());
       ok = false;
     }
   }
-  m_backgroundOpaqueIcon = IMG_LoadTexture(
-      m_renderer, "../assets/tools_icons/options-transparency-top.png");
-  m_backgroundTransparentIcon = IMG_LoadTexture(
-      m_renderer, "../assets/tools_icons/options-transparency-bottom.png");
-  if (!m_backgroundOpaqueIcon) {
-    SDL_Log("%s", SDL_GetError());
-    ok = false;
+
+  {
+    const std::string path =
+        AssetManager::toolIcon("options-transparency-top.png").string();
+    m_backgroundOpaqueIcon = IMG_LoadTexture(m_renderer, path.c_str());
+    if (!m_backgroundOpaqueIcon) {
+      SDL_Log("Toolbar: failed to load '%s': %s", path.c_str(), SDL_GetError());
+      ok = false;
+    }
   }
-  if (!m_backgroundTransparentIcon) {
-    SDL_Log("%s", SDL_GetError());
-    ok = false;
+
+  {
+    const std::string path =
+        AssetManager::toolIcon("options-transparency-bottom.png").string();
+    m_backgroundTransparentIcon = IMG_LoadTexture(m_renderer, path.c_str());
+    if (!m_backgroundTransparentIcon) {
+      SDL_Log("Toolbar: failed to load '%s': %s", path.c_str(), SDL_GetError());
+      ok = false;
+    }
   }
+
   return ok;
 }
 
@@ -259,8 +271,7 @@ void Toolbar::renderFillModes(Editor &editor, ImDrawList *dl, ImVec2 origin,
   const float cellW = optionWidth;
   const float cellH = (optionHeight - gap * 2.0f) / 3.0f;
 
-  // Which tool is active determines which message key to use for fill options
-  const char *fillKey = FooterMessages::Key::Rectangle; // fallback
+  const char *fillKey = FooterMessages::Key::Rectangle;
 
   for (int i = 0; i < 3; ++i) {
     ImVec2 btnMin = {origin.x + 1.f, origin.y + 1.f + i * (cellH + gap)};
@@ -409,10 +420,7 @@ void Toolbar::renderBackgroundModeIcons(Editor &editor, ImDrawList *dl,
       (ImTextureID)m_backgroundTransparentIcon,
   };
 
-  // The message key depends on which tool is using this option panel.
-  // We just show the active tool's message; a generic "background mode"
-  // string doesn't exist in the classic table.
-  const char *key = FooterMessages::Key::RectSelect; // default fallback
+  const char *key = FooterMessages::Key::RectSelect;
 
   for (int i = 0; i < 2; ++i) {
     ToolSettings::BackgroundMode mode =
@@ -550,7 +558,6 @@ void Toolbar::render(Editor &editor) {
     if (ImGui::IsItemClicked())
       m_activeTool = kButtons[i].type;
 
-    // ── Hover → push footer message ──────────────────────────────────
     if (ImGui::IsItemHovered())
       HoverStatus::push(kButtons[i].messageKey);
 
