@@ -103,10 +103,6 @@ void Application::handleEvents() {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  Render
-// ─────────────────────────────────────────────────────────────────────────────
-
 void Application::render() {
   ImGui_ImplSDLRenderer3_NewFrame();
   ImGui_ImplSDL3_NewFrame();

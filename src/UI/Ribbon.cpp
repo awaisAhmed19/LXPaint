@@ -1,5 +1,5 @@
 #include "Ribbon.h"
-#include "App/FooterMessages.h"
+#include "FooterMessages.h"
 #include "Systems/Logger.h"
 #include "UI/LayoutEngine/UILayoutConstant.h"
 #include "imgui.h"
@@ -20,10 +20,6 @@ constexpr ImU32 TextColor = IM_COL32(0, 0, 0, 255);
 } // namespace Theme
 
 Ribbon::Ribbon(int w, int h) : m_w(w), m_h(h) { buildMenus(); }
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  Menu item builders  — every item gets a hoverKey from FooterMessages::Key
-// ─────────────────────────────────────────────────────────────────────────────
 
 std::vector<MenuItem> Ribbon::buildFileMenu() {
   using MI = MenuItem;
@@ -149,10 +145,6 @@ void Ribbon::buildMenus() {
   Logger::debug("Building ribbon menus");
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  Border helpers
-// ─────────────────────────────────────────────────────────────────────────────
-
 void Ribbon::raisedBorder(ImDrawList *dl, ImVec2 min, ImVec2 max, float) {
   dl->AddLine(min, {max.x, min.y}, Theme::WHITE, 1.0f);
   dl->AddLine(min, {min.x, max.y}, Theme::WHITE, 1.0f);
@@ -173,10 +165,6 @@ void Ribbon::layout(const ImGuiViewport *vp) {
 }
 
 float Ribbon::preferredHeight() const { return UI::Layout::RibbonHeight; }
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  render
-// ─────────────────────────────────────────────────────────────────────────────
 
 void Ribbon::render(Editor &editor) {
   constexpr float kBorderThickness = 1.f;
