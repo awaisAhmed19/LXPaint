@@ -59,6 +59,18 @@ confirm() {
 	[[ "$ans" =~ ^[Yy]$ ]]
 }
 
+# ── Sudo handling ─────────────────────────────────────────────────────────────
+# In containers (Docker builds) we're already root and there is no `sudo`
+# binary at all. NEED_SUDO is a plain boolean — every place that previously
+# prefixed a command with "$SUDO" now branches into two fully-literal array
+# assignments instead. This keeps every array element a real, static token,
+# so shfmt/shellcheck-driven formatters have nothing to "fix" by re-quoting
+# an empty variable.
+NEED_SUDO=true
+if [[ $EUID -eq 0 ]]; then
+	NEED_SUDO=false
+fi
+
 # ── Distribution detection ────────────────────────────────────────────────────
 detect_distro() {
 	[[ -f /etc/os-release ]] || die "/etc/os-release not found."
@@ -89,7 +101,11 @@ resolve_packages() {
 		case "$1" in
 		arch)
 			PKG_MANAGER="pacman"
-			INSTALL_CMD=(sudo pacman -S --needed --noconfirm)
+			if "$NEED_SUDO"; then
+				INSTALL_CMD=(sudo pacman -S --needed --noconfirm)
+			else
+				INSTALL_CMD=(pacman -S --needed --noconfirm)
+			fi
 			# Arch bundles headers in the main package (no -dev split).
 			TOOL_PKGS=(base-devel cmake ninja git pkgconf gdb clang)
 			SDL_PC_NAMES=(sdl3 sdl3-image sdl3-ttf)
@@ -97,42 +113,66 @@ resolve_packages() {
 			;;
 		debian)
 			PKG_MANAGER="apt"
-			INSTALL_CMD=(sudo apt-get install -y)
+			if "$NEED_SUDO"; then
+				INSTALL_CMD=(sudo apt-get install -y)
+			else
+				INSTALL_CMD=(apt-get install -y)
+			fi
 			TOOL_PKGS=(build-essential cmake ninja-build git pkg-config gdb clangd)
 			SDL_PC_NAMES=(sdl3 SDL3_image SDL3_ttf)
 			SDL_PKGS=(libsdl3-dev libsdl3-image-dev libsdl3-ttf-dev)
 			;;
 		fedora)
 			PKG_MANAGER="dnf"
-			INSTALL_CMD=(sudo dnf install -y)
+			if "$NEED_SUDO"; then
+				INSTALL_CMD=(sudo dnf install -y)
+			else
+				INSTALL_CMD=(dnf install -y)
+			fi
 			TOOL_PKGS=(gcc gcc-c++ cmake ninja-build git pkgconf gdb clang clang-tools-extra)
 			SDL_PC_NAMES=(sdl3 SDL3_image SDL3_ttf)
 			SDL_PKGS=(SDL3-devel SDL3_image-devel SDL3_ttf-devel)
 			;;
 		suse)
 			PKG_MANAGER="zypper"
-			INSTALL_CMD=(sudo zypper install -y)
+			if "$NEED_SUDO"; then
+				INSTALL_CMD=(sudo zypper install -y)
+			else
+				INSTALL_CMD=(zypper install -y)
+			fi
 			TOOL_PKGS=(gcc gcc-c++ cmake ninja git pkg-config gdb clang)
 			SDL_PC_NAMES=(sdl3 SDL3_image SDL3_ttf)
 			SDL_PKGS=(libSDL3-devel libSDL3_image-devel libSDL3_ttf-devel)
 			;;
 		void)
 			PKG_MANAGER="xbps"
-			INSTALL_CMD=(sudo xbps-install -Sy)
+			if "$NEED_SUDO"; then
+				INSTALL_CMD=(sudo xbps-install -Sy)
+			else
+				INSTALL_CMD=(xbps-install -Sy)
+			fi
 			TOOL_PKGS=(gcc cmake ninja git pkg-config gdb)
 			SDL_PC_NAMES=(sdl3 SDL3_image SDL3_ttf)
 			SDL_PKGS=(SDL3-devel SDL3_image-devel SDL3_ttf-devel)
 			;;
 		alpine)
 			PKG_MANAGER="apk"
-			INSTALL_CMD=(sudo apk add --no-cache)
+			if "$NEED_SUDO"; then
+				INSTALL_CMD=(sudo apk add --no-cache)
+			else
+				INSTALL_CMD=(apk add --no-cache)
+			fi
 			TOOL_PKGS=(build-base cmake ninja git pkgconf gdb)
 			SDL_PC_NAMES=(sdl3 sdl3_image sdl3_ttf)
 			SDL_PKGS=(sdl3-dev sdl3_image-dev sdl3_ttf-dev)
 			;;
 		gentoo)
 			PKG_MANAGER="emerge"
-			INSTALL_CMD=(sudo emerge --ask=n)
+			if "$NEED_SUDO"; then
+				INSTALL_CMD=(sudo emerge --ask=n)
+			else
+				INSTALL_CMD=(emerge --ask=n)
+			fi
 			TOOL_PKGS=(dev-build/cmake dev-build/ninja dev-vcs/git dev-util/pkgconf dev-util/gdb)
 			SDL_PC_NAMES=(sdl3 SDL3_image SDL3_ttf)
 			SDL_PKGS=(media-libs/libsdl3 media-libs/sdl3-image media-libs/sdl3-ttf)
@@ -278,15 +318,27 @@ report_dependencies() {
 # ── Package index update ───────────────────────────────────────────────────────
 # Only called when there are packages to install.
 update_index() {
-	case "$PKG_MANAGER" in
-	pacman) sudo pacman -Sy ;;
-	apt) sudo apt-get update -qq ;;
-	dnf) sudo dnf check-update -q || true ;; # exits 100 when updates exist
-	zypper) sudo zypper refresh ;;
-	xbps) sudo xbps-install -S ;;
-	apk) sudo apk update ;;
-	emerge) : ;;
-	esac
+	if "$NEED_SUDO"; then
+		case "$PKG_MANAGER" in
+		pacman) sudo pacman -Sy ;;
+		apt) sudo apt-get update -qq ;;
+		dnf) sudo dnf check-update -q || true ;; # exits 100 when updates exist
+		zypper) sudo zypper refresh ;;
+		xbps) sudo xbps-install -S ;;
+		apk) sudo apk update ;;
+		emerge) : ;;
+		esac
+	else
+		case "$PKG_MANAGER" in
+		pacman) pacman -Sy ;;
+		apt) apt-get update -qq ;;
+		dnf) dnf check-update -q || true ;; # exits 100 when updates exist
+		zypper) zypper refresh ;;
+		xbps) xbps-install -S ;;
+		apk) apk update ;;
+		emerge) : ;;
+		esac
+	fi
 }
 
 # ── Selective installation ─────────────────────────────────────────────────────

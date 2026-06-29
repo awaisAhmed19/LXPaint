@@ -40,9 +40,7 @@ Window::Size Window::size() const {
   SDL_GetRenderScale(m_renderer, &sx, &sy);
 
   std::cout << "Window      : " << ww << " x " << wh << '\n';
-
   std::cout << "Framebuffer : " << pw << " x " << ph << '\n';
-
   std::cout << "RenderScale : " << sx << ", " << sy << '\n';
   return size;
 }

@@ -51,6 +51,18 @@ confirm() {
 	[[ "$ans" =~ ^[Yy]$ ]]
 }
 
+# ── Sudo handling ─────────────────────────────────────────────────────────────
+# In containers (Docker builds) we're already root and there is no `sudo`
+# binary at all. NEED_SUDO is a plain boolean — every place that previously
+# prefixed a command with "$SUDO" now branches into two fully-literal array
+# assignments instead. This keeps every array element a real, static token,
+# so shfmt/shellcheck-driven formatters have nothing to "fix" by re-quoting
+# an empty variable.
+NEED_SUDO=true
+if [[ $EUID -eq 0 ]]; then
+	NEED_SUDO=false
+fi
+
 # ── Distribution detection ────────────────────────────────────────────────────
 detect_distro() {
 	if [[ ! -f /etc/os-release ]]; then
@@ -78,14 +90,22 @@ resolve_package_manager() {
 	case "$DISTRO_ID" in
 	arch | manjaro | endeavouros | garuda | artix)
 		PKG_MANAGER="pacman"
-		INSTALL_CMD=(sudo pacman -S --needed --noconfirm)
+		if "$NEED_SUDO"; then
+			INSTALL_CMD=(sudo pacman -S --needed --noconfirm)
+		else
+			INSTALL_CMD=(pacman -S --needed --noconfirm)
+		fi
 		RUNTIME_PKGS=(sdl3 sdl3_image sdl3_ttf)
 		;;
 	*)
 		# Fall through to ID_LIKE checks
 		if [[ "$DISTRO_LIKE" == *arch* ]]; then
 			PKG_MANAGER="pacman"
-			INSTALL_CMD=(sudo pacman -S --needed --noconfirm)
+			if "$NEED_SUDO"; then
+				INSTALL_CMD=(sudo pacman -S --needed --noconfirm)
+			else
+				INSTALL_CMD=(pacman -S --needed --noconfirm)
+			fi
 			RUNTIME_PKGS=(sdl3 sdl3_image sdl3_ttf)
 			return
 		fi
@@ -97,7 +117,11 @@ resolve_package_manager() {
 	case "$DISTRO_ID" in
 	debian | ubuntu | linuxmint | pop | elementary | zorin | kali | raspbian)
 		PKG_MANAGER="apt"
-		INSTALL_CMD=(sudo apt-get install -y)
+		if "$NEED_SUDO"; then
+			INSTALL_CMD=(sudo apt-get install -y)
+		else
+			INSTALL_CMD=(apt-get install -y)
+		fi
 		# SDL3 landed in Debian trixie / Ubuntu 24.04+
 		# Older releases may require a PPA or manual build.
 		RUNTIME_PKGS=(libsdl3-0 libsdl3-image-0 libsdl3-ttf-0)
@@ -105,7 +129,11 @@ resolve_package_manager() {
 	*)
 		if [[ "$DISTRO_LIKE" == *debian* || "$DISTRO_LIKE" == *ubuntu* ]]; then
 			PKG_MANAGER="apt"
-			INSTALL_CMD=(sudo apt-get install -y)
+			if "$NEED_SUDO"; then
+				INSTALL_CMD=(sudo apt-get install -y)
+			else
+				INSTALL_CMD=(apt-get install -y)
+			fi
 			RUNTIME_PKGS=(libsdl3-0 libsdl3-image-0 libsdl3-ttf-0)
 			return
 		fi
@@ -117,13 +145,21 @@ resolve_package_manager() {
 	case "$DISTRO_ID" in
 	fedora | rhel | centos | almalinux | rocky | nobara)
 		PKG_MANAGER="dnf"
-		INSTALL_CMD=(sudo dnf install -y)
+		if "$NEED_SUDO"; then
+			INSTALL_CMD=(sudo dnf install -y)
+		else
+			INSTALL_CMD=(dnf install -y)
+		fi
 		RUNTIME_PKGS=(SDL3 SDL3_image SDL3_ttf)
 		;;
 	*)
 		if [[ "$DISTRO_LIKE" == *fedora* || "$DISTRO_LIKE" == *rhel* ]]; then
 			PKG_MANAGER="dnf"
-			INSTALL_CMD=(sudo dnf install -y)
+			if "$NEED_SUDO"; then
+				INSTALL_CMD=(sudo dnf install -y)
+			else
+				INSTALL_CMD=(dnf install -y)
+			fi
 			RUNTIME_PKGS=(SDL3 SDL3_image SDL3_ttf)
 			return
 		fi
@@ -135,13 +171,21 @@ resolve_package_manager() {
 	case "$DISTRO_ID" in
 	opensuse* | sles)
 		PKG_MANAGER="zypper"
-		INSTALL_CMD=(sudo zypper install -y)
+		if "$NEED_SUDO"; then
+			INSTALL_CMD=(sudo zypper install -y)
+		else
+			INSTALL_CMD=(zypper install -y)
+		fi
 		RUNTIME_PKGS=(libSDL3-0 libSDL3_image-0 libSDL3_ttf-0)
 		;;
 	*)
 		if [[ "$DISTRO_LIKE" == *suse* ]]; then
 			PKG_MANAGER="zypper"
-			INSTALL_CMD=(sudo zypper install -y)
+			if "$NEED_SUDO"; then
+				INSTALL_CMD=(sudo zypper install -y)
+			else
+				INSTALL_CMD=(zypper install -y)
+			fi
 			RUNTIME_PKGS=(libSDL3-0 libSDL3_image-0 libSDL3_ttf-0)
 			return
 		fi
@@ -153,17 +197,29 @@ resolve_package_manager() {
 	case "$DISTRO_ID" in
 	void)
 		PKG_MANAGER="xbps"
-		INSTALL_CMD=(sudo xbps-install -Sy)
+		if "$NEED_SUDO"; then
+			INSTALL_CMD=(sudo xbps-install -Sy)
+		else
+			INSTALL_CMD=(xbps-install -Sy)
+		fi
 		RUNTIME_PKGS=(SDL3 SDL3_image SDL3_ttf)
 		;;
 	alpine)
 		PKG_MANAGER="apk"
-		INSTALL_CMD=(sudo apk add --no-cache)
+		if "$NEED_SUDO"; then
+			INSTALL_CMD=(sudo apk add --no-cache)
+		else
+			INSTALL_CMD=(apk add --no-cache)
+		fi
 		RUNTIME_PKGS=(sdl3 sdl3_image sdl3_ttf)
 		;;
 	gentoo)
 		PKG_MANAGER="emerge"
-		INSTALL_CMD=(sudo emerge --ask=n)
+		if "$NEED_SUDO"; then
+			INSTALL_CMD=(sudo emerge --ask=n)
+		else
+			INSTALL_CMD=(emerge --ask=n)
+		fi
 		RUNTIME_PKGS=(media-libs/libsdl3 media-libs/sdl3-image media-libs/sdl3-ttf)
 		log_warn "Gentoo support is best-effort. USE flags may need manual adjustment."
 		;;
@@ -211,15 +267,27 @@ check_already_installed() {
 
 # ── Update package index ───────────────────────────────────────────────────────
 update_package_index() {
-	case "$PKG_MANAGER" in
-	pacman) sudo pacman -Sy ;;
-	apt) sudo apt-get update -qq ;;
-	dnf) sudo dnf check-update -q || true ;; # dnf returns 100 if updates exist
-	zypper) sudo zypper refresh ;;
-	xbps) sudo xbps-install -S ;;
-	apk) sudo apk update ;;
-	emerge) : ;; # emerge syncs automatically
-	esac
+	if "$NEED_SUDO"; then
+		case "$PKG_MANAGER" in
+		pacman) sudo pacman -Sy ;;
+		apt) sudo apt-get update -qq ;;
+		dnf) sudo dnf check-update -q || true ;; # dnf returns 100 if updates exist
+		zypper) sudo zypper refresh ;;
+		xbps) sudo xbps-install -S ;;
+		apk) sudo apk update ;;
+		emerge) : ;; # emerge syncs automatically
+		esac
+	else
+		case "$PKG_MANAGER" in
+		pacman) pacman -Sy ;;
+		apt) apt-get update -qq ;;
+		dnf) dnf check-update -q || true ;; # dnf returns 100 if updates exist
+		zypper) zypper refresh ;;
+		xbps) xbps-install -S ;;
+		apk) apk update ;;
+		emerge) : ;; # emerge syncs automatically
+		esac
+	fi
 }
 
 # ── SDL3 availability warning ──────────────────────────────────────────────────
@@ -244,7 +312,11 @@ warn_if_sdl3_unavailable() {
 	dnf)
 		if ! dnf list "${RUNTIME_PKGS[0]}" &>/dev/null; then
 			log_warn "SDL3 not found in dnf repos. You may need RPM Fusion."
-			log_warn "  sudo dnf install https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm"
+			if "$NEED_SUDO"; then
+				log_warn "  sudo dnf install https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm"
+			else
+				log_warn "  dnf install https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm"
+			fi
 			if ! confirm "Continue anyway?"; then
 				exit 1
 			fi

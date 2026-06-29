@@ -7,7 +7,6 @@ project(
     LANGUAGES CXX
 )
 
-
 # Default to Debug when nothing is specified.
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     message(STATUS "Build type not set — defaulting to Debug")
@@ -20,7 +19,6 @@ endif()
 
 # Helps IDEs and clangd find the right files.
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
 
 find_package(PkgConfig REQUIRED)
 
@@ -50,7 +48,6 @@ if(NOT TARGET SDL3_ttf::SDL3_ttf)
     add_library(SDL3_ttf::SDL3_ttf ALIAS PkgConfig::SDL3_ttf)
 endif()
 
-
 set(IMGUI_DIR "${CMAKE_SOURCE_DIR}/external/imgui")
 set(IMGUI_SOURCES
     "${IMGUI_DIR}/imgui.cpp"
@@ -73,8 +70,8 @@ target_include_directories(stb INTERFACE "${CMAKE_SOURCE_DIR}/third_party")
 
 # Glob is intentional here: the file list grows with every new tool/dialog. Any
 # CMake-aware IDE will re-run cmake when CMakeLists.txt changes, so the
-# CONFIGURE_DEPENDS flag keeps it accurate during development.
-# src/Core/ is included automatically — no manual listing required.
+# CONFIGURE_DEPENDS flag keeps it accurate during development. src/Core/ is
+# included automatically — no manual listing required.
 file(
     GLOB_RECURSE APP_SOURCES
     CONFIGURE_DEPENDS
@@ -97,18 +94,17 @@ target_link_libraries(
 # AssetManager searches several runtime locations first (executable directory,
 # parent directory, cwd).  If none of them contain the assets tree — which
 # happens when the binary is launched from an arbitrary working directory with
-# no deployment step, e.g. directly from an IDE debugger — this definition
-# gives it a guaranteed absolute path that always works on the developer's
-# machine.
+# no deployment step, e.g. directly from an IDE debugger — this definition gives
+# it a guaranteed absolute path that always works on the developer's machine.
 #
 # The value intentionally points at the *source* tree so in-tree development
-# (bootstrap.sh → build.sh) works without a cmake --install step.
-# Production packages will find the assets via the executable-relative path
-# set up by the install(DIRECTORY …) rule below and will never need this
-# fallback.
+# (bootstrap.sh → build.sh) works without a cmake --install step. Production
+# packages will find the assets via the executable-relative path set up by the
+# install(DIRECTORY …) rule below and will never need this fallback.
 
-target_compile_definitions(lxpaint PRIVATE
-    LX_ASSET_DIR="${CMAKE_SOURCE_DIR}/assets"
+target_compile_definitions(
+    lxpaint
+    PRIVATE LX_ASSET_DIR="${CMAKE_SOURCE_DIR}/assets"
 )
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
@@ -132,11 +128,10 @@ if(MSVC)
     target_compile_options(lxpaint PRIVATE /W4 /permissive-)
 endif()
 
-
 set(ASSETS_SRC "${CMAKE_SOURCE_DIR}/assets")
 
-# Copy assets to the build tree so the binary can find them at runtime using
-# the executable-relative search path (../assets/ from the binary location).
+# Copy assets to the build tree so the binary can find them at runtime using the
+# executable-relative search path (../assets/ from the binary location).
 add_custom_command(
     TARGET lxpaint
     POST_BUILD
@@ -172,6 +167,9 @@ message(
 )
 message(STATUS "  │  Build dir  : ${CMAKE_BINARY_DIR}")
 message(STATUS "  │  Install to : ${CMAKE_INSTALL_PREFIX}")
-message(STATUS "  │  Asset root : ${CMAKE_SOURCE_DIR}/assets  (compile-time fallback)")
+message(
+    STATUS
+    "  │  Asset root : ${CMAKE_SOURCE_DIR}/assets  (compile-time fallback)"
+)
 message(STATUS "  └─────────────────────────────────────────┘")
 message(STATUS "")

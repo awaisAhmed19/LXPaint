@@ -14,8 +14,8 @@ compile_commands.json
 # SDL and SDL_ttf source trees — not needed in Docker because dev-install.sh
 # installs them as system packages (libsdl3-dev etc.).
 # external/imgui IS needed: CMakeLists.txt vendors it directly.
-external/SDL/
-external/SDL_ttf/
+# external/SDL/
+# external/SDL_ttf/
 
 # Documentation and notes — not part of the build
 Documentation/

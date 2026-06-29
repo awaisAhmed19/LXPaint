@@ -6,8 +6,10 @@ namespace MATH {
 
 inline bool MouseOverPoint(vec2 target, vec2 mouse) {
   float hoverDistance = 10.0f;
-  float distance = std::sqrtf(std::powf(mouse.x - target.x, 2) +
-                              std::powf(mouse.y - target.y, 2));
+  float dx = mouse.x - target.x;
+  float dy = mouse.y - target.y;
+
+  float distance = std::sqrt(dx * dx + dy * dy);
   return distance <= hoverDistance;
 }
 }; // namespace MATH
