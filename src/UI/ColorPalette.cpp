@@ -1,16 +1,13 @@
 #include "ColorPalette.h"
+#include "BorderRenderer.h"
 #include "LayoutEngine/UILayoutConstant.h"
+#include "RetroWindow.h"
+#include "Theme.h"
 #include "imgui.h"
 #include <SDL3/SDL.h>
 #include <algorithm>
 
 namespace UI {
-
-namespace Theme {
-constexpr ImU32 BLACK = IM_COL32(0, 0, 0, 255);
-constexpr ImU32 WHITE = IM_COL32(255, 255, 255, 255);
-constexpr ImU32 PaletteBg = IM_COL32(192, 192, 192, 255);
-} // namespace Theme
 
 // 28 classic MS Paint colors, 2 kRows x 14 kColumns
 static constexpr ImVec4 k_palette[28] = {
@@ -48,20 +45,17 @@ static constexpr ImVec4 k_palette[28] = {
 
 ColorPalette::ColorPalette(int w, int h) : m_w(w), m_h(h) {}
 
+// Kept as thin forwarders to the shared BorderRenderer so the existing
+// header API (and any external callers using the member names) keeps
+// working — ColorPalette no longer owns its own bevel-drawing logic.
 void ColorPalette::raisedBorder(ImDrawList *drawlist, ImVec2 min, ImVec2 max,
                                 float thickness) {
-  drawlist->AddLine(min, {max.x, min.y}, Theme::WHITE, 1.0f);
-  drawlist->AddLine(min, {min.x, max.y}, Theme::WHITE, 1.0f);
-  drawlist->AddLine({min.x, max.y}, max, Theme::BLACK, 1.0f);
-  drawlist->AddLine({max.x, min.y}, max, Theme::BLACK, 1.0f);
+  BorderRenderer::Raised(drawlist, min, max, thickness);
 }
 
 void ColorPalette::sunkenBorder(ImDrawList *drawlist, ImVec2 min, ImVec2 max,
                                 float thickness) {
-  drawlist->AddLine(min, {max.x, min.y}, Theme::BLACK, 1.0f);
-  drawlist->AddLine(min, {min.x, max.y}, Theme::BLACK, 1.0f);
-  drawlist->AddLine({min.x, max.y}, max, Theme::WHITE, 1.0f);
-  drawlist->AddLine({max.x, min.y}, max, Theme::WHITE, 1.0f);
+  BorderRenderer::Sunken(drawlist, min, max, thickness);
 }
 
 uint32_t ColorPalette::toU32(const ImVec4 &color) {
@@ -73,9 +67,9 @@ uint32_t ColorPalette::toU32(const ImVec4 &color) {
   return (static_cast<uint32_t>(a) << 24) | (static_cast<uint32_t>(r) << 16) |
          (static_cast<uint32_t>(g) << 8) | static_cast<uint32_t>(b);
 }
+
 void ColorPalette::drawFgBgSelector(ImDrawList *drawlist, ImVec2 origin) {
   const float bigSize = 22.0f;
-  // const float smallSize = 16.0f;
   const float offset = 9.0f;
 
   // Background square (drawn first, behind)
@@ -83,14 +77,14 @@ void ColorPalette::drawFgBgSelector(ImDrawList *drawlist, ImVec2 origin) {
   ImVec2 bgMax = {bgMin.x + bigSize, bgMin.y + bigSize};
   drawlist->AddRectFilled(bgMin, bgMax,
                           ImGui::ColorConvertFloat4ToU32(m_bgColor));
-  sunkenBorder(drawlist, bgMin, bgMax);
+  BorderRenderer::Sunken(drawlist, bgMin, bgMax);
 
   // Foreground square (drawn on top)
   ImVec2 fgMin = {origin.x, origin.y};
   ImVec2 fgMax = {fgMin.x + bigSize, fgMin.y + bigSize};
   drawlist->AddRectFilled(fgMin, fgMax,
                           ImGui::ColorConvertFloat4ToU32(m_fgColor));
-  sunkenBorder(drawlist, fgMin, fgMax);
+  BorderRenderer::Sunken(drawlist, fgMin, fgMax);
 
   // Click fg square → swap fg/bg (right-click sets bg)
   ImGui::SetCursorScreenPos(fgMin);
@@ -99,32 +93,12 @@ void ColorPalette::drawFgBgSelector(ImDrawList *drawlist, ImVec2 origin) {
     std::swap(m_fgColor, m_bgColor);
   }
 }
-/*
-float ColorPalette::preferredHeight() const {
-  constexpr int rows = 2;
 
-  constexpr float swatchSize = 16.0f;
-  constexpr float swatchGap = 1.5f;
-
-  constexpr float selectorSize = 22.0f;
-
-  ImGuiStyle &style = ImGui::GetStyle();
-
-  const float gridHeight = rows * swatchSize + (rows - 1) * swatchGap;
-
-  const float contentHeight = std::max(gridHeight, selectorSize);
-
-  return contentHeight + style.WindowPadding.y * 2.0f;
-}
-*/
 float ColorPalette::preferredHeight() const {
   return UI::Layout::PaletteHeight;
 }
 
 void ColorPalette::render() {
-  //--------------------------------------------------------------------------
-  // Layout constants
-  //--------------------------------------------------------------------------
 
   constexpr int kColumns = 14;
   constexpr int kRows = 2;
@@ -137,116 +111,98 @@ void ColorPalette::render() {
 
   constexpr ImVec2 kPadding{10.0f, 16.0f};
 
-  //--------------------------------------------------------------------------
-  // Derived layout
-  //--------------------------------------------------------------------------
-
   const float swatchGridHeight = kRows * kSwatchSize + (kRows - 1) * kSwatchGap;
-
   const float contentHeight = std::max(kSelectorSize, swatchGridHeight);
-
   const float panelHeight = contentHeight + kPadding.y * 2.0f;
 
   ImGuiViewport *vp = ImGui::GetMainViewport();
+  const float footerHeight = UI::Layout::FooterHeight;
 
-  const float footerHeight =
-      UI::Layout::FooterHeight; // DONE :  TODO: replace with
-                                // layout.footerHeight
+  RetroWindowDesc desc;
+  desc.pos = {vp->Pos.x, vp->Pos.y + vp->Size.y - footerHeight - panelHeight};
+  desc.size = {vp->Size.x, panelHeight};
+  desc.windowPadding = kPadding;
+  desc.itemSpacing = {kSwatchGap, kSwatchGap};
+  desc.framePadding = {0.f, 0.f};
+  desc.bg = Theme::WindowBg;
+  desc.text = Theme::TextColor;
 
-  ImGui::SetNextWindowPos(
-      {vp->Pos.x, vp->Pos.y + vp->Size.y - footerHeight - panelHeight},
-      ImGuiCond_Always);
+  ImVec2 winMin, winMax;
 
-  ImGui::SetNextWindowSize({vp->Size.x, panelHeight}, ImGuiCond_Always);
+  {
+    RetroWindow win("ColorPalette", desc);
+    ImDrawList *dl = win.drawList();
 
-  //--------------------------------------------------------------------------
+    // The window-level Button/ButtonHovered/ButtonActive colors RetroWindow
+    // pushes use Theme::ButtonBg/Hover/Active by default; this panel wants
+    // all three flattened to the panel background instead (swatches and the
+    // fg/bg selector are drawn manually, not via ImGui::Button), so push
+    // overrides on top for the lifetime of this block.
+    ImGui::PushStyleColor(ImGuiCol_Button, Theme::WindowBg);
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, Theme::WindowBg);
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, Theme::WindowBg);
 
-  ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, {0, 0});
-  ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, kPadding);
-  ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {kSwatchGap, kSwatchGap});
-  ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {0, 0});
+    const float selectorY = (contentHeight - kSelectorSize) * 0.5f;
+    const float paletteY = (contentHeight - swatchGridHeight) * 0.5f;
 
-  ImGui::PushStyleColor(ImGuiCol_WindowBg, Theme::PaletteBg);
-  ImGui::PushStyleColor(ImGuiCol_Button, Theme::PaletteBg);
-  ImGui::PushStyleColor(ImGuiCol_ButtonHovered, Theme::PaletteBg);
-  ImGui::PushStyleColor(ImGuiCol_ButtonActive, Theme::PaletteBg);
+    drawFgBgSelector(dl, {ImGui::GetWindowPos().x + kPadding.x,
+                          ImGui::GetWindowPos().y + kPadding.y + selectorY});
 
-  ImGui::Begin("ColorPalette", nullptr,
-               ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
-                   ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar |
-                   ImGuiWindowFlags_NoBringToFrontOnFocus |
-                   ImGuiWindowFlags_NoNavFocus);
+    ImGui::SetCursorPos({kSelectorArea + kSwatchGap, kPadding.y + paletteY});
 
-  ImDrawList *dl = ImGui::GetWindowDrawList();
+    const float startX = ImGui::GetCursorPosX();
 
-  //----------------------------------------------------------------------
-  // Vertically center selector and palette
-  //----------------------------------------------------------------------
+    for (int i = 0; i < kColumns * kRows; ++i) {
 
-  const float selectorY = (contentHeight - kSelectorSize) * 0.5f;
+      if (i && (i % kColumns) == 0)
+        ImGui::SetCursorPosX(startX);
 
-  const float paletteY = (contentHeight - swatchGridHeight) * 0.5f;
+      ImGui::PushID(i);
 
-  //----------------------------------------------------------------------
-  // Foreground / background selector
-  //----------------------------------------------------------------------
+      ImVec2 min = ImGui::GetCursorScreenPos();
+      ImVec2 max = {min.x + kSwatchSize, min.y + kSwatchSize};
 
-  drawFgBgSelector(dl, {ImGui::GetWindowPos().x + kPadding.x,
-                        ImGui::GetWindowPos().y + kPadding.y + selectorY});
+      dl->AddRectFilled(min, max, ImGui::ColorConvertFloat4ToU32(k_palette[i]));
 
-  //----------------------------------------------------------------------
-  // Palette
-  //----------------------------------------------------------------------
+      BorderRenderer::Sunken(dl, min, max);
 
-  ImGui::SetCursorPos({kSelectorArea + kSwatchGap, kPadding.y + paletteY});
+      ImGui::InvisibleButton("##swatch", {kSwatchSize, kSwatchSize});
 
-  const float startX = ImGui::GetCursorPosX();
+      if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
+        m_fgColor = k_palette[i];
+        m_fgIndex = i;
+      }
 
-  for (int i = 0; i < kColumns * kRows; ++i) {
+      if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
+        m_bgColor = k_palette[i];
+        m_bgIndex = i;
+      }
 
-    if (i && (i % kColumns) == 0)
-      ImGui::SetCursorPosX(startX);
+      if (i == m_fgIndex)
+        dl->AddRect(min, max, IM_COL32_WHITE, 0.0f, 0, 2.0f);
 
-    ImGui::PushID(i);
+      ImGui::PopID();
 
-    ImVec2 min = ImGui::GetCursorScreenPos();
-    ImVec2 max = {min.x + kSwatchSize, min.y + kSwatchSize};
-
-    dl->AddRectFilled(min, max, ImGui::ColorConvertFloat4ToU32(k_palette[i]));
-
-    sunkenBorder(dl, min, max);
-
-    ImGui::InvisibleButton("##swatch", {kSwatchSize, kSwatchSize});
-
-    if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
-      m_fgColor = k_palette[i];
-      m_fgIndex = i;
+      if ((i + 1) % kColumns != 0)
+        ImGui::SameLine();
     }
 
-    if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
-      m_bgColor = k_palette[i];
-      m_bgIndex = i;
-    }
+    ImGui::PopStyleColor(3);
 
-    if (i == m_fgIndex)
-      dl->AddRect(min, max, IM_COL32_WHITE, 0.0f, 0, 2.0f);
+    winMin = win.min();
+    winMax = win.max();
 
-    ImGui::PopID();
-
-    if ((i + 1) % kColumns != 0)
-      ImGui::SameLine();
+    // RetroWindow's destructor (end of this scope) calls ImGui::End() and
+    // pops the style vars/colors it pushed — the border below is drawn
+    // after that point, exactly as the original drew it after ImGui::End().
   }
 
-  ImVec2 winMin = ImGui::GetWindowPos();
-  ImVec2 winMax = {winMin.x + ImGui::GetWindowWidth(),
-                   winMin.y + ImGui::GetWindowHeight()};
-
-  ImGui::End();
-
-  raisedBorder(dl, winMin, winMax, 1.0f);
-
-  ImGui::PopStyleColor(4);
-  ImGui::PopStyleVar(4);
+  // dl is reused here purely for the post-End() border draw — Dear ImGui's
+  // window draw-list buffer remains valid for the rest of the frame, so
+  // this mirrors the original code's raisedBorder(dl, winMin, winMax, 1.0f)
+  // call made after End().
+  ImDrawList *finalDl = ImGui::GetForegroundDrawList();
+  BorderRenderer::Raised(finalDl, winMin, winMax, 1.0f);
 }
 
 } // namespace UI

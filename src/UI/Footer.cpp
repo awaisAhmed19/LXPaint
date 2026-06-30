@@ -1,33 +1,15 @@
 #include "Footer.h"
+#include "BorderRenderer.h"
 #include "HoverStatus.h"
 #include "LayoutEngine/UILayoutConstant.h"
+#include "RetroWindow.h"
+#include "Theme.h"
 #include "imgui.h"
 #include <cstdio>
 
 namespace UI {
 
-namespace Theme {
-constexpr ImU32 BLACK = IM_COL32(0, 0, 0, 255);
-constexpr ImU32 WHITE = IM_COL32(255, 255, 255, 255);
-constexpr ImU32 FooterBg = IM_COL32(192, 192, 192, 255);
-constexpr ImU32 TextColor = IM_COL32(0, 0, 0, 255);
-} // namespace Theme
-
 Footer::Footer(int w, int h) : m_w(w), m_h(h) {}
-
-void Footer::raisedBorder(ImDrawList *dl, ImVec2 min, ImVec2 max) {
-  dl->AddLine(min, {max.x, min.y}, Theme::WHITE, 1.0f); // top
-  dl->AddLine(min, {min.x, max.y}, Theme::WHITE, 1.0f); // left
-  dl->AddLine({min.x, max.y}, max, Theme::BLACK, 1.0f); // bottom
-  dl->AddLine({max.x, min.y}, max, Theme::BLACK, 1.0f); // right
-}
-
-void Footer::sunkenBorder(ImDrawList *dl, ImVec2 min, ImVec2 max) {
-  dl->AddLine(min, {max.x, min.y}, Theme::BLACK, 1.0f);
-  dl->AddLine(min, {min.x, max.y}, Theme::BLACK, 1.0f);
-  dl->AddLine({min.x, max.y}, max, Theme::WHITE, 1.0f);
-  dl->AddLine({max.x, min.y}, max, Theme::WHITE, 1.0f);
-}
 
 float Footer::preferredHeight() const { return UI::Layout::FooterHeight; }
 
@@ -42,26 +24,22 @@ void Footer::render() {
   ImGuiViewport *vp = ImGui::GetMainViewport();
   const float footerY = vp->Pos.y + vp->Size.y - footerHeight;
 
-  ImGui::SetNextWindowPos({vp->Pos.x, footerY});
-  ImGui::SetNextWindowSize({vp->Size.x, footerHeight});
+  // ── Window ───────────────────────────────────────────────────────────
+  // Replaces the manual PushStyleVar×4 / PushStyleColor×2 / Begin / End /
+  // Pop dance with the shared RAII wrapper — same visual result, no
+  // duplicated boilerplate.
+  RetroWindowDesc desc;
+  desc.pos = {vp->Pos.x, footerY};
+  desc.size = {vp->Size.x, footerHeight};
+  desc.itemSpacing = {gap, 0.f};
+  desc.framePadding = {10.f, 2.f};
+  desc.bg = Theme::WindowBg;
+  desc.text = Theme::TextColor;
 
-  ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, {0.f, 0.f});
-  ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0.f, 0.f});
-  ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {2.f, 0.f});
-  ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {10.f, 2.f});
+  RetroWindow win("Footer", desc);
+  ImDrawList *dl = win.drawList();
 
-  ImGui::PushStyleColor(ImGuiCol_WindowBg, Theme::FooterBg);
-  ImGui::PushStyleColor(ImGuiCol_Text, Theme::TextColor);
-
-  ImGui::Begin("Footer", nullptr,
-               ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
-                   ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar |
-                   ImGuiWindowFlags_NoBringToFrontOnFocus |
-                   ImGuiWindowFlags_NoNavFocus);
-
-  ImDrawList *dl = ImGui::GetWindowDrawList();
-
-  // ── Layout ───────────────────────────────────────────────────────────────
+  // ── Layout ───────────────────────────────────────────────────────────
 
   const ImVec2 origin = ImGui::GetCursorScreenPos();
 
@@ -82,19 +60,17 @@ void Footer::render() {
   ImVec2 sizeMin = {coordMax.x + gap, origin.y + pad};
   ImVec2 sizeMax = {sizeMin.x + sizeWidth, coordMin.y + h};
 
-  // ── Window border ─────────────────────────────────────────────────────────
+  // ── Window border ───────────────────────────────────────────────────
 
-  ImVec2 footerMin = {vp->Pos.x, footerY};
-  ImVec2 footerMax = {vp->Pos.x + vp->Size.x, footerY + footerHeight};
-  raisedBorder(dl, footerMin, footerMax);
+  BorderRenderer::Raised(dl, win.min(), win.max());
 
-  // ── Cell borders ──────────────────────────────────────────────────────────
+  // ── Cell borders ────────────────────────────────────────────────────
 
-  sunkenBorder(dl, textMin, textMax);
-  sunkenBorder(dl, coordMin, coordMax);
-  sunkenBorder(dl, sizeMin, sizeMax);
+  BorderRenderer::Sunken(dl, textMin, textMax);
+  BorderRenderer::Sunken(dl, coordMin, coordMax);
+  BorderRenderer::Sunken(dl, sizeMin, sizeMax);
 
-  // ── Help / hover text (left cell) ─────────────────────────────────────────
+  // ── Help / hover text (left cell) ───────────────────────────────────
 
   // Determine which text to show.
   // HoverStatus::current() returns the message for whatever widget was
@@ -109,7 +85,12 @@ void Footer::render() {
               helpText.c_str());
   dl->PopClipRect();
 
-  // ── Coordinates (centre cell) ─────────────────────────────────────────────
+  // ── Coordinates (centre cell) ───────────────────────────────────────
+  // m_mouseX/m_mouseY are canvas-space coordinates supplied by the Editor
+  // via setMousePos() — Footer never computes screen→canvas math itself,
+  // it only displays whatever it's told. Negative values (set when the
+  // mouse is outside the canvas) render as a blank cell rather than a
+  // misleading "0,0" or stale coordinate.
 
   char coordBuf[32];
   if (m_mouseX >= 0 && m_mouseY >= 0)
@@ -122,7 +103,7 @@ void Footer::render() {
               coordBuf);
   dl->PopClipRect();
 
-  // ── Canvas size (right cell) ──────────────────────────────────────────────
+  // ── Canvas size (right cell) ────────────────────────────────────────
 
   char sizeBuf[32];
   if (m_canvasW > 0 && m_canvasH > 0)
@@ -135,12 +116,10 @@ void Footer::render() {
               sizeBuf);
   dl->PopClipRect();
 
-  ImGui::End();
+  // RetroWindow's destructor (end of scope, right after this block) calls
+  // ImGui::End() and pops every style var/color pushed in its constructor.
 
-  ImGui::PopStyleColor(2);
-  ImGui::PopStyleVar(4);
-
-  // ── Reset hover state for next frame ──────────────────────────────────────
+  // ── Reset hover state for next frame ────────────────────────────────
   // This must happen AFTER drawing so nothing written this frame leaks
   // into the next frame if no widget pushes a message.
   HoverStatus::endFrame();

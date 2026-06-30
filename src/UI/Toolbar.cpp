@@ -1,9 +1,11 @@
 #include "Toolbar.h"
 #include "App/Globals.h"
+#include "BorderRenderer.h"
 #include "Core/AssetManager.h"
 #include "FooterMessages.h"
 #include "HoverStatus.h"
-#include "UI/LayoutEngine/UILayoutConstant.h"
+#include "RetroWindow.h"
+#include "Theme.h"
 #include "imgui.h"
 #include <SDL3/SDL_render.h>
 #include <SDL3_image/SDL_image.h>
@@ -14,24 +16,10 @@
 
 namespace UI {
 
-namespace Theme {
-constexpr ImU32 BLACK = IM_COL32(0, 0, 0, 255);
-constexpr ImU32 WHITE = IM_COL32(255, 255, 255, 255);
-constexpr ImU32 ToolbarBg = IM_COL32(192, 192, 192, 255);
-constexpr ImU32 ButtonBg = IM_COL32(192, 192, 192, 255);
-constexpr ImU32 ButtonHover = IM_COL32(210, 210, 210, 255);
-constexpr ImU32 ButtonActive = IM_COL32(150, 150, 150, 255);
-constexpr ImU32 TextColor = IM_COL32(0, 0, 0, 255);
-constexpr ImU32 OptionHovered = IM_COL32(0, 0, 50, 255);
-constexpr ImU32 Selected = IM_COL32(0, 0, 128, 255);
-} // namespace Theme
-
-// ─── Tool button metadata ────────────────────────────────────────────────────
-
 struct ToolButton {
   ToolType type;
   const char *iconName;
-  const char *messageKey; // FooterMessages::Key constant
+  const char *messageKey;
 };
 
 static constexpr ToolButton kButtons[] = {
@@ -54,88 +42,52 @@ static constexpr ToolButton kButtons[] = {
     {ToolType::RoundedRectangle, "16_rounded_rectangle",
      FooterMessages::Key::RoundedRect},
 };
-static constexpr int TotalButtons = static_cast<int>(std::size(kButtons));
+static constexpr int TotalButtonsLocal = static_cast<int>(std::size(kButtons));
 
 Toolbar::Toolbar(int w, int h, SDL_Renderer *renderer)
     : m_w(w), m_h(h), m_renderer(renderer) {}
 
 Toolbar::~Toolbar() {
-  for (int i = 0; i < TotalButtons; ++i) {
+  for (int i = 0; i < TotalButtonsLocal; ++i) {
     if (m_textures[i]) {
       SDL_DestroyTexture(m_textures[i]);
       m_textures[i] = nullptr;
     }
   }
-  if (m_backgroundTransparentIcon) {
+  if (m_backgroundTransparentIcon)
     SDL_DestroyTexture(m_backgroundTransparentIcon);
-    m_backgroundTransparentIcon = nullptr;
-  }
-  if (m_backgroundOpaqueIcon) {
+  if (m_backgroundOpaqueIcon)
     SDL_DestroyTexture(m_backgroundOpaqueIcon);
-    m_backgroundOpaqueIcon = nullptr;
-  }
-  // NOTE: do NOT destroy m_renderer here — it is owned by Window.
   m_renderer = nullptr;
 }
 
-// ─── Border helpers
-// ───────────────────────────────────────────────────────────
-
-void Toolbar::raisedBorder(ImDrawList *dl, ImVec2 min, ImVec2 max, float) {
-  dl->AddLine(min, {max.x, min.y}, Theme::WHITE, 1.0f);
-  dl->AddLine(min, {min.x, max.y}, Theme::WHITE, 1.0f);
-  dl->AddLine({min.x, max.y}, max, Theme::BLACK, 1.0f);
-  dl->AddLine({max.x, min.y}, max, Theme::BLACK, 1.0f);
-}
-
-void Toolbar::sunkenBorder(ImDrawList *dl, ImVec2 min, ImVec2 max, float) {
-  dl->AddLine(min, {max.x, min.y}, Theme::BLACK, 1.0f);
-  dl->AddLine(min, {min.x, max.y}, Theme::BLACK, 1.0f);
-  dl->AddLine({min.x, max.y}, max, Theme::WHITE, 1.0f);
-  dl->AddLine({max.x, min.y}, max, Theme::WHITE, 1.0f);
-}
-
-// ─── Texture loading
-// ──────────────────────────────────────────────────────────
-
 bool Toolbar::init() {
   bool ok = true;
-
-  for (int i = 0; i < TotalButtons; ++i) {
+  for (int i = 0; i < TotalButtonsLocal; ++i) {
     const std::string path =
         AssetManager::toolIcon(std::string(kButtons[i].iconName) + ".png")
             .string();
     m_textures[i] = IMG_LoadTexture(m_renderer, path.c_str());
-    if (!m_textures[i]) {
-      SDL_Log("Toolbar: failed to load '%s': %s", path.c_str(), SDL_GetError());
+    if (!m_textures[i])
       ok = false;
-    }
   }
-
   {
     const std::string path =
         AssetManager::toolIcon("options-transparency-top.png").string();
     m_backgroundOpaqueIcon = IMG_LoadTexture(m_renderer, path.c_str());
-    if (!m_backgroundOpaqueIcon) {
-      SDL_Log("Toolbar: failed to load '%s': %s", path.c_str(), SDL_GetError());
+    if (!m_backgroundOpaqueIcon)
       ok = false;
-    }
   }
-
   {
     const std::string path =
         AssetManager::toolIcon("options-transparency-bottom.png").string();
     m_backgroundTransparentIcon = IMG_LoadTexture(m_renderer, path.c_str());
-    if (!m_backgroundTransparentIcon) {
-      SDL_Log("Toolbar: failed to load '%s': %s", path.c_str(), SDL_GetError());
+    if (!m_backgroundTransparentIcon)
       ok = false;
-    }
   }
-
   return ok;
 }
-
-// ─── Option panels ───────────────────────────────────────────────────────────
+// ─── Option panels ───────────────────────────────────────────────────────
 
 void Toolbar::renderSizeSquares(Editor &editor, ImDrawList *dl, ImVec2 origin,
                                 float optionWidth, float optionHeight,
@@ -160,7 +112,7 @@ void Toolbar::renderSizeSquares(Editor &editor, ImDrawList *dl, ImVec2 origin,
         std::clamp(std::min(cellH, cellW) * 0.04f * sizes[i], 2.0f, 10.0f);
     dl->AddRectFilled({center.x - half, center.y - half},
                       {center.x + half, center.y + half},
-                      selected ? Theme::WHITE : Theme::BLACK);
+                      selected ? Theme::White : Theme::Black);
 
     ImGui::SetCursorScreenPos(btnMin);
     ImGui::PushID(i + 900);
@@ -221,22 +173,22 @@ void Toolbar::renderBrushShapes(Editor &editor, ImDrawList *dl, ImVec2 origin,
     switch (row) {
     case 0:
       dl->AddCircleFilled(center, radius,
-                          selected ? Theme::WHITE : Theme::BLACK);
+                          selected ? Theme::White : Theme::Black);
       break;
     case 1:
       dl->AddRectFilled({center.x - radius, center.y - radius},
                         {center.x + radius, center.y + radius},
-                        selected ? Theme::WHITE : Theme::BLACK);
+                        selected ? Theme::White : Theme::Black);
       break;
     case 2:
       dl->AddLine({center.x - radius, center.y + radius},
                   {center.x + radius, center.y - radius},
-                  selected ? Theme::WHITE : Theme::BLACK, thickness);
+                  selected ? Theme::White : Theme::Black, thickness);
       break;
     case 3:
       dl->AddLine({center.x - radius, center.y - radius},
                   {center.x + radius, center.y + radius},
-                  selected ? Theme::WHITE : Theme::BLACK, thickness);
+                  selected ? Theme::White : Theme::Black, thickness);
       break;
     }
 
@@ -319,7 +271,7 @@ void Toolbar::renderLineWidths(Editor &editor, ImDrawList *dl, ImVec2 origin,
     if (selected)
       dl->AddRectFilled(btnMin, btnMax, Theme::OptionHovered);
     dl->AddLine({btnMin.x + 6.f, center.y}, {btnMax.x - 6.f, center.y},
-                selected ? Theme::WHITE : Theme::BLACK, kWidths[i]);
+                selected ? Theme::White : Theme::Black, kWidths[i]);
 
     ImGui::SetCursorScreenPos(btnMin);
     ImGui::PushID(i + 500);
@@ -360,7 +312,7 @@ void Toolbar::renderAirbrushSizes(Editor &editor, ImDrawList *dl, ImVec2 origin,
       float ang = rnd() * 6.2831853f;
       float r = rnd() * radius;
       dl->AddCircleFilled({c.x + std::cos(ang) * r, c.y + std::sin(ang) * r},
-                          1.f, selected ? Theme::WHITE : Theme::BLACK);
+                          1.f, selected ? Theme::White : Theme::Black);
     }
 
     ImGui::SetCursorScreenPos(btnMin);
@@ -395,7 +347,7 @@ void Toolbar::renderZoomLevels(Editor &editor, ImDrawList *dl, ImVec2 origin,
     ImVec2 textSize = ImGui::CalcTextSize(label);
     ImVec2 textPos = {(btnMin.x + btnMax.x - textSize.x) * 0.5f,
                       (btnMin.y + btnMax.y - textSize.y) * 0.5f};
-    dl->AddText(textPos, selected ? Theme::WHITE : Theme::BLACK, label);
+    dl->AddText(textPos, selected ? Theme::White : Theme::Black, label);
 
     ImGui::SetCursorScreenPos(btnMin);
     ImGui::PushID(i + 800);
@@ -448,142 +400,109 @@ void Toolbar::renderBackgroundModeIcons(Editor &editor, ImDrawList *dl,
     ImGui::PopID();
   }
 }
+// ─── Options dispatcher — now positioned via the ToolbarMetrics-derived box
+void Toolbar::renderOptions(Editor &editor, ImDrawList *dl,
+                            const PanelRect &box) {
+  ImVec2 boxMin = {box.x, box.y};
+  ImVec2 boxMax = {box.x + box.width, box.y + box.height};
+  dl->AddRectFilled(boxMin, boxMax, Theme::WindowBg);
+  BorderRenderer::Sunken(dl, boxMin, boxMax);
 
-// ─── Options dispatcher
-// ───────────────────────────────────────────────────────
-
-void Toolbar::renderOptions(Editor &editor, ImDrawList *dl) {
-  ImVec2 winPos = ImGui::GetWindowPos();
-  float boxX = winPos.x + 4.f;
-  float boxY = winPos.y + 222.f;
-  float boxW = 58.f;
-  float boxH = 80.f;
-
-  ImVec2 boxMin = {boxX, boxY};
-  ImVec2 boxMax = {boxX + boxW, boxY + boxH};
-  dl->AddRectFilled(boxMin, boxMax, IM_COL32(192, 192, 192, 255));
-  sunkenBorder(dl, boxMin, boxMax);
-
-  ImVec2 inner = {boxX, boxY};
   static constexpr int kEraserSizes[] = {4, 6, 8, 10};
 
   switch (editor.getActiveTool()) {
   case ToolType::Eraser:
-    renderSizeSquares(editor, dl, inner, boxW, boxH, kEraserSizes, 4);
+    renderSizeSquares(editor, dl, boxMin, box.width, box.height, kEraserSizes,
+                      4);
     break;
   case ToolType::Line:
   case ToolType::Curve:
-    renderLineWidths(editor, dl, inner, boxW, boxH);
+    renderLineWidths(editor, dl, boxMin, box.width, box.height);
     break;
   case ToolType::Airbrush:
-    renderAirbrushSizes(editor, dl, inner, boxW, boxH);
+    renderAirbrushSizes(editor, dl, boxMin, box.width, box.height);
     break;
   case ToolType::Brush:
-    renderBrushShapes(editor, dl, inner, boxW, boxH);
+    renderBrushShapes(editor, dl, boxMin, box.width, box.height);
     break;
   case ToolType::Rectangle:
   case ToolType::Ellipse:
   case ToolType::RoundedRectangle:
   case ToolType::Polygon:
-    renderFillModes(editor, dl, inner, boxW, boxH);
+    renderFillModes(editor, dl, boxMin, box.width, box.height);
     break;
   case ToolType::FreeSelect:
   case ToolType::RectSelect:
   case ToolType::Text:
-    renderBackgroundModeIcons(editor, dl, inner, boxW, boxH,
+    renderBackgroundModeIcons(editor, dl, boxMin, box.width, box.height,
                               editor.getToolSettings().backgroundMode);
     break;
   case ToolType::Magnifier:
-    renderZoomLevels(editor, dl, inner, boxW, boxW);
+    renderZoomLevels(editor, dl, boxMin, box.width, box.width);
     break;
   default:
     break;
   }
 }
 
-float Toolbar::preferredWidth() const { return UI::Layout::ToolbarWidth; }
+// ─── Main render — fully driven by LayoutMetrics::toolbarMetrics ────────
+void Toolbar::render(Editor &editor, const LayoutMetrics &layout) {
+  const ToolbarMetrics &tm = layout.toolbarMetrics;
+  const PanelRect &rect = layout.toolbar;
 
-// ─── Main render ─────────────────────────────────────────────────────────────
+  RetroWindowDesc desc;
+  desc.pos = {rect.x, rect.y + 4.f};
+  desc.size = {rect.width + tm.leftInset, rect.height - 6.f};
+  desc.itemSpacing = {tm.buttonGap, tm.buttonGap};
+  desc.framePadding = {1.f, 1.f};
 
-void Toolbar::render(Editor &editor) {
-  constexpr int kColumns = 2;
-  constexpr int kRows = 8;
-  constexpr float kButtonSize = 24.f;
-  constexpr float kButtonGap = 1.f;
-  constexpr float kRibbonHeight = 22.f;
-  constexpr float kLeftInset = 4.f;
+  RetroWindow win("ToolbarGrid", desc);
+  ImDrawList *dl = win.drawList();
 
-  constexpr ImGuiWindowFlags kFlags =
-      ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
-      ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar |
-      ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
-
-  ImGuiViewport *vp = ImGui::GetMainViewport();
-  ImGui::SetNextWindowPos({vp->Pos.x, vp->Pos.y + kRibbonHeight},
-                          ImGuiCond_Always);
-  ImGui::SetNextWindowSize({toolMax.x, vp->Size.y * 0.849f}, ImGuiCond_Always);
-
-  ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, {0.f, 0.f});
-  ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {2.f, 0.f});
-  ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {kButtonGap, kButtonGap});
-  ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {1.f, 1.f});
-
-  ImGui::PushStyleColor(ImGuiCol_WindowBg, Theme::ToolbarBg);
-  ImGui::PushStyleColor(ImGuiCol_Text, Theme::TextColor);
-  ImGui::PushStyleColor(ImGuiCol_Button, Theme::ButtonBg);
-  ImGui::PushStyleColor(ImGuiCol_ButtonHovered, Theme::ButtonHover);
-  ImGui::PushStyleColor(ImGuiCol_ButtonActive, Theme::ButtonActive);
-
-  ImGui::Begin("ToolbarGrid", nullptr, kFlags);
-  ImDrawList *dl = ImGui::GetWindowDrawList();
-
-  ImGui::SetCursorPosX(ImGui::GetCursorPosX() + kLeftInset);
+  ImGui::SetCursorPosX(ImGui::GetCursorPosX() + tm.leftInset);
   const float startX = ImGui::GetCursorPosX();
 
-  for (int i = 0; i < kColumns * kRows; ++i) {
+  for (int i = 0; i < tm.columns * tm.rows; ++i) {
     ImGui::PushID(i);
 
-    if (i && (i % kColumns) == 0)
+    if (i && (i % tm.columns) == 0)
       ImGui::SetCursorPosX(startX);
 
-    ImGui::ImageButton("##icon", (ImTextureID)m_textures[i],
-                       {kButtonSize, kButtonSize}, {0.f, 0.f}, {1.f, 1.f},
-                       ImVec4(0, 0, 0, 0));
+    if (i < TotalButtonsLocal) {
+      ImGui::ImageButton("##icon", (ImTextureID)m_textures[i],
+                         {tm.buttonSize, tm.buttonSize}, {0.f, 0.f}, {1.f, 1.f},
+                         ImVec4(0, 0, 0, 0));
 
-    ImVec2 min = ImGui::GetItemRectMin();
-    ImVec2 max = ImGui::GetItemRectMax();
+      ImVec2 min = ImGui::GetItemRectMin();
+      ImVec2 max = ImGui::GetItemRectMax();
 
-    const bool active = (m_activeTool == kButtons[i].type);
+      const bool active = (m_activeTool == kButtons[i].type);
 
-    if (ImGui::IsItemClicked())
-      m_activeTool = kButtons[i].type;
+      if (ImGui::IsItemClicked())
+        m_activeTool = kButtons[i].type;
 
-    if (ImGui::IsItemHovered())
-      HoverStatus::push(kButtons[i].messageKey);
+      if (ImGui::IsItemHovered())
+        HoverStatus::push(kButtons[i].messageKey);
 
-    if (ImGui::IsItemActive() || active)
-      sunkenBorder(dl, min, max, 1.5f);
-    else
-      raisedBorder(dl, min, max, 1.5f);
+      if (ImGui::IsItemActive() || active)
+        BorderRenderer::Sunken(dl, min, max, 1.5f);
+      else
+        BorderRenderer::Raised(dl, min, max, 1.5f);
+    } else {
+      // Grid cell with no assigned tool (future buttons) — reserve the
+      // space so layout stays stable, draw nothing.
+      ImGui::Dummy({tm.buttonSize, tm.buttonSize});
+    }
 
     ImGui::PopID();
 
-    if ((i + 1) % kColumns != 0)
+    if ((i + 1) % tm.columns != 0)
       ImGui::SameLine();
   }
 
-  renderOptions(editor, dl);
+  renderOptions(editor, dl, tm.optionsBox);
 
-  ImVec2 winMin = ImGui::GetWindowPos();
-  ImVec2 winMax = {winMin.x + ImGui::GetWindowWidth(),
-                   winMin.y + ImGui::GetWindowHeight()};
-
-  ImGui::End();
-
-  raisedBorder(dl, winMin, winMax);
-
-  ImGui::PopStyleColor(5);
-  ImGui::PopStyleVar(4);
+  BorderRenderer::Raised(dl, win.min(), win.max());
 }
 
 } // namespace UI

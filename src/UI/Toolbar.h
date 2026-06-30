@@ -1,6 +1,7 @@
 #pragma once
 #include "App/Globals.h"
 #include "Editor/Editor.h"
+#include "UI/LayoutEngine/LayoutMetrics.h"
 #include "imgui.h"
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_rect.h>
@@ -13,7 +14,6 @@ class Toolbar {
 private:
   int m_w = 0;
   int m_h = 0;
-  static constexpr int optionIcons = 2;
   static constexpr int TotalButtons = 16;
   SDL_Texture *m_textures[TotalButtons] = {nullptr};
   SDL_Texture *m_backgroundTransparentIcon = nullptr;
@@ -21,12 +21,7 @@ private:
   SDL_Renderer *m_renderer = nullptr;
   ToolType m_activeTool = ToolType::Pencil;
 
-  void raisedBorder(ImDrawList *dl, ImVec2 min, ImVec2 max,
-                    float thickness = 1.f);
-  void sunkenBorder(ImDrawList *dl, ImVec2 min, ImVec2 max,
-                    float thickness = 1.f);
-
-  void renderOptions(Editor &editor, ImDrawList *dl);
+  void renderOptions(Editor &editor, ImDrawList *dl, const PanelRect &box);
   void renderSizeSquares(Editor &editor, ImDrawList *dl, ImVec2 origin,
                          float optionWidth, float optionHeight,
                          const int *sizes, int count);
@@ -47,11 +42,12 @@ private:
 public:
   Toolbar(int w, int h, SDL_Renderer *renderer);
   ~Toolbar();
-  float preferredWidth() const;
-  ImVec2 toolMin = {0, 23};
-  ImVec2 toolMax = {66, 615};
   bool init();
-  void render(Editor &editor);
+
+  // Geometry now comes entirely from LayoutMetrics::toolbarMetrics —
+  // recomputed every frame by LayoutEngine, so resizing the window updates
+  // the toolbar on the very next frame with no extra plumbing.
+  void render(Editor &editor, const LayoutMetrics &layout);
 
   ToolType getActiveTool() const { return m_activeTool; }
 };

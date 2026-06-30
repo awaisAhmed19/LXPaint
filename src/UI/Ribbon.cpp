@@ -1,6 +1,9 @@
 #include "Ribbon.h"
+#include "BorderRenderer.h"
 #include "FooterMessages.h"
+#include "RetroWindow.h"
 #include "Systems/Logger.h"
+#include "Theme.h"
 #include "UI/LayoutEngine/UILayoutConstant.h"
 #include "imgui.h"
 #include <array>
@@ -8,16 +11,6 @@
 #include "Editor/Editor.h"
 
 namespace UI {
-
-namespace Theme {
-constexpr ImU32 BLACK = IM_COL32(0, 0, 0, 255);
-constexpr ImU32 WHITE = IM_COL32(255, 255, 255, 255);
-constexpr ImU32 RibbonBg = IM_COL32(192, 192, 192, 255);
-constexpr ImU32 ButtonBg = IM_COL32(192, 192, 192, 255);
-constexpr ImU32 ButtonHover = IM_COL32(210, 210, 210, 255);
-constexpr ImU32 ButtonActive = IM_COL32(150, 150, 150, 255);
-constexpr ImU32 TextColor = IM_COL32(0, 0, 0, 255);
-} // namespace Theme
 
 Ribbon::Ribbon(int w, int h) : m_w(w), m_h(h) { buildMenus(); }
 
@@ -145,18 +138,18 @@ void Ribbon::buildMenus() {
   Logger::debug("Building ribbon menus");
 }
 
-void Ribbon::raisedBorder(ImDrawList *dl, ImVec2 min, ImVec2 max, float) {
-  dl->AddLine(min, {max.x, min.y}, Theme::WHITE, 1.0f);
-  dl->AddLine(min, {min.x, max.y}, Theme::WHITE, 1.0f);
-  dl->AddLine({min.x, max.y}, max, Theme::BLACK, 1.0f);
-  dl->AddLine({max.x, min.y}, max, Theme::BLACK, 1.0f);
+// Ribbon::raisedBorder / sunkenBorder are kept as thin forwarders to the
+// shared BorderRenderer so the existing header API (and anything that may
+// still call these members directly) keeps working, without Ribbon owning
+// its own bevel-drawing logic anymore.
+void Ribbon::raisedBorder(ImDrawList *dl, ImVec2 min, ImVec2 max,
+                          float thickness) {
+  BorderRenderer::Raised(dl, min, max, thickness);
 }
 
-void Ribbon::sunkenBorder(ImDrawList *dl, ImVec2 min, ImVec2 max, float) {
-  dl->AddLine(min, {max.x, min.y}, Theme::BLACK, 1.0f);
-  dl->AddLine(min, {min.x, max.y}, Theme::BLACK, 1.0f);
-  dl->AddLine({min.x, max.y}, max, Theme::WHITE, 1.0f);
-  dl->AddLine({max.x, min.y}, max, Theme::WHITE, 1.0f);
+void Ribbon::sunkenBorder(ImDrawList *dl, ImVec2 min, ImVec2 max,
+                          float thickness) {
+  BorderRenderer::Sunken(dl, min, max, thickness);
 }
 
 void Ribbon::layout(const ImGuiViewport *vp) {
@@ -167,103 +160,98 @@ void Ribbon::layout(const ImGuiViewport *vp) {
 float Ribbon::preferredHeight() const { return UI::Layout::RibbonHeight; }
 
 void Ribbon::render(Editor &editor) {
-  constexpr float kBorderThickness = 1.f;
   constexpr float kRibbonButtonHeight = 21.f;
   constexpr float kButtonPadX = 10.f;
-  constexpr ImVec2 kFramePadding{10.f, 2.f};
-  constexpr ImVec2 kWindowPadding{0.f, 0.f};
   constexpr ImVec2 kItemSpacing{2.f, 0.f};
-
-  constexpr ImGuiWindowFlags kWindowFlags =
-      ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
-      ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar |
-      ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
 
   ImGuiViewport *vp = ImGui::GetMainViewport();
   layout(vp);
 
-  ImGui::SetNextWindowPos({m_rect.x, m_rect.y}, ImGuiCond_Always);
-  ImGui::SetNextWindowSize({m_rect.w, m_rect.h}, ImGuiCond_Always);
+  // ── Window ───────────────────────────────────────────────────────────
+  // Replaces the manual PushStyleVar×4 / PushStyleColor×5 / Begin / End /
+  // Pop sequence with the shared RAII wrapper.
+  RetroWindowDesc desc;
+  desc.pos = {m_rect.x, m_rect.y};
+  desc.size = {m_rect.w, m_rect.h};
+  desc.itemSpacing = kItemSpacing;
+  desc.framePadding = {10.f, 2.f};
+  desc.bg = Theme::WindowBg;
+  desc.text = Theme::TextColor;
 
-  ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, {0.f, 0.f});
-  ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, kWindowPadding);
-  ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, kItemSpacing);
-  ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, kFramePadding);
-  ImGui::PushStyleColor(ImGuiCol_WindowBg, Theme::RibbonBg);
-  ImGui::PushStyleColor(ImGuiCol_Text, Theme::TextColor);
-  ImGui::PushStyleColor(ImGuiCol_Button, Theme::ButtonBg);
-  ImGui::PushStyleColor(ImGuiCol_ButtonHovered, Theme::ButtonHover);
-  ImGui::PushStyleColor(ImGuiCol_ButtonActive, Theme::ButtonActive);
+  ImVec2 winMin, winMax;
+  ImDrawList *dl = nullptr;
 
-  ImGui::Begin("Ribbon", nullptr, kWindowFlags);
-  ImDrawList *dl = ImGui::GetWindowDrawList();
+  {
+    RetroWindow win("Ribbon", desc);
+    dl = win.drawList();
 
-  if (ImGui::IsKeyPressed(ImGuiKey_Escape)) {
-    for (auto &d : m_dropdowns)
-      d.close();
-    m_activeDropdown = -1;
-  }
-
-  const ImVec2 mousePos = ImGui::GetMousePos();
-
-  // Sync View menu checkbox states
-  if (m_dropdowns.size() > 2) {
-    m_dropdowns[2].setChecked(0, editor.isToolboxVisible());
-    m_dropdowns[2].setChecked(1, editor.isPaletteVisible());
-    m_dropdowns[2].setChecked(2, editor.isStatusBarVisible());
-  }
-
-  float cursorX = m_rect.x + 4.f;
-
-  for (int i = 0; i < static_cast<int>(m_dropdowns.size()); ++i) {
-    Dropdown &d = m_dropdowns[i];
-
-    const ImVec2 labelSize = ImGui::CalcTextSize(d.title().c_str());
-    const float btnW = labelSize.x + kButtonPadX * 2.f;
-    const float btnH = kRibbonButtonHeight;
-
-    ImVec2 btnMin = {cursorX, m_rect.y};
-    ImVec2 btnMax = {cursorX + btnW, m_rect.y + btnH};
-
-    const bool isActive = (m_activeDropdown == i);
-    const bool clicked = d.renderRibbonButton(dl, btnMin, btnMax, isActive);
-
-    const bool hovered = mousePos.x >= btnMin.x && mousePos.x < btnMax.x &&
-                         mousePos.y >= btnMin.y && mousePos.y < btnMax.y;
-
-    if (clicked) {
-      if (m_activeDropdown >= 0 && m_activeDropdown != i)
-        m_dropdowns[m_activeDropdown].close();
-      if (isActive) {
+    if (ImGui::IsKeyPressed(ImGuiKey_Escape)) {
+      for (auto &d : m_dropdowns)
         d.close();
-        m_activeDropdown = -1;
-      } else {
+      m_activeDropdown = -1;
+    }
+
+    const ImVec2 mousePos = ImGui::GetMousePos();
+
+    // Sync View menu checkbox states
+    if (m_dropdowns.size() > 2) {
+      m_dropdowns[2].setChecked(0, editor.isToolboxVisible());
+      m_dropdowns[2].setChecked(1, editor.isPaletteVisible());
+      m_dropdowns[2].setChecked(2, editor.isStatusBarVisible());
+    }
+
+    float cursorX = m_rect.x + 4.f;
+
+    for (int i = 0; i < static_cast<int>(m_dropdowns.size()); ++i) {
+      Dropdown &d = m_dropdowns[i];
+
+      const ImVec2 labelSize = ImGui::CalcTextSize(d.title().c_str());
+      const float btnW = labelSize.x + kButtonPadX * 2.f;
+      const float btnH = kRibbonButtonHeight;
+
+      ImVec2 btnMin = {cursorX, m_rect.y};
+      ImVec2 btnMax = {cursorX + btnW, m_rect.y + btnH};
+
+      const bool isActive = (m_activeDropdown == i);
+      const bool clicked = d.renderRibbonButton(dl, btnMin, btnMax, isActive);
+
+      const bool hovered = mousePos.x >= btnMin.x && mousePos.x < btnMax.x &&
+                           mousePos.y >= btnMin.y && mousePos.y < btnMax.y;
+
+      if (clicked) {
+        if (m_activeDropdown >= 0 && m_activeDropdown != i)
+          m_dropdowns[m_activeDropdown].close();
+        if (isActive) {
+          d.close();
+          m_activeDropdown = -1;
+        } else {
+          d.open();
+          m_activeDropdown = i;
+        }
+      } else if (hovered && m_activeDropdown >= 0 && m_activeDropdown != i) {
+        m_dropdowns[m_activeDropdown].close();
         d.open();
         m_activeDropdown = i;
       }
-    } else if (hovered && m_activeDropdown >= 0 && m_activeDropdown != i) {
-      m_dropdowns[m_activeDropdown].close();
-      d.open();
-      m_activeDropdown = i;
+
+      cursorX += btnW + kItemSpacing.x;
     }
 
-    cursorX += btnW + kItemSpacing.x;
+    winMin = win.min();
+    winMax = win.max();
+
+    // RetroWindow's destructor (end of this scope) calls ImGui::End() and
+    // pops the pushed style vars/colors — the border below is drawn after
+    // that point, exactly as the original drew it after ImGui::End().
   }
 
-  const ImVec2 winMin = ImGui::GetWindowPos();
-  const ImVec2 winMax = {winMin.x + ImGui::GetWindowWidth(),
-                         winMin.y + ImGui::GetWindowHeight()};
+  BorderRenderer::Raised(dl, winMin, winMax);
 
-  ImGui::End();
-  raisedBorder(dl, winMin, winMax, kBorderThickness);
-
-  ImGui::PopStyleColor(5);
-  ImGui::PopStyleVar(4);
-
-  // ── Render open dropdown panel ────────────────────────────────────────────
+  // ── Render open dropdown panel ────────────────────────────────────────
 
   if (m_activeDropdown >= 0) {
     Dropdown &d = m_dropdowns[m_activeDropdown];
+    const ImVec2 mousePos = ImGui::GetMousePos();
 
     float cx = m_rect.x + 4.f;
     for (int j = 0; j < m_activeDropdown; ++j)

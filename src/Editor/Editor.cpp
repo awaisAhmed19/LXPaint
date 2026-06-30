@@ -683,7 +683,15 @@ void Editor::setFullscreen(bool fullscreen) {
   m_fullscreen = fullscreen;
   Logger::debug(std::format("Fullscreen: {}", fullscreen));
 }
-void Editor::update() { m_input.beginFrame(); }
+void Editor::update() {
+  m_input.beginFrame();
+  vec2 screenPos = m_input.getMouseScreenPos();
+  vec2 canvasPos = m_viewport.screenToCanvas(screenPos, m_docTransform);
+
+  m_mouseOverCanvas = inCanvas(canvasPos);
+  if (m_mouseOverCanvas)
+    m_lastCanvasMousePos = canvasPos;
+}
 
 void Editor::render() {
   m_renderer.renderTarget(m_document.getCanvas(), m_viewport, m_docTransform);

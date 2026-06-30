@@ -108,6 +108,16 @@ void Application::handleEvents() {
 }
 
 void Application::render() {
+  // Recompute layout from the *current* window size every frame, rather
+  // than relying solely on SDL_EVENT_WINDOW_RESIZED firing. This is what
+  // makes the whole UI (toolbar included) "fully responsive": dragging a
+  // window border on some platforms doesn't reliably pump resize events
+  // every intermediate frame, but render() always runs.
+  auto size = m_window->size();
+  m_layoutEngine->update(size.width, size.height);
+  const auto &layout = m_layoutEngine->layout();
+  m_editor->setViewportRect({layout.viewport.x, layout.viewport.y,
+                             layout.viewport.width, layout.viewport.height});
   ImGui_ImplSDLRenderer3_NewFrame();
   ImGui_ImplSDL3_NewFrame();
   ImGui::NewFrame();
@@ -120,7 +130,7 @@ void Application::render() {
   m_ribbon->render(*m_editor);
 
   if (m_editor->isToolboxVisible())
-    m_toolbar->render(*m_editor);
+    m_toolbar->render(*m_editor, layout);
 
   if (m_editor->isPaletteVisible())
     m_colorpalette->render();
@@ -128,17 +138,21 @@ void Application::render() {
   if (m_editor->isStatusBarVisible())
     m_footer->render();
 
-  if (m_editor->wasColorSampled()) {
-    m_colorpalette->setFgColor(m_editor->getFgColor(),
-                               UI::ColorPalette::HexFormat::AARRGGBB);
-    m_colorpalette->setBgColor(m_editor->getBgColor(),
-                               UI::ColorPalette::HexFormat::AARRGGBB);
-    m_editor->clearColorSampled();
+  if (m_editor->isStatusBarVisible()) {
+    // Wire live canvas coordinates into the footer (was never connected
+    // before — Footer::setMousePos existed but nothing called it).
+    if (m_editor->isMouseOverCanvas()) {
+      vec2 p = m_editor->getCanvasMousePos();
+      m_footer->setMousePos((int)p.x, (int)p.y);
+    } else {
+      m_footer->setMousePos(-1, -1);
+    }
+    m_footer->setCanvasSize(m_editor->getCanvasWidth(),
+                            m_editor->getCanvasHeight());
+    m_footer->render();
   }
   m_editor->setFgColor(UI::ColorPalette::toU32(m_colorpalette->getFgColor()));
   m_editor->setBgColor(UI::ColorPalette::toU32(m_colorpalette->getBgColor()));
-
-  // ── Dialog rendering — MUST be last so it draws on top of everything ──
   m_dialogManager.render();
 
   ImGui::Render();

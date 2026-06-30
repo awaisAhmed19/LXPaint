@@ -35,7 +35,8 @@ private:
   bool m_toolboxVisible = true;
   bool m_paletteVisible = true;
   bool m_statusBarVisible = true;
-
+  bool m_mouseOverCanvas = false;
+  vec2 m_lastCanvasMousePos{0.f, 0.f};
   uint32_t m_fgColor = COLORS::BLACK;
   uint32_t m_bgColor = COLORS::WHITE;
   bool m_colorSampledThisFrame = false;
@@ -149,6 +150,7 @@ public:
   // ── Helpers ───────────────────────────────────────────────────────────────
   vec2 clampToCanvas(vec2 p);
   bool inCanvas(vec2 mousePos);
-
+  bool isMouseOverCanvas() const { return m_mouseOverCanvas; }
+  vec2 getCanvasMousePos() const { return m_lastCanvasMousePos; }
   bool isModified() const { return m_document.isModified(); }
 };
